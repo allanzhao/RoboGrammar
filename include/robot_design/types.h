@@ -4,7 +4,7 @@
 
 namespace robot_design {
 
-using Index = unsigned int;
+using Index = int;
 using Scalar = double;
 using Vector3 = Eigen::Vector<Scalar, 3>;
 using Vector4 = Eigen::Vector<Scalar, 4>;
