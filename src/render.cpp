@@ -22,8 +22,8 @@ GLFWRenderer::~GLFWRenderer() {
 }
 
 void GLFWRenderer::render(Simulation &sim) {
-  glClearColor(0.5, 0.8, 0.8, 1.0);
   while (!glfwWindowShouldClose(window_)) {
+    glClearColor(0.5f, 0.8f, 0.8f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
     glfwSwapBuffers(window_);
     glfwPollEvents();

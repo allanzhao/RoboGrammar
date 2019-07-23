@@ -18,8 +18,10 @@ file(GLOB_RECURSE BULLET_SOURCES
 set(EIGEN_INCLUDE_DIRS extern/eigen)
 
 find_package(GLEW 1.13 REQUIRED)
-find_package(glfw3 3.1 REQUIRED)
 find_package(OpenGL REQUIRED)
+
+set(GLFW_ROOT extern/glfw)
+add_subdirectory(${GLFW_ROOT})
 
 include_directories(
     include
@@ -39,5 +41,6 @@ add_executable(RobotDesign
 
 target_link_libraries(RobotDesign PRIVATE
     glfw
+    ${GLFW_LIBRARIES}
     ${OPENGL_LIBRARIES}
 )
