@@ -40,7 +40,7 @@ void BulletSimulation::addRobot(std::shared_ptr<const Robot> robot) {
           /*canSleep=*/false);
       wrapper.multi_body_->setBaseWorldTransform(btTransform::getIdentity());
     } else {
-      btQuaternion joint_rot(0, 0, 0, 1);  // TODO
+      btQuaternion joint_rot = bulletQuaternionFromEigen(link.joint_rot_);
       btVector3 joint_axis = bulletVector3FromEigen(link.joint_axis_);
       btVector3 joint_offset((link.joint_pos_ - 0.5) * robot->links_[link.parent_].length_, 0, 0);
       btVector3 com_offset(0.5 * link.length_, 0, 0);

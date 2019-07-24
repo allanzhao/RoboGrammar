@@ -38,12 +38,14 @@ int main(int argc, char **argv) {
   // Create a snake robot
   std::shared_ptr<Robot> robot = std::make_shared<Robot>();
   for (Index i = 0; i < 5; ++i) {
+    Quaternion joint_rot(Eigen::AngleAxis<Scalar>(M_PI / 2, Vector3::UnitZ()) *
+                         Eigen::AngleAxis<Scalar>(0.0, Vector3::UnitY()) *
+                         Eigen::AngleAxis<Scalar>(0.0, Vector3::UnitX()));
     robot->links_.emplace_back(
         /*parent=*/i - 1,
         /*joint_type=*/(i == 0) ? JointType::FREE : JointType::HINGE,
         /*joint_pos=*/1.0,
-        /*joint_roll=*/0.0,
-        /*joint_pitch=*/0.0,
+        /*joint_rot=*/joint_rot,
         /*joint_axis=*/Vector3{0.0, 0.0, 1.0},
         /*length=*/1.0);
   }
