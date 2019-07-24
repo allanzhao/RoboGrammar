@@ -7,68 +7,35 @@
 
 namespace robot_design {
 
-enum class JointType : Index { FREE, HINGE };
+enum class JointType : Index { FREE, HINGE, FIXED };
 
-enum class ShapeType : Index { BOX };
+struct Link {
+  Link(Index parent, JointType joint_type, Scalar joint_pos, Scalar joint_yaw,
+       Scalar joint_pitch, const Vector3 &joint_axis, Scalar length)
+      : parent_(parent), joint_type_(joint_type), joint_pos_(joint_pos),
+        joint_yaw_(joint_yaw), joint_pitch_(joint_pitch),
+        joint_axis_(joint_axis), length_(length) {}
 
-struct Joint {
-  Joint(Index parent, JointType type, const Vector3 &pos, const Vector4 &rot)
-      : parent_(parent), type_(type), pos_(pos), rot_(rot) {}
-
-  // Parent joint (-1 for root joints)
+  // Parent link index (-1 for base link)
   Index parent_;
   // Joint type
-  JointType type_;
-  // Position relative to the parent joint
-  Vector3 pos_;
-  // Rotation relative to the parent joint
-  Vector4 rot_;
-
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-};
-
-struct Body {
-  Body(Index joint, const Vector3 &pos, const Vector4 &rot, Scalar mass,
-      const Vector3 &inertia)
-      : joint_(joint), pos_(pos), rot_(rot), mass_(mass), inertia_(inertia) {}
-
-  // Parent joint
-  Index joint_;
-  // Position relative to the parent joint
-  Vector3 pos_;
-  // Rotation relative to the parent joint
-  Vector4 rot_;
-  // Mass
-  Scalar mass_;
-  // Inertia matrix diagonal entries
-  Vector3 inertia_;
-
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-};
-
-struct Shape {
-  Shape(Index body, ShapeType type, const Vector3 &pos, const Vector4 &rot,
-      const Vector3 &half_size)
-      : body_(body), type_(type), pos_(pos), rot_(rot), half_size_(half_size) {}
-
-  // Parent body
-  Index body_;
-  // Shape type
-  ShapeType type_;
-  // Position relative to the parent body
-  Vector3 pos_;
-  // Rotation relative to the parent body
-  Vector4 rot_;
-  // Half the size in each axis
-  Vector3 half_size_;
+  JointType joint_type_;
+  // Joint position on parent link (0 = beginning, 1 = end)
+  Scalar joint_pos_;
+  // Joint yaw relative to parent link
+  Scalar joint_yaw_;
+  // Joint pitch relative to parent link
+  Scalar joint_pitch_;
+  // Joint axis relative to the joint frame (defined by previous 3 parameters)
+  Vector3 joint_axis_;
+  // Link length
+  Scalar length_;
 
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
 
 struct Robot {
-  std::vector<Joint, Eigen::aligned_allocator<Joint>> joints_;
-  std::vector<Body, Eigen::aligned_allocator<Body>> bodies_;
-  std::vector<Shape, Eigen::aligned_allocator<Shape>> shapes_;
+  std::vector<Link, Eigen::aligned_allocator<Link>> links_;
 };
 
 }  // namespace drbs
