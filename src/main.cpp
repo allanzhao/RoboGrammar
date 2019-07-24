@@ -35,20 +35,20 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  // Create a snake
+  // Create a snake robot
   std::shared_ptr<Robot> robot = std::make_shared<Robot>();
-  for (Index i = 0; i < 3; ++i) {
+  for (Index i = 0; i < 5; ++i) {
     robot->links_.emplace_back(
         /*parent=*/i - 1,
         /*joint_type=*/(i == 0) ? JointType::FREE : JointType::HINGE,
         /*joint_pos=*/1.0,
-        /*joint_yaw=*/0.0,
+        /*joint_roll=*/0.0,
         /*joint_pitch=*/0.0,
         /*joint_axis=*/Vector3{0.0, 0.0, 1.0},
         /*length=*/1.0);
   }
 
-  std::shared_ptr<BulletSimulation> sim = std::make_shared<BulletSimulation>();
+  std::shared_ptr<BulletSimulation> sim = std::make_shared<BulletSimulation>(10.0, 0.05);
   sim->addRobot(robot);
   GLFWRenderer renderer;
   renderer.render(*sim);
