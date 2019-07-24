@@ -4,9 +4,10 @@
 
 namespace robot_design {
 
-BulletSimulation::BulletSimulation(Scalar link_density, Scalar link_radius)
+BulletSimulation::BulletSimulation(Scalar link_density, Scalar link_radius,
+                                   Scalar friction)
     : link_density_(link_density), link_radius_(link_radius),
-      robot_wrappers_() {
+      friction_(friction), robot_wrappers_() {
   collision_config_ = std::make_shared<btDefaultCollisionConfiguration>();
   dispatcher_ = std::make_shared<btCollisionDispatcher>(collision_config_.get());
   pair_cache_ = std::make_shared<btHashedOverlappingPairCache>();
@@ -79,18 +80,32 @@ void BulletSimulation::addRobot(std::shared_ptr<const Robot> robot) {
   wrapper.multi_body_->setAngularDamping(0.0);
 
   // Add collision shapes to world
-  /* TODO
   wrapper.colliders_.resize(wrapper.col_shapes_.size());
   for (int i = 0; i < wrapper.col_shapes_.size(); ++i) {
-    auto collider = std::make_shared<btMultiBodyLinkCollider>(wrapper.multi_body_, i - 1)
-  */
+    auto collider = std::make_shared<btMultiBodyLinkCollider>(
+        wrapper.multi_body_.get(), i - 1);
+    collider->setCollisionShape(wrapper.col_shapes_[i].get());
+    world_->addCollisionObject(collider.get(),
+                               /*collisionFilterGroup=*/1,
+                               /*collisionFilterMask=*/1);
+    collider->setFriction(friction_);
+    if (i == 0) {
+      wrapper.multi_body_->setBaseCollider(collider.get());
+    } else {
+      wrapper.multi_body_->getLink(i - 1).m_collider = collider.get();
+    }
+    wrapper.colliders_[i] = std::move(collider);
+  }
 
+  // Initialize collision object world transforms
   btAlignedObjectArray<btQuaternion> scratch_q;
   btAlignedObjectArray<btVector3> scratch_m;
   wrapper.multi_body_->forwardKinematics(scratch_q, scratch_m);
   btAlignedObjectArray<btQuaternion> world_to_local;
   btAlignedObjectArray<btVector3> local_origin;
   wrapper.multi_body_->updateCollisionObjectWorldTransforms(world_to_local, local_origin);
+
+  // TODO: debug
   for (int i = 0; i < robot->links_.size() - 1; ++i) {
     std::cout << "Link " << i << ":" << std::endl;
     const btVector3 &origin = wrapper.multi_body_->getLink(i).m_cachedWorldTransform.getOrigin();

@@ -3,6 +3,7 @@
 #include <btBulletDynamicsCommon.h>
 #include <BulletDynamics/Featherstone/btMultiBodyConstraintSolver.h>
 #include <BulletDynamics/Featherstone/btMultiBodyDynamicsWorld.h>
+#include <BulletDynamics/Featherstone/btMultiBodyLinkCollider.h>
 #include <memory>
 #include <robot_design/robot.h>
 #include <robot_design/types.h>
@@ -25,13 +26,14 @@ struct BulletRobotWrapper {
 
 class BulletSimulation : public Simulation {
 public:
-  BulletSimulation(Scalar link_density, Scalar link_radius);
+  BulletSimulation(Scalar link_density, Scalar link_radius, Scalar friction);
   virtual void addRobot(std::shared_ptr<const Robot>) override;
   virtual void getTransform(Index item_id, Matrix4 *transform) const override;
 
 private:
   Scalar link_density_;  // Mass of links per unit of length
   Scalar link_radius_;
+  Scalar friction_;
   std::shared_ptr<btDefaultCollisionConfiguration> collision_config_;
   std::shared_ptr<btHashedOverlappingPairCache> pair_cache_;
   std::shared_ptr<btCollisionDispatcher> dispatcher_;

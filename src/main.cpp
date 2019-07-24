@@ -50,7 +50,10 @@ int main(int argc, char **argv) {
         /*length=*/1.0);
   }
 
-  std::shared_ptr<BulletSimulation> sim = std::make_shared<BulletSimulation>(10.0, 0.05);
+  std::shared_ptr<BulletSimulation> sim = std::make_shared<BulletSimulation>(
+      /*link_density=*/10.0,
+      /*link_radius=*/0.05,
+      /*friction=*/0.9);
   sim->addRobot(robot);
   GLFWRenderer renderer;
   renderer.render(*sim);
