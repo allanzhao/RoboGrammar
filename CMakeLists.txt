@@ -41,6 +41,7 @@ add_executable(RobotDesign
 
 target_link_libraries(RobotDesign PRIVATE
     glfw
+    ${GLEW_LIBRARIES}
     ${GLFW_LIBRARIES}
     ${OPENGL_LIBRARIES}
 )

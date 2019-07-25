@@ -13,6 +13,10 @@ GLFWRenderer::GLFWRenderer() {
   }
 
   glfwMakeContextCurrent(window_);
+  // Load all available extensions even if they are not in the extensions string
+  glewExperimental = GL_TRUE;
+  glewInit();
+
   glfwSetKeyCallback(window_, keyCallback);
 }
 
