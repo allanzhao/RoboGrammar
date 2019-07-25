@@ -22,4 +22,16 @@ inline Quaternion eigenQuaternionFromBullet(const btQuaternion &q) {
   return Quaternion(q.w(), q.x(), q.y(), q.z());
 }
 
+// Based on https://stackoverflow.com/questions/2590677/how-do-i-combine-hash-values-in-c0x
+inline std::size_t hashCombine(std::size_t seed) {
+  return seed;
+}
+
+template <typename T, typename... Rest>
+inline std::size_t hashCombine(std::size_t seed, const T &v, Rest... rest) {
+  std::hash<T> hasher;
+  seed ^= hasher(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+  return hashCombine(seed, rest...);
+}
+
 }  // namespace robot_design
