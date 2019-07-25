@@ -12,7 +12,8 @@ public:
   virtual ~GLFWRenderer();
   GLFWRenderer(const GLFWRenderer &other) = delete;
   GLFWRenderer &operator=(const GLFWRenderer &other) = delete;
-  void render(Simulation &sim);
+  void run(Simulation &sim);
+  void renderRobot(const Robot &robot, const Simulation &sim);
   static void keyCallback(GLFWwindow *window, int key, int scancode, int action,
                           int mods);
 

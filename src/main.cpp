@@ -56,6 +56,6 @@ int main(int argc, char **argv) {
       /*friction=*/0.9);
   sim->addRobot(robot);
   GLFWRenderer renderer;
-  renderer.render(*sim);
+  renderer.run(*sim);
 }
 

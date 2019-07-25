@@ -25,24 +25,34 @@ GLFWRenderer::~GLFWRenderer() {
   glfwTerminate();
 }
 
-void GLFWRenderer::render(Simulation &sim) {
+void GLFWRenderer::run(Simulation &sim) {
   double last_time = glfwGetTime();
   while (!glfwWindowShouldClose(window_)) {
     double current_time = glfwGetTime();
     sim.step(current_time - last_time);
     last_time = current_time;
 
-    glClearColor(0.5f, 0.8f, 0.8f, 1.0f);
+    glClearColor(0.8f, 0.8f, 0.8f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
+
+    for (Index i = 0; i < sim.getRobotCount(); ++i) {
+      renderRobot(*sim.getRobot(i), sim);
+    }
+
     glfwSwapBuffers(window_);
     glfwPollEvents();
+  }
+}
+
+void GLFWRenderer::renderRobot(const Robot &robot, const Simulation &sim) {
+  for (const auto &link : robot.links_) {
   }
 }
 
 void GLFWRenderer::keyCallback(GLFWwindow *window, int key, int scancode,
     int action, int mods) {
   if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
-    glfwSetWindowShouldClose(window, true);
+    glfwSetWindowShouldClose(window, GL_TRUE);
   }
 }
 
