@@ -7,7 +7,7 @@ namespace robot_design {
 BulletSimulation::BulletSimulation(Scalar link_density, Scalar link_radius,
                                    Scalar friction)
     : link_density_(link_density), link_radius_(link_radius),
-      friction_(friction), robot_wrappers_() {
+      friction_(friction), robot_wrappers_(), internal_time_step_(1. / 240) {
   collision_config_ = std::make_shared<btDefaultCollisionConfiguration>();
   dispatcher_ = std::make_shared<btCollisionDispatcher>(collision_config_.get());
   pair_cache_ = std::make_shared<btHashedOverlappingPairCache>();
@@ -16,6 +16,12 @@ BulletSimulation::BulletSimulation(Scalar link_density, Scalar link_radius,
   world_ = std::make_shared<btMultiBodyDynamicsWorld>(dispatcher_.get(),
       broadphase_.get(), solver_.get(), collision_config_.get());
   world_->setGravity(btVector3(0, -9.81, 0));
+}
+
+BulletSimulation::~BulletSimulation() {
+  for (auto &wrapper : robot_wrappers_) {
+    unregisterRobotWrapper(wrapper);
+  }
 }
 
 void BulletSimulation::addRobot(std::shared_ptr<const Robot> robot) {
@@ -79,7 +85,7 @@ void BulletSimulation::addRobot(std::shared_ptr<const Robot> robot) {
   wrapper.multi_body_->setLinearDamping(0.0);
   wrapper.multi_body_->setAngularDamping(0.0);
 
-  // Add collision shapes to world
+  // Add collision objects to world
   wrapper.colliders_.resize(wrapper.col_shapes_.size());
   for (int i = 0; i < wrapper.col_shapes_.size(); ++i) {
     auto collider = std::make_shared<btMultiBodyLinkCollider>(
@@ -104,17 +110,30 @@ void BulletSimulation::addRobot(std::shared_ptr<const Robot> robot) {
   btAlignedObjectArray<btQuaternion> world_to_local;
   btAlignedObjectArray<btVector3> local_origin;
   wrapper.multi_body_->updateCollisionObjectWorldTransforms(world_to_local, local_origin);
+}
 
-  // TODO: debug
-  for (int i = 0; i < robot->links_.size() - 1; ++i) {
-    std::cout << "Link " << i << ":" << std::endl;
-    const btVector3 &origin = wrapper.multi_body_->getLink(i).m_cachedWorldTransform.getOrigin();
-    std::cout << origin.x() << ", " << origin.y() << ", " << origin.z() << std::endl;
+void BulletSimulation::unregisterRobotWrapper(BulletRobotWrapper &wrapper) {
+  // Remove collision objects from world
+  for (auto collider : wrapper.colliders_) {
+    world_->removeCollisionObject(collider.get());
   }
+
+  world_->removeMultiBody(wrapper.multi_body_.get());
 }
 
 void BulletSimulation::getTransform(Index item_idx, Matrix4 *transform) const {
 
+}
+
+void BulletSimulation::step(Scalar dt) {
+  world_->stepSimulation(dt, 10, internal_time_step_);
+  // TODO: debug
+  BulletRobotWrapper &wrapper = robot_wrappers_.back();
+  for (int i = 0; i < wrapper.robot_->links_.size() - 1; ++i) {
+    std::cout << "Link " << i << ":" << std::endl;
+    const btVector3 &origin = wrapper.multi_body_->getLink(i).m_cachedWorldTransform.getOrigin();
+    std::cout << origin.x() << ", " << origin.y() << ", " << origin.z() << std::endl;
+  }
 }
 
 }  // namespace robot_design

@@ -11,8 +11,10 @@
 namespace robot_design {
 
 class Simulation {
+public:
   virtual void addRobot(std::shared_ptr<const Robot> robot) = 0;
   virtual void getTransform(Index item_id, Matrix4 *transform) const = 0;
+  virtual void step(Scalar dt) = 0;
 };
 
 struct BulletRobotWrapper {
@@ -27,13 +29,20 @@ struct BulletRobotWrapper {
 class BulletSimulation : public Simulation {
 public:
   BulletSimulation(Scalar link_density, Scalar link_radius, Scalar friction);
+  virtual ~BulletSimulation();
+  BulletSimulation(const BulletSimulation &other) = delete;
+  BulletSimulation &operator=(const BulletSimulation &other) = delete;
   virtual void addRobot(std::shared_ptr<const Robot>) override;
   virtual void getTransform(Index item_id, Matrix4 *transform) const override;
+  virtual void step(Scalar dt) override;
 
 private:
+  void unregisterRobotWrapper(BulletRobotWrapper &wrapper);
+
   Scalar link_density_;  // Mass of links per unit of length
   Scalar link_radius_;
   Scalar friction_;
+  Scalar internal_time_step_;
   std::shared_ptr<btDefaultCollisionConfiguration> collision_config_;
   std::shared_ptr<btHashedOverlappingPairCache> pair_cache_;
   std::shared_ptr<btCollisionDispatcher> dispatcher_;

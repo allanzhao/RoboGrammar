@@ -22,7 +22,12 @@ GLFWRenderer::~GLFWRenderer() {
 }
 
 void GLFWRenderer::render(Simulation &sim) {
+  double last_time = glfwGetTime();
   while (!glfwWindowShouldClose(window_)) {
+    double current_time = glfwGetTime();
+    sim.step(current_time - last_time);
+    last_time = current_time;
+
     glClearColor(0.5f, 0.8f, 0.8f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
     glfwSwapBuffers(window_);

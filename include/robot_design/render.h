@@ -13,7 +13,7 @@ public:
   GLFWRenderer &operator=(const GLFWRenderer &other) = delete;
   void render(Simulation &sim);
   static void keyCallback(GLFWwindow *window, int key, int scancode, int action,
-      int mods);
+                          int mods);
 
 private:
   GLFWwindow *window_;
