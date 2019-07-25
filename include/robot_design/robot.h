@@ -32,6 +32,12 @@ struct Link {
 };
 
 struct Robot {
+  Robot(Scalar link_density, Scalar link_radius, Scalar friction)
+      : link_density_(link_density), link_radius_(link_radius),
+        friction_(friction), links_() {}
+  Scalar link_density_;  // Mass of links per unit of length
+  Scalar link_radius_;
+  Scalar friction_;
   std::vector<Link, Eigen::aligned_allocator<Link>> links_;
 };
 

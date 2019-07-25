@@ -4,10 +4,8 @@
 
 namespace robot_design {
 
-BulletSimulation::BulletSimulation(Scalar link_density, Scalar link_radius,
-                                   Scalar friction)
-    : link_density_(link_density), link_radius_(link_radius),
-      friction_(friction), robot_wrappers_(), internal_time_step_(1. / 240) {
+BulletSimulation::BulletSimulation()
+    : robot_wrappers_(), internal_time_step_(1. / 240) {
   collision_config_ = std::make_shared<btDefaultCollisionConfiguration>();
   dispatcher_ = std::make_shared<btCollisionDispatcher>(collision_config_.get());
   pair_cache_ = std::make_shared<btHashedOverlappingPairCache>();
@@ -32,8 +30,9 @@ void BulletSimulation::addRobot(std::shared_ptr<const Robot> robot) {
   for (int i = 0; i < robot->links_.size(); ++i) {
     const Link &link = robot->links_[i];
 
-    auto col_shape = std::make_shared<btCapsuleShape>(link_radius_, link.length_);
-    Scalar link_mass = link.length_ * link_density_;
+    auto col_shape = std::make_shared<btCapsuleShape>(robot->link_radius_,
+        link.length_);
+    Scalar link_mass = link.length_ * robot->link_density_;
     btVector3 link_inertia;
     col_shape->calculateLocalInertia(link_mass, link_inertia);
 
@@ -94,7 +93,7 @@ void BulletSimulation::addRobot(std::shared_ptr<const Robot> robot) {
     world_->addCollisionObject(collider.get(),
                                /*collisionFilterGroup=*/1,
                                /*collisionFilterMask=*/1);
-    collider->setFriction(friction_);
+    collider->setFriction(robot->friction_);
     if (i == 0) {
       wrapper.multi_body_->setBaseCollider(collider.get());
     } else {

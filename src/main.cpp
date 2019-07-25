@@ -36,7 +36,10 @@ int main(int argc, char **argv) {
   }
 
   // Create a snake robot
-  std::shared_ptr<Robot> robot = std::make_shared<Robot>();
+  std::shared_ptr<Robot> robot = std::make_shared<Robot>(
+      /*link_density=*/10.0,
+      /*link_radius=*/0.05,
+      /*friction=*/0.9);
   for (Index i = 0; i < 5; ++i) {
     Quaternion joint_rot(Eigen::AngleAxis<Scalar>(M_PI / 2, Vector3::UnitZ()) *
                          Eigen::AngleAxis<Scalar>(0.0, Vector3::UnitY()) *
@@ -50,10 +53,7 @@ int main(int argc, char **argv) {
         /*length=*/1.0);
   }
 
-  std::shared_ptr<BulletSimulation> sim = std::make_shared<BulletSimulation>(
-      /*link_density=*/10.0,
-      /*link_radius=*/0.05,
-      /*friction=*/0.9);
+  std::shared_ptr<BulletSimulation> sim = std::make_shared<BulletSimulation>();
   sim->addRobot(robot);
   GLFWRenderer renderer;
   renderer.run(*sim);

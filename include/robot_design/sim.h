@@ -30,7 +30,7 @@ struct BulletRobotWrapper {
 
 class BulletSimulation : public Simulation {
 public:
-  BulletSimulation(Scalar link_density, Scalar link_radius, Scalar friction);
+  BulletSimulation();
   virtual ~BulletSimulation();
   BulletSimulation(const BulletSimulation &other) = delete;
   BulletSimulation &operator=(const BulletSimulation &other) = delete;
@@ -43,9 +43,6 @@ public:
 private:
   void unregisterRobotWrapper(BulletRobotWrapper &wrapper);
 
-  Scalar link_density_;  // Mass of links per unit of length
-  Scalar link_radius_;
-  Scalar friction_;
   Scalar internal_time_step_;
   std::shared_ptr<btDefaultCollisionConfiguration> collision_config_;
   std::shared_ptr<btHashedOverlappingPairCache> pair_cache_;
