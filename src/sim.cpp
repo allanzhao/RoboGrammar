@@ -111,6 +111,15 @@ void BulletSimulation::addRobot(std::shared_ptr<const Robot> robot) {
   wrapper.multi_body_->updateCollisionObjectWorldTransforms(world_to_local, local_origin);
 }
 
+void BulletSimulation::removeRobot(std::shared_ptr<const Robot> robot) {
+  auto it = std::find_if(robot_wrappers_.begin(), robot_wrappers_.end(),
+      [&](const BulletRobotWrapper &wrapper) { return wrapper.robot_ == robot; });
+  if (it != robot_wrappers_.end()) {
+    unregisterRobotWrapper(*it);
+    robot_wrappers_.erase(it);
+  }
+}
+
 std::shared_ptr<const Robot> BulletSimulation::getRobot(Index i) const {
   return robot_wrappers_[i].robot_;
 }

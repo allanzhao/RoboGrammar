@@ -13,6 +13,7 @@ namespace robot_design {
 class Simulation {
 public:
   virtual void addRobot(std::shared_ptr<const Robot> robot) = 0;
+  virtual void removeRobot(std::shared_ptr<const Robot> robot) = 0;
   virtual std::shared_ptr<const Robot> getRobot(Index i) const = 0;
   virtual Index getRobotCount() const = 0;
   virtual void getTransform(Index item_id, Matrix4 *transform) const = 0;
@@ -35,6 +36,7 @@ public:
   BulletSimulation(const BulletSimulation &other) = delete;
   BulletSimulation &operator=(const BulletSimulation &other) = delete;
   virtual void addRobot(std::shared_ptr<const Robot>) override;
+  virtual void removeRobot(std::shared_ptr<const Robot> robot) override;
   virtual std::shared_ptr<const Robot> getRobot(Index i) const override;
   virtual Index getRobotCount() const override;
   virtual void getTransform(Index item_id, Matrix4 *transform) const override;
