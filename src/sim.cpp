@@ -141,15 +141,8 @@ void BulletSimulation::getTransform(Index item_idx, Matrix4 *transform) const {
 
 }
 
-void BulletSimulation::step(Scalar dt) {
+void BulletSimulation::advance(Scalar dt) {
   world_->stepSimulation(dt, 10, internal_time_step_);
-  // TODO: debug
-  BulletRobotWrapper &wrapper = robot_wrappers_.back();
-  for (int i = 0; i < wrapper.robot_->links_.size() - 1; ++i) {
-    std::cout << "Link " << i << ":" << std::endl;
-    const btVector3 &origin = wrapper.multi_body_->getLink(i).m_cachedWorldTransform.getOrigin();
-    std::cout << origin.x() << ", " << origin.y() << ", " << origin.z() << std::endl;
-  }
 }
 
 }  // namespace robot_design

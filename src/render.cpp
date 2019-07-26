@@ -29,7 +29,7 @@ void GLFWRenderer::run(Simulation &sim) {
   double last_time = glfwGetTime();
   while (!glfwWindowShouldClose(window_)) {
     double current_time = glfwGetTime();
-    sim.step(current_time - last_time);
+    sim.advance(current_time - last_time);
     last_time = current_time;
 
     glClearColor(0.8f, 0.8f, 0.8f, 1.0f);
