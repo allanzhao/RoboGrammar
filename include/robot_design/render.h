@@ -3,22 +3,8 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <robot_design/sim.h>
-#include <robot_design/utils.h>
-#include <typeindex>
 
 namespace robot_design {
-
-struct Visual {
-  virtual std::size_t hash() const = 0;
-};
-
-struct CapsuleVisual : public Visual {
-  virtual std::size_t hash() const {
-    return hashCombine(typeid(CapsuleVisual).hash_code(), radius_, length_);
-  }
-  float radius_;
-  float length_;
-};
 
 class GLFWRenderer {
 public:
@@ -36,13 +22,3 @@ private:
 };
 
 }  // namespace robot_design
-
-// Hash function specialization for visuals
-namespace std {
-  template <>
-  struct hash<robot_design::Visual> {
-    std::size_t operator()(const robot_design::Visual &visual) const {
-      return visual.hash();
-    }
-  };
-}  // namespace std
