@@ -142,7 +142,7 @@ void BulletSimulation::getTransform(Index item_idx, Matrix4 *transform) const {
 }
 
 void BulletSimulation::advance(Scalar dt) {
-  world_->stepSimulation(dt, 10, internal_time_step_);
+  world_->stepSimulation(dt, INT_MAX, internal_time_step_);
 }
 
 }  // namespace robot_design
