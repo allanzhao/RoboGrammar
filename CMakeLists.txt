@@ -45,3 +45,5 @@ target_link_libraries(RobotDesign PRIVATE
     ${GLFW_LIBRARIES}
     ${OPENGL_LIBRARIES}
 )
+
+file(COPY data DESTINATION ${CMAKE_BINARY_DIR})

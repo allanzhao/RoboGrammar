@@ -6,6 +6,45 @@
 
 namespace robot_design {
 
+struct VertexAttribute {
+  VertexAttribute(GLuint index, const std::string &name)
+      : index_(index), name_(name) {}
+  GLuint index_;
+  std::string name_;
+};
+
+extern const VertexAttribute ATTRIB_POSITION;
+
+class Program {
+public:
+  Program(const std::string &vertex_shader_source,
+          const std::string &fragment_shader_source);
+  virtual ~Program();
+  Program(const Program &other) = delete;
+  Program &operator=(const Program &other) = delete;
+  void use() const;
+
+private:
+  GLuint program_;
+  GLuint vertex_shader_;
+  GLuint fragment_shader_;
+};
+
+class Mesh {
+public:
+  Mesh(const std::vector<GLfloat> &positions,
+       const std::vector<GLint> &indices);
+  virtual ~Mesh();
+  Mesh(const Mesh &other) = delete;
+  Mesh &operator=(const Mesh &other) = delete;
+  void bind() const;
+
+private:
+  GLuint vertex_array_;
+  GLuint position_buffer_;
+  GLuint index_buffer_;
+};
+
 class GLFWRenderer {
 public:
   GLFWRenderer();
@@ -19,6 +58,7 @@ public:
 
 private:
   GLFWwindow *window_;
+  std::shared_ptr<Program> default_program_;
 };
 
 }  // namespace robot_design

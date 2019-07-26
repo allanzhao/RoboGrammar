@@ -1,8 +1,11 @@
 #pragma once
 
+#include <fstream>
 #include <LinearMath/btQuaternion.h>
 #include <LinearMath/btVector3.h>
 #include <robot_design/types.h>
+#include <sstream>
+#include <string>
 
 namespace robot_design {
 
@@ -20,6 +23,13 @@ inline btQuaternion bulletQuaternionFromEigen(const Quaternion &q) {
 
 inline Quaternion eigenQuaternionFromBullet(const btQuaternion &q) {
   return Quaternion(q.w(), q.x(), q.y(), q.z());
+}
+
+inline std::string loadString(const std::string &path) {
+  std::ifstream ifs(path);
+  std::stringstream ss;
+  ss << ifs.rdbuf();
+  return ss.str();
 }
 
 }  // namespace robot_design
