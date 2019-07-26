@@ -57,6 +57,7 @@ public:
                           int mods);
 
 private:
+  static std::string loadString(const std::string &path);
   GLFWwindow *window_;
   std::shared_ptr<Program> default_program_;
 };

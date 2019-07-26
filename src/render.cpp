@@ -1,6 +1,9 @@
 #include <exception>
+#include <fstream>
 #include <robot_design/render.h>
 #include <robot_design/utils.h>
+#include <sstream>
+#include <string>
 
 namespace robot_design {
 
@@ -160,6 +163,13 @@ void GLFWRenderer::keyCallback(GLFWwindow *window, int key, int scancode,
   if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
     glfwSetWindowShouldClose(window, GL_TRUE);
   }
+}
+
+std::string GLFWRenderer::loadString(const std::string &path) {
+  std::ifstream ifs(path);
+  std::stringstream ss;
+  ss << ifs.rdbuf();
+  return ss.str();
 }
 
 }  // namespace robot_design
