@@ -97,6 +97,9 @@ GLFWRenderer::GLFWRenderer() {
     return;
   }
 
+  // Require OpenGL 3.2 or higher
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
   window_ = glfwCreateWindow(640, 480, "GLFW Renderer", NULL, NULL);
   if (!window_) {
     return;
