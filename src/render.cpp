@@ -136,6 +136,7 @@ GLFWRenderer::GLFWRenderer() : z_near_(1.0f), z_far_(1000.0f), fov_(M_PI / 3) {
   // Allow accessing "this" from static callbacks
   glfwSetWindowUserPointer(window_, this);
   glfwSetWindowSizeCallback(window_, windowSizeCallback);
+  glfwSetFramebufferSizeCallback(window_, framebufferSizeCallback);
   glfwSetKeyCallback(window_, keyCallback);
 
   // Initialize matrices
@@ -197,6 +198,10 @@ void GLFWRenderer::windowSizeCallback(GLFWwindow *window, int width, int height)
   renderer->window_width_ = width;
   renderer->window_height_ = height;
   renderer->updateProjectionMatrix();
+}
+
+void GLFWRenderer::framebufferSizeCallback(GLFWwindow *window, int width, int height) {
+  glViewport(0, 0, width, height);
 }
 
 void GLFWRenderer::keyCallback(GLFWwindow *window, int key, int scancode,

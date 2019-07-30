@@ -60,6 +60,7 @@ public:
   void run(Simulation &sim);
   void renderRobot(const Robot &robot, const Simulation &sim);
   static void windowSizeCallback(GLFWwindow *window, int width, int height);
+  static void framebufferSizeCallback(GLFWwindow *window, int width, int height);
   static void keyCallback(GLFWwindow *window, int key, int scancode, int action,
                           int mods);
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
