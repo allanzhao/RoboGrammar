@@ -14,6 +14,7 @@ struct VertexAttribute {
 };
 
 extern const VertexAttribute ATTRIB_POSITION;
+extern const VertexAttribute ATTRIB_NORMAL;
 
 class Program {
 public:
@@ -39,16 +40,20 @@ private:
 class Mesh {
 public:
   Mesh(const std::vector<GLfloat> &positions,
+       const std::vector<GLfloat> &normals,
        const std::vector<GLint> &indices);
   virtual ~Mesh();
   Mesh(const Mesh &other) = delete;
   Mesh &operator=(const Mesh &other) = delete;
   void bind() const;
+  void draw() const;
 
 private:
   GLuint vertex_array_;
   GLuint position_buffer_;
+  GLuint normal_buffer_;
   GLuint index_buffer_;
+  GLsizei index_count_;
 };
 
 class GLFWRenderer {

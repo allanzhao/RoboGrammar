@@ -9,6 +9,7 @@
 namespace robot_design {
 
 const VertexAttribute ATTRIB_POSITION(0, "position");
+const VertexAttribute ATTRIB_NORMAL(1, "normal");
 
 Program::Program(const std::string &vertex_shader_source,
                  const std::string &fragment_shader_source)
@@ -81,8 +82,10 @@ void Program::setModelMatrix(const Eigen::Matrix4f &model_matrix) const {
 }
 
 Mesh::Mesh(const std::vector<GLfloat> &positions,
+           const std::vector<GLfloat> &normals,
            const std::vector<GLint> &indices)
-    : vertex_array_(0), position_buffer_(0), index_buffer_(0) {
+    : vertex_array_(0), position_buffer_(0), normal_buffer_(0),
+      index_buffer_(0), index_count_(indices.size()) {
   // Create vertex array object (VAO)
   glGenVertexArrays(1, &vertex_array_);
   glBindVertexArray(vertex_array_);
@@ -95,19 +98,34 @@ Mesh::Mesh(const std::vector<GLfloat> &positions,
   glVertexAttribPointer(ATTRIB_POSITION.index_, 3, GL_FLOAT, GL_FALSE, 0, 0);
   glEnableVertexAttribArray(ATTRIB_POSITION.index_);
 
+  // Create vertex normal buffer
+  glGenBuffers(1, &normal_buffer_);
+  glBindBuffer(GL_ARRAY_BUFFER, normal_buffer_);
+  glBufferData(GL_ARRAY_BUFFER, normals.size() * sizeof(normals[0]),
+               normals.data(), GL_STATIC_DRAW);
+  glVertexAttribPointer(ATTRIB_NORMAL.index_, 3, GL_FLOAT, GL_FALSE, 0, 0);
+  glEnableVertexAttribArray(ATTRIB_NORMAL.index_);
+
   // Create index buffer
   glGenBuffers(1, &index_buffer_);
-  // TODO
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_buffer_);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(indices[0]),
+               indices.data(), GL_STATIC_DRAW);
 }
 
 Mesh::~Mesh() {
   glDeleteBuffers(1, &index_buffer_);
+  glDeleteBuffers(1, &normal_buffer_);
   glDeleteBuffers(1, &position_buffer_);
   glDeleteVertexArrays(1, &vertex_array_);
 }
 
 void Mesh::bind() const {
   glBindVertexArray(vertex_array_);
+}
+
+void Mesh::draw() const {
+  glDrawElements(GL_TRIANGLES, index_count_, GL_UNSIGNED_INT, 0);
 }
 
 GLFWRenderer::GLFWRenderer() : z_near_(1.0f), z_far_(1000.0f), fov_(M_PI / 3) {
