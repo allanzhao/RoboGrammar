@@ -87,4 +87,6 @@ private:
 void makePerspectiveProjection(float aspect_ratio, float z_near, float z_far,
                                float fov, Eigen::Matrix4f &matrix);
 
+std::shared_ptr<Mesh> makeCapsuleEndMesh(int n_segments, int n_rings);
+
 }  // namespace robot_design

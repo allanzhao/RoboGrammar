@@ -151,6 +151,7 @@ GLFWRenderer::GLFWRenderer() : z_near_(1.0f), z_far_(1000.0f), fov_(M_PI / 3) {
   std::string default_fs_source = loadString("data/default.frag.glsl");
   default_program_ = std::make_shared<Program>(default_vs_source, default_fs_source);
 
+  // Set up callbacks
   // Allow accessing "this" from static callbacks
   glfwSetWindowUserPointer(window_, this);
   glfwSetWindowSizeCallback(window_, windowSizeCallback);
@@ -160,7 +161,10 @@ GLFWRenderer::GLFWRenderer() : z_near_(1.0f), z_far_(1000.0f), fov_(M_PI / 3) {
   // Initialize matrices
   glfwGetWindowSize(window_, &window_width_, &window_height_);
   updateProjectionMatrix();
-  view_matrix_ = Eigen::Matrix4f::Identity();
+  view_matrix_ = Eigen::Affine3f(Eigen::Translation3f(0, 0, -10)).matrix();
+
+  // Enable depth test
+  glEnable(GL_DEPTH_TEST);
 }
 
 GLFWRenderer::~GLFWRenderer() {
@@ -178,7 +182,7 @@ void GLFWRenderer::run(Simulation &sim) {
     last_time = current_time;
 
     glClearColor(0.8f, 0.8f, 0.8f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     default_program_->use();
     default_program_->setProjectionMatrix(proj_matrix_);
@@ -194,21 +198,18 @@ void GLFWRenderer::run(Simulation &sim) {
 }
 
 void GLFWRenderer::renderRobot(const Robot &robot, const Simulation &sim) {
-  default_program_->setModelMatrix(Eigen::Matrix4f::Identity());
+  // TODO
+  Eigen::Affine3f model_transform(
+      Eigen::Translation3f(0, 0, 5) *
+      Eigen::AngleAxisf(glfwGetTime(), Eigen::Vector3f::UnitY()));
+  default_program_->setModelMatrix(model_transform.matrix());
 
   for (const auto &link : robot.links_) {
   }
 
-  // TODO
-  float time = glfwGetTime();
-  std::vector<float> positions = {
-      0, 0, 10,
-      std::cos(time), 0, 10,
-      0, std::sin(time), 10};
-  std::vector<int> indices;
-  Mesh mesh(positions, indices);
-  mesh.bind();
-  glDrawArrays(GL_TRIANGLES, 0, positions.size());
+  std::shared_ptr<Mesh> mesh = makeCapsuleEndMesh(32, 8);
+  mesh->bind();
+  mesh->draw();
 }
 
 void GLFWRenderer::windowSizeCallback(GLFWwindow *window, int width, int height) {
@@ -249,6 +250,48 @@ void makePerspectiveProjection(float aspect_ratio, float z_near, float z_far,
             0, 1 / tan_half_fov, 0, 0,
             0, 0, -(z_far + z_near) / z_range, -2 * z_far * z_near / z_range,
             0, 0, -1, 0;
+}
+
+std::shared_ptr<Mesh> makeCapsuleEndMesh(int n_segments, int n_rings) {
+  std::vector<float> positions;
+  std::vector<int> indices;
+
+  // Define rings of vertices
+  for (int i = 0; i < n_rings; ++i) {
+    for (int j = 0; j < n_segments; ++j) {
+      float theta = (2 * M_PI) * j / n_segments;
+      float phi = (M_PI / 2) * i / n_rings;
+      float pos[3] = {std::sin(phi),
+                      std::cos(phi) * std::cos(theta),
+                      std::cos(phi) * std::sin(theta)};
+      positions.insert(positions.end(), std::begin(pos), std::end(pos));
+    }
+  }
+  // Define zenith vertex
+  float pos[3] = {1, 0, 0};
+  positions.insert(positions.end(), std::begin(pos), std::end(pos));
+
+  // Define triangles for every ring except the last
+  for (int i = 0; i < (n_rings - 1); ++i) {
+    for (int j = 0; j < n_segments; ++j) {
+      int idx_00 = i * n_segments + j;
+      int idx_01 = i * n_segments + (j + 1) % n_segments;
+      int idx_10 = (i + 1) * n_segments + j;
+      int idx_11 = (i + 1) * n_segments + (j + 1) % n_segments;
+      int idx[6] = {idx_00, idx_01, idx_10, idx_11, idx_10, idx_01};
+      indices.insert(indices.end(), std::begin(idx), std::end(idx));
+    }
+  }
+  // Define triangles for last ring
+  for (int j = 0; j < n_segments; ++j) {
+    int idx[3] = {(n_rings - 1) * n_segments + j,
+                  (n_rings - 1) * n_segments + (j + 1) % n_segments,
+                  n_rings * n_segments};
+    indices.insert(indices.end(), std::begin(idx), std::end(idx));
+  }
+
+  // The positions and normals of points on a unit sphere are equal
+  return std::move(std::make_shared<Mesh>(positions, positions, indices));
 }
 
 }  // namespace robot_design
