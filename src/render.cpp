@@ -225,12 +225,12 @@ std::string GLFWRenderer::loadString(const std::string &path) {
 
 void makePerspectiveProjection(float aspect_ratio, float z_near, float z_far,
                                float fov, Eigen::Matrix4f &matrix) {
-  float z_range = z_near - z_far;
+  float z_range = z_far - z_near;
   float tan_half_fov = std::tan(fov / 2);
   matrix << 1 / (tan_half_fov * aspect_ratio), 0, 0, 0,
             0, 1 / tan_half_fov, 0, 0,
-            0, 0, (-z_near - z_far) / z_range, 2 * z_far * z_near / z_range,
-            0, 0, 1, 0;
+            0, 0, -(z_far + z_near) / z_range, -2 * z_far * z_near / z_range,
+            0, 0, -1, 0;
 }
 
 }  // namespace robot_design
