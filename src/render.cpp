@@ -55,6 +55,7 @@ Program::Program(const std::string &vertex_shader_source,
   // Find uniform indices
   proj_matrix_index_ = glGetUniformLocation(program_, "proj_matrix");
   model_view_matrix_index_ = glGetUniformLocation(program_, "model_view_matrix");
+  normal_matrix_index_ = glGetUniformLocation(program_, "normal_matrix");
 }
 
 Program::~Program() {
@@ -75,6 +76,9 @@ void Program::setProjectionMatrix(const Eigen::Matrix4f &proj_matrix) const {
 
 void Program::setModelViewMatrix(const Eigen::Matrix4f &model_view_matrix) const {
   glUniformMatrix4fv(model_view_matrix_index_, 1, GL_FALSE, model_view_matrix.data());
+  // Also set the normal matrix
+  Eigen::Matrix3f normal_matrix = model_view_matrix.topLeftCorner<3, 3>().inverse().transpose();
+  glUniformMatrix3fv(normal_matrix_index_, 1, GL_FALSE, normal_matrix.data());
 }
 
 Mesh::Mesh(const std::vector<GLfloat> &positions,

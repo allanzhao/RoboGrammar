@@ -1,9 +1,9 @@
 #version 150 core
 
-in vec3 frag_normal;
+in vec3 view_normal;
 
 out vec4 out_color;
 
 void main() {
-  out_color = vec4(frag_normal, 1.0);
+  out_color = vec4(view_normal, 1.0);
 }

@@ -33,6 +33,7 @@ private:
   GLuint fragment_shader_;
   GLint proj_matrix_index_;
   GLint model_view_matrix_index_;
+  GLint normal_matrix_index_;
 };
 
 class Mesh {
