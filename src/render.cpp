@@ -48,13 +48,13 @@ Program::Program(const std::string &vertex_shader_source,
 
   // Define fixed attribute indices
   glBindAttribLocation(program_, ATTRIB_POSITION.index_, ATTRIB_POSITION.name_.c_str());
+  glBindAttribLocation(program_, ATTRIB_NORMAL.index_, ATTRIB_NORMAL.name_.c_str());
 
   glLinkProgram(program_);
 
   // Find uniform indices
   proj_matrix_index_ = glGetUniformLocation(program_, "proj_matrix");
-  view_matrix_index_ = glGetUniformLocation(program_, "view_matrix");
-  model_matrix_index_ = glGetUniformLocation(program_, "model_matrix");
+  model_view_matrix_index_ = glGetUniformLocation(program_, "model_view_matrix");
 }
 
 Program::~Program() {
@@ -73,12 +73,8 @@ void Program::setProjectionMatrix(const Eigen::Matrix4f &proj_matrix) const {
   glUniformMatrix4fv(proj_matrix_index_, 1, GL_FALSE, proj_matrix.data());
 }
 
-void Program::setViewMatrix(const Eigen::Matrix4f &view_matrix) const {
-  glUniformMatrix4fv(view_matrix_index_, 1, GL_FALSE, view_matrix.data());
-}
-
-void Program::setModelMatrix(const Eigen::Matrix4f &model_matrix) const {
-  glUniformMatrix4fv(model_matrix_index_, 1, GL_FALSE, model_matrix.data());
+void Program::setModelViewMatrix(const Eigen::Matrix4f &model_view_matrix) const {
+  glUniformMatrix4fv(model_view_matrix_index_, 1, GL_FALSE, model_view_matrix.data());
 }
 
 Mesh::Mesh(const std::vector<GLfloat> &positions,
@@ -186,7 +182,6 @@ void GLFWRenderer::run(Simulation &sim) {
 
     default_program_->use();
     default_program_->setProjectionMatrix(proj_matrix_);
-    default_program_->setViewMatrix(view_matrix_);
 
     for (Index i = 0; i < sim.getRobotCount(); ++i) {
       renderRobot(*sim.getRobot(i), sim);
@@ -200,9 +195,9 @@ void GLFWRenderer::run(Simulation &sim) {
 void GLFWRenderer::renderRobot(const Robot &robot, const Simulation &sim) {
   // TODO
   Eigen::Affine3f model_transform(
-      Eigen::Translation3f(0, 0, 5) *
+      Eigen::Translation3f(0, 0, 0) *
       Eigen::AngleAxisf(glfwGetTime(), Eigen::Vector3f::UnitY()));
-  default_program_->setModelMatrix(model_transform.matrix());
+  default_program_->setModelViewMatrix(view_matrix_ * model_transform.matrix());
 
   for (const auto &link : robot.links_) {
   }

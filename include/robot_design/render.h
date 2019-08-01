@@ -25,16 +25,14 @@ public:
   Program &operator=(const Program &other) = delete;
   void use() const;
   void setProjectionMatrix(const Eigen::Matrix4f &proj_matrix) const;
-  void setViewMatrix(const Eigen::Matrix4f &view_matrix) const;
-  void setModelMatrix(const Eigen::Matrix4f &model_matrix) const;
+  void setModelViewMatrix(const Eigen::Matrix4f &model_view_matrix) const;
 
 private:
   GLuint program_;
   GLuint vertex_shader_;
   GLuint fragment_shader_;
   GLint proj_matrix_index_;
-  GLint view_matrix_index_;
-  GLint model_matrix_index_;
+  GLint model_view_matrix_index_;
 };
 
 class Mesh {
