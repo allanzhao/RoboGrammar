@@ -168,8 +168,6 @@ GLFWRenderer::GLFWRenderer() : z_near_(1.0f), z_far_(1000.0f), fov_(M_PI / 3) {
 }
 
 GLFWRenderer::~GLFWRenderer() {
-  default_program_.reset();
-
   glfwDestroyWindow(window_);
   glfwTerminate();
 }
