@@ -11,5 +11,5 @@ uniform mat3 normal_matrix;
 
 void main() {
   gl_Position = proj_matrix * model_view_matrix * vec4(position, 1.0);
-  view_normal = normal_matrix * normal;
+  view_normal = normalize(normal_matrix * normal);
 }
