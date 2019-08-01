@@ -62,7 +62,7 @@ public:
   GLFWRenderer(const GLFWRenderer &other) = delete;
   GLFWRenderer &operator=(const GLFWRenderer &other) = delete;
   void run(Simulation &sim);
-  void renderRobot(const Robot &robot, const Simulation &sim);
+  void render(const Simulation &sim);
   static void windowSizeCallback(GLFWwindow *window, int width, int height);
   static void framebufferSizeCallback(GLFWwindow *window, int width, int height);
   static void keyCallback(GLFWwindow *window, int key, int scancode, int action,
@@ -70,6 +70,8 @@ public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
 private:
+  void drawCapsule(const Eigen::Matrix4f &transform, float half_length,
+                   float radius, const Program &program) const;
   void updateProjectionMatrix();
   static std::string loadString(const std::string &path);
   float z_near_;
@@ -81,6 +83,7 @@ private:
   Eigen::Matrix4f view_matrix_;
   GLFWwindow *window_;
   std::shared_ptr<Program> default_program_;
+  std::shared_ptr<Mesh> capsule_end_mesh_;
 };
 
 void makePerspectiveProjection(float aspect_ratio, float z_near, float z_far,

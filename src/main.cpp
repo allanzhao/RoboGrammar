@@ -41,7 +41,7 @@ int main(int argc, char **argv) {
       /*link_radius=*/0.05,
       /*friction=*/0.9);
   for (Index i = 0; i < 5; ++i) {
-    Quaternion joint_rot(Eigen::AngleAxis<Scalar>(M_PI / 2, Vector3::UnitZ()) *
+    Quaternion joint_rot(Eigen::AngleAxis<Scalar>(0.0, Vector3::UnitZ()) *
                          Eigen::AngleAxis<Scalar>(0.0, Vector3::UnitY()) *
                          Eigen::AngleAxis<Scalar>(0.0, Vector3::UnitX()));
     robot->links_.emplace_back(
@@ -50,7 +50,7 @@ int main(int argc, char **argv) {
         /*joint_pos=*/1.0,
         /*joint_rot=*/joint_rot,
         /*joint_axis=*/Vector3{0.0, 0.0, 1.0},
-        /*length=*/1.0);
+        /*length=*/0.5);
   }
 
   std::shared_ptr<BulletSimulation> sim = std::make_shared<BulletSimulation>();

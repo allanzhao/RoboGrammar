@@ -16,7 +16,8 @@ public:
   virtual void removeRobot(std::shared_ptr<const Robot> robot) = 0;
   virtual std::shared_ptr<const Robot> getRobot(Index i) const = 0;
   virtual Index getRobotCount() const = 0;
-  virtual void getTransform(Index item_id, Matrix4 *transform) const = 0;
+  virtual void getTransform(Index robot_idx, Index link_idx,
+                            Matrix4 &transform) const = 0;
   virtual void advance(Scalar dt) = 0;
 };
 
@@ -39,7 +40,8 @@ public:
   virtual void removeRobot(std::shared_ptr<const Robot> robot) override;
   virtual std::shared_ptr<const Robot> getRobot(Index i) const override;
   virtual Index getRobotCount() const override;
-  virtual void getTransform(Index item_id, Matrix4 *transform) const override;
+  virtual void getTransform(Index robot_idx, Index link_idx,
+                            Matrix4 &transform) const override;
   virtual void advance(Scalar dt) override;
 
 private:

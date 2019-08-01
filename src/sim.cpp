@@ -137,8 +137,15 @@ void BulletSimulation::unregisterRobotWrapper(BulletRobotWrapper &wrapper) {
   world_->removeMultiBody(wrapper.multi_body_.get());
 }
 
-void BulletSimulation::getTransform(Index item_idx, Matrix4 *transform) const {
-
+void BulletSimulation::getTransform(Index robot_idx, Index link_idx,
+                                    Matrix4 &transform) const {
+  btMultiBody &multi_body = *robot_wrappers_[robot_idx].multi_body_;
+  if (link_idx == 0) {
+    // Base link
+    transform = eigenMatrix4FromBullet(multi_body.getBaseWorldTransform());
+  } else {
+    transform = eigenMatrix4FromBullet(multi_body.getLink(link_idx - 1).m_cachedWorldTransform);
+  }
 }
 
 void BulletSimulation::advance(Scalar dt) {

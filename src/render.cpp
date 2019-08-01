@@ -151,6 +151,9 @@ GLFWRenderer::GLFWRenderer() : z_near_(1.0f), z_far_(1000.0f), fov_(M_PI / 3) {
   std::string default_fs_source = loadString("data/default.frag.glsl");
   default_program_ = std::make_shared<Program>(default_vs_source, default_fs_source);
 
+  // Create meshes
+  capsule_end_mesh_ = makeCapsuleEndMesh(/*n_segments=*/32, /*n_rings=*/8);
+
   // Set up callbacks
   // Allow accessing "this" from static callbacks
   glfwSetWindowUserPointer(window_, this);
@@ -161,7 +164,7 @@ GLFWRenderer::GLFWRenderer() : z_near_(1.0f), z_far_(1000.0f), fov_(M_PI / 3) {
   // Initialize matrices
   glfwGetWindowSize(window_, &window_width_, &window_height_);
   updateProjectionMatrix();
-  view_matrix_ = Eigen::Affine3f(Eigen::Translation3f(0, 0, -10)).matrix();
+  view_matrix_ = Eigen::Affine3f(Eigen::Translation3f(0, 0, -2)).matrix();
 
   // Enable depth test
   glEnable(GL_DEPTH_TEST);
@@ -179,34 +182,47 @@ void GLFWRenderer::run(Simulation &sim) {
     sim.advance(current_time - last_time);
     last_time = current_time;
 
-    glClearColor(0.8f, 0.8f, 0.8f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    default_program_->use();
-    default_program_->setProjectionMatrix(proj_matrix_);
-
-    for (Index i = 0; i < sim.getRobotCount(); ++i) {
-      renderRobot(*sim.getRobot(i), sim);
-    }
-
-    glfwSwapBuffers(window_);
-    glfwPollEvents();
+    render(sim);
   }
 }
 
-void GLFWRenderer::renderRobot(const Robot &robot, const Simulation &sim) {
-  // TODO
-  Eigen::Affine3f model_transform(
-      Eigen::Translation3f(0, 0, 0) *
-      Eigen::AngleAxisf(glfwGetTime(), Eigen::Vector3f::UnitY()));
-  default_program_->setModelViewMatrix(view_matrix_ * model_transform.matrix());
+void GLFWRenderer::render(const Simulation &sim) {
+  glClearColor(0.8f, 0.8f, 0.8f, 1.0f);
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-  for (const auto &link : robot.links_) {
+  default_program_->use();
+  default_program_->setProjectionMatrix(proj_matrix_);
+
+  for (Index robot_idx = 0; robot_idx < sim.getRobotCount(); ++robot_idx) {
+    const Robot &robot = *sim.getRobot(robot_idx);
+    for (Index link_idx = 0; link_idx < robot.links_.size(); ++link_idx) {
+      const Link &link = robot.links_[link_idx];
+      Matrix4 link_transform;
+      sim.getTransform(robot_idx, link_idx, link_transform);
+      drawCapsule(link_transform.cast<float>(), link.length_ / 2,
+                  robot.link_radius_, *default_program_);
+    }
   }
 
-  std::shared_ptr<Mesh> mesh = makeCapsuleEndMesh(32, 8);
-  mesh->bind();
-  mesh->draw();
+  glfwSwapBuffers(window_);
+  glfwPollEvents();
+}
+
+void GLFWRenderer::drawCapsule(const Eigen::Matrix4f &transform,
+                               float half_length, float radius,
+                               const Program &program) const {
+  Eigen::Affine3f base_transform(view_matrix_ * transform);
+  capsule_end_mesh_->bind();
+  program.setModelViewMatrix((base_transform *
+                              Eigen::Translation3f(half_length, 0, 0) *
+                              Eigen::DiagonalMatrix<float, 3>(
+                                  radius, radius, radius)).matrix());
+  capsule_end_mesh_->draw();
+  program.setModelViewMatrix((base_transform *
+                              Eigen::Translation3f(-half_length, 0, 0) *
+                              Eigen::DiagonalMatrix<float, 3>(
+                                  -radius, radius, -radius)).matrix());
+  capsule_end_mesh_->draw();
 }
 
 void GLFWRenderer::windowSizeCallback(GLFWwindow *window, int width, int height) {
