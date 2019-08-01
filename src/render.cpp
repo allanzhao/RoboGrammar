@@ -153,6 +153,7 @@ GLFWRenderer::GLFWRenderer() : z_near_(1.0f), z_far_(1000.0f), fov_(M_PI / 3) {
 
   // Create meshes
   capsule_end_mesh_ = makeCapsuleEndMesh(/*n_segments=*/32, /*n_rings=*/8);
+  capsule_middle_mesh_ = makeCapsuleMiddleMesh(/*n_segments=*/32);
 
   // Set up callbacks
   // Allow accessing "this" from static callbacks
@@ -212,6 +213,8 @@ void GLFWRenderer::drawCapsule(const Eigen::Matrix4f &transform,
                                float half_length, float radius,
                                const Program &program) const {
   Eigen::Affine3f base_transform(view_matrix_ * transform);
+
+  // Draw the ends
   capsule_end_mesh_->bind();
   program.setModelViewMatrix((base_transform *
                               Eigen::Translation3f(half_length, 0, 0) *
@@ -223,6 +226,13 @@ void GLFWRenderer::drawCapsule(const Eigen::Matrix4f &transform,
                               Eigen::DiagonalMatrix<float, 3>(
                                   -radius, radius, -radius)).matrix());
   capsule_end_mesh_->draw();
+
+  // Draw the middle
+  capsule_middle_mesh_->bind();
+  program.setModelViewMatrix((base_transform *
+                              Eigen::DiagonalMatrix<float, 3>(
+                                  half_length, radius, radius)).matrix());
+  capsule_middle_mesh_->draw();
 }
 
 void GLFWRenderer::windowSizeCallback(GLFWwindow *window, int width, int height) {
@@ -305,6 +315,35 @@ std::shared_ptr<Mesh> makeCapsuleEndMesh(int n_segments, int n_rings) {
 
   // The positions and normals of points on a unit sphere are equal
   return std::move(std::make_shared<Mesh>(positions, positions, indices));
+}
+
+std::shared_ptr<Mesh> makeCapsuleMiddleMesh(int n_segments) {
+  std::vector<float> positions;
+  std::vector<float> normals;
+  std::vector<int> indices;
+
+  // Define two rings of vertices
+  for (int i = 0; i < 2; ++i) {
+    for (int j = 0; j < n_segments; ++j) {
+      float theta = (2 * M_PI) * j / n_segments;
+      float pos[3] = {(i == 0) ? -1.0f : 1.0f, std::cos(theta), std::sin(theta)};
+      float normal[3] = {0, std::cos(theta), std::sin(theta)};
+      positions.insert(positions.end(), std::begin(pos), std::end(pos));
+      normals.insert(normals.end(), std::begin(normal), std::end(normal));
+    }
+  }
+
+  // Define triangles
+  for (int j = 0; j < n_segments; ++j) {
+    int idx_00 = j;
+    int idx_01 = (j + 1) % n_segments;
+    int idx_10 = n_segments + j;
+    int idx_11 = n_segments + (j + 1) % n_segments;
+    int idx[6] = {idx_00, idx_01, idx_10, idx_11, idx_10, idx_01};
+    indices.insert(indices.end(), std::begin(idx), std::end(idx));
+  }
+
+  return std::move(std::make_shared<Mesh>(positions, normals, indices));
 }
 
 }  // namespace robot_design

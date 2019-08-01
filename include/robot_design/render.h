@@ -84,11 +84,14 @@ private:
   GLFWwindow *window_;
   std::shared_ptr<Program> default_program_;
   std::shared_ptr<Mesh> capsule_end_mesh_;
+  std::shared_ptr<Mesh> capsule_middle_mesh_;
 };
 
 void makePerspectiveProjection(float aspect_ratio, float z_near, float z_far,
                                float fov, Eigen::Matrix4f &matrix);
 
 std::shared_ptr<Mesh> makeCapsuleEndMesh(int n_segments, int n_rings);
+
+std::shared_ptr<Mesh> makeCapsuleMiddleMesh(int n_segments);
 
 }  // namespace robot_design
