@@ -199,7 +199,7 @@ void GLFWRenderer::render(const Simulation &sim) {
     for (Index link_idx = 0; link_idx < robot.links_.size(); ++link_idx) {
       const Link &link = robot.links_[link_idx];
       Matrix4 link_transform;
-      sim.getTransform(robot_idx, link_idx, link_transform);
+      sim.getLinkTransform(robot_idx, link_idx, link_transform);
       drawCapsule(link_transform.cast<float>(), link.length_ / 2,
                   robot.link_radius_, *default_program_);
     }
