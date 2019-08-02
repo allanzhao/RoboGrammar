@@ -150,6 +150,7 @@ void BulletSimulation::getTransform(Index robot_idx, Index link_idx,
 
 void BulletSimulation::advance(Scalar dt) {
   world_->stepSimulation(dt, INT_MAX, internal_time_step_);
+  world_->forwardKinematics();  // Update m_cachedWorldTransform for every link
 }
 
 }  // namespace robot_design
