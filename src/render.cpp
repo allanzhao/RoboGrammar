@@ -128,7 +128,61 @@ void Mesh::draw() const {
   glDrawElements(GL_TRIANGLES, index_count_, GL_UNSIGNED_INT, 0);
 }
 
-GLFWRenderer::GLFWRenderer() : z_near_(1.0f), z_far_(1000.0f), fov_(M_PI / 3) {
+void FPSCameraController::handleKey(int key, int scancode, int action, int mods) {
+  for (int i = 0; i < ACTION_COUNT; ++i) {
+    if (key == key_bindings_[i]) {
+      action_flags_[i] = (action != GLFW_RELEASE);
+    }
+  }
+}
+
+void FPSCameraController::handleMouseButton(int button, int action, int mods) {
+  // Handle mouse buttons the same way as keys (no conflicting codes)
+  for (int i = 0; i < ACTION_COUNT; ++i) {
+    if (button == key_bindings_[i]) {
+      action_flags_[i] = (action != GLFW_RELEASE);
+    }
+  }
+}
+
+void FPSCameraController::handleCursorPosition(double xpos, double ypos) {
+  cursor_x_ = xpos;
+  cursor_y_ = ypos;
+}
+
+void FPSCameraController::update(float dt) {
+  Eigen::Vector3f offset = Eigen::Vector3f::Zero();
+  float pan = 0.0f;
+  float tilt = 0.0f;
+
+  if (action_flags_[ACTION_MOVE_FORWARD]) { offset(2) -= move_speed_ * dt; }
+  if (action_flags_[ACTION_MOVE_LEFT]) { offset(0) -= move_speed_ * dt; }
+  if (action_flags_[ACTION_MOVE_BACKWARD]) { offset(2) += move_speed_ * dt; }
+  if (action_flags_[ACTION_MOVE_RIGHT]) { offset(0) += move_speed_ * dt; }
+  if (action_flags_[ACTION_MOVE_UP]) { offset(1) += move_speed_ * dt; }
+  if (action_flags_[ACTION_MOVE_DOWN]) { offset(1) -= move_speed_ * dt; }
+  if (action_flags_[ACTION_PAN_TILT]) {
+    pan -= (cursor_x_ - last_cursor_x_) * mouse_sensitivity_;
+    tilt -= (cursor_y_ - last_cursor_y_) * mouse_sensitivity_;
+  }
+
+  position_ += Eigen::AngleAxisf(yaw_, Eigen::Vector3f::UnitY()) * offset;
+  yaw_ += pan;
+  pitch_ += tilt;
+  last_cursor_x_ = cursor_x_;
+  last_cursor_y_ = cursor_y_;
+}
+
+void FPSCameraController::getViewMatrix(Eigen::Matrix4f &view_matrix) const {
+  Eigen::Affine3f view_transform(
+      Eigen::AngleAxisf(-pitch_, Eigen::Vector3f::UnitX()) *
+      Eigen::AngleAxisf(-yaw_, Eigen::Vector3f::UnitY()) *
+      Eigen::Translation3f(-position_));
+  view_matrix = view_transform.matrix();
+}
+
+GLFWRenderer::GLFWRenderer() : z_near_(1.0f), z_far_(1000.0f), fov_(M_PI / 3),
+                               camera_controller_() {
   if (!glfwInit()) {
     return;
   }
@@ -162,11 +216,12 @@ GLFWRenderer::GLFWRenderer() : z_near_(1.0f), z_far_(1000.0f), fov_(M_PI / 3) {
   glfwSetWindowSizeCallback(window_, windowSizeCallback);
   glfwSetFramebufferSizeCallback(window_, framebufferSizeCallback);
   glfwSetKeyCallback(window_, keyCallback);
+  glfwSetMouseButtonCallback(window_, mouseButtonCallback);
+  glfwSetCursorPosCallback(window_, cursorPositionCallback);
 
-  // Initialize matrices
+  // Initialize projection matrix
   glfwGetWindowSize(window_, &window_width_, &window_height_);
   updateProjectionMatrix();
-  view_matrix_ = Eigen::Affine3f(Eigen::Translation3f(0, 0, -2)).matrix();
 
   // Enable depth test
   glEnable(GL_DEPTH_TEST);
@@ -181,15 +236,18 @@ void GLFWRenderer::run(Simulation &sim) {
   double last_time = glfwGetTime();
   while (!glfwWindowShouldClose(window_)) {
     double current_time = glfwGetTime();
-    sim.advance(current_time - last_time);
+    double dt = current_time - last_time;
+    sim.advance(dt);
+    camera_controller_.update(dt);
     last_time = current_time;
 
+    camera_controller_.getViewMatrix(view_matrix_);
     render(sim);
   }
 }
 
 void GLFWRenderer::render(const Simulation &sim) {
-  glClearColor(0.8f, 0.8f, 0.8f, 1.0f);
+  glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
   default_program_->use();
@@ -267,9 +325,23 @@ void GLFWRenderer::framebufferSizeCallback(GLFWwindow *window, int width, int he
 
 void GLFWRenderer::keyCallback(GLFWwindow *window, int key, int scancode,
                                int action, int mods) {
+  GLFWRenderer *renderer = static_cast<GLFWRenderer*>(glfwGetWindowUserPointer(window));
   if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
     glfwSetWindowShouldClose(window, GL_TRUE);
   }
+  renderer->camera_controller_.handleKey(key, scancode, action, mods);
+}
+
+void GLFWRenderer::mouseButtonCallback(GLFWwindow *window, int button,
+                                       int action, int mods) {
+  GLFWRenderer *renderer = static_cast<GLFWRenderer*>(glfwGetWindowUserPointer(window));
+  renderer->camera_controller_.handleMouseButton(button, action, mods);
+}
+
+void GLFWRenderer::cursorPositionCallback(GLFWwindow *window, double xpos,
+                                          double ypos) {
+  GLFWRenderer *renderer = static_cast<GLFWRenderer*>(glfwGetWindowUserPointer(window));
+  renderer->camera_controller_.handleCursorPosition(xpos, ypos);
 }
 
 void GLFWRenderer::updateProjectionMatrix() {

@@ -59,7 +59,7 @@ int main(int argc, char **argv) {
       /*initial_rot=*/Quaternion::Identity(),
       /*density=*/0.0,  // static
       /*friction=*/0.9,
-      /*half_extents=*/Vector3{2.0, 1.0, 2.0});
+      /*half_extents=*/Vector3{10.0, 1.0, 10.0});
 
   std::shared_ptr<BulletSimulation> sim = std::make_shared<BulletSimulation>();
   sim->addProp(floor);

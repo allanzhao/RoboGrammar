@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <robot_design/sim.h>
@@ -55,6 +56,41 @@ private:
   GLsizei index_count_;
 };
 
+class FPSCameraController {
+public:
+  FPSCameraController(
+      const Eigen::Vector3f &position = Eigen::Vector3f::Zero(),
+      float yaw = 0.0f, float pitch = 0.0f, float move_speed = 2.0f,
+      float mouse_sensitivity = 0.005f)
+      : position_(position), yaw_(yaw), pitch_(pitch), move_speed_(move_speed),
+        mouse_sensitivity_(mouse_sensitivity), cursor_x_(0), cursor_y_(0),
+        last_cursor_x_(0), last_cursor_y_(0), action_flags_(),
+        key_bindings_(DEFAULT_KEY_BINDINGS) {}
+  void handleKey(int key, int scancode, int action, int mods);
+  void handleMouseButton(int button, int action, int mods);
+  void handleCursorPosition(double xpos, double ypos);
+  void update(float dt);
+  void getViewMatrix(Eigen::Matrix4f &view_matrix) const;
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+
+private:
+  enum Action {
+      ACTION_MOVE_FORWARD, ACTION_MOVE_LEFT, ACTION_MOVE_BACKWARD,
+      ACTION_MOVE_RIGHT, ACTION_MOVE_UP, ACTION_MOVE_DOWN, ACTION_PAN_TILT,
+      ACTION_COUNT};
+  static constexpr std::array<int, ACTION_COUNT> DEFAULT_KEY_BINDINGS = {
+      GLFW_KEY_W, GLFW_KEY_A, GLFW_KEY_S, GLFW_KEY_D, GLFW_KEY_Q, GLFW_KEY_E,
+      GLFW_MOUSE_BUTTON_LEFT};
+  Eigen::Vector3f position_;
+  float yaw_, pitch_;
+  float move_speed_;
+  float mouse_sensitivity_;
+  double cursor_x_, cursor_y_;
+  double last_cursor_x_, last_cursor_y_;
+  std::array<bool, ACTION_COUNT> action_flags_;
+  std::array<int, ACTION_COUNT> key_bindings_;
+};
+
 class GLFWRenderer {
 public:
   GLFWRenderer();
@@ -67,6 +103,9 @@ public:
   static void framebufferSizeCallback(GLFWwindow *window, int width, int height);
   static void keyCallback(GLFWwindow *window, int key, int scancode, int action,
                           int mods);
+  static void mouseButtonCallback(GLFWwindow *window, int button, int action,
+                                  int mods);
+  static void cursorPositionCallback(GLFWwindow *window, double xpos, double ypos);
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
 private:
@@ -77,14 +116,15 @@ private:
                    float radius, const Program &program) const;
   void updateProjectionMatrix();
   static std::string loadString(const std::string &path);
+  GLFWwindow *window_;
   float z_near_;
   float z_far_;
   float fov_;
   int window_width_;
   int window_height_;
+  FPSCameraController camera_controller_;
   Eigen::Matrix4f proj_matrix_;
   Eigen::Matrix4f view_matrix_;
-  GLFWwindow *window_;
   std::shared_ptr<Program> default_program_;
   std::shared_ptr<Mesh> box_mesh_;
   std::shared_ptr<Mesh> capsule_end_mesh_;
