@@ -70,6 +70,9 @@ public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
 private:
+  void drawBox(const Eigen::Matrix4f &transform,
+               const Eigen::Vector3f &half_extents,
+               const Program &program) const;
   void drawCapsule(const Eigen::Matrix4f &transform, float half_length,
                    float radius, const Program &program) const;
   void updateProjectionMatrix();
@@ -83,12 +86,15 @@ private:
   Eigen::Matrix4f view_matrix_;
   GLFWwindow *window_;
   std::shared_ptr<Program> default_program_;
+  std::shared_ptr<Mesh> box_mesh_;
   std::shared_ptr<Mesh> capsule_end_mesh_;
   std::shared_ptr<Mesh> capsule_middle_mesh_;
 };
 
 void makePerspectiveProjection(float aspect_ratio, float z_near, float z_far,
                                float fov, Eigen::Matrix4f &matrix);
+
+std::shared_ptr<Mesh> makeBoxMesh();
 
 std::shared_ptr<Mesh> makeCapsuleEndMesh(int n_segments, int n_rings);
 

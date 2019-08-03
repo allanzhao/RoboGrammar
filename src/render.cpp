@@ -152,6 +152,7 @@ GLFWRenderer::GLFWRenderer() : z_near_(1.0f), z_far_(1000.0f), fov_(M_PI / 3) {
   default_program_ = std::make_shared<Program>(default_vs_source, default_fs_source);
 
   // Create meshes
+  box_mesh_ = makeBoxMesh();
   capsule_end_mesh_ = makeCapsuleEndMesh(/*n_segments=*/32, /*n_rings=*/8);
   capsule_middle_mesh_ = makeCapsuleMiddleMesh(/*n_segments=*/32);
 
@@ -207,6 +208,16 @@ void GLFWRenderer::render(const Simulation &sim) {
 
   glfwSwapBuffers(window_);
   glfwPollEvents();
+}
+
+void GLFWRenderer::drawBox(const Eigen::Matrix4f &transform,
+                           const Eigen::Vector3f &half_extents,
+                           const Program &program) const {
+  Eigen::Affine3f base_transform(view_matrix_ * transform);
+  box_mesh_->bind();
+  program.setModelViewMatrix((base_transform *
+      Eigen::DiagonalMatrix<float, 3>(half_extents)).matrix());
+  box_mesh_->draw();
 }
 
 void GLFWRenderer::drawCapsule(const Eigen::Matrix4f &transform,
@@ -273,6 +284,32 @@ void makePerspectiveProjection(float aspect_ratio, float z_near, float z_far,
             0, 1 / tan_half_fov, 0, 0,
             0, 0, -(z_far + z_near) / z_range, -2 * z_far * z_near / z_range,
             0, 0, -1, 0;
+}
+
+std::shared_ptr<Mesh> makeBoxMesh() {
+  std::vector<float> positions = {
+      -1, -1, -1, -1, -1, 1, -1, 1, 1, -1, 1, -1,  // -X face
+      -1, -1, -1, 1, -1, -1, 1, -1, 1, -1, -1, 1,  // -Y face
+      -1, -1, -1, -1, 1, -1, 1, 1, -1, -1, 1, -1,  // -Z face
+      1, 1, 1, 1, -1, 1, 1, -1, -1, 1, 1, -1,      // +X face
+      1, 1, 1, 1, 1, -1, -1, 1, -1, -1, 1, 1,      // +Y face
+      1, 1, 1, -1, 1, 1, -1, -1, 1, 1, -1, 1};     // +Z face
+  std::vector<float> normals = {
+      -1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0,      // -X face
+      0, -1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0,      // -Y face
+      0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0, -1,      // -Z face
+      1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0,          // +X face
+      0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0,          // +Y face
+      0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1};         // +Z face
+  std::vector<int> indices = {
+      0, 1, 2, 3, 0, 2,                            // -X face
+      4, 5, 6, 7, 4, 6,                            // -Y face
+      8, 9, 10, 11, 8, 10,                         // -Z face
+      12, 13, 14, 15, 12, 14,                      // +X face
+      16, 17, 18, 19, 16, 18,                      // +Y face
+      20, 21, 22, 23, 20, 22};                     // +Z face
+
+  return std::move(std::make_shared<Mesh>(positions, normals, indices));
 }
 
 std::shared_ptr<Mesh> makeCapsuleEndMesh(int n_segments, int n_rings) {
