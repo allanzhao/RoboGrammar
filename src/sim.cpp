@@ -1,11 +1,10 @@
-#include <iostream>
 #include <robot_design/sim.h>
 #include <robot_design/utils.h>
 
 namespace robot_design {
 
 BulletSimulation::BulletSimulation()
-    : robot_wrappers_(), internal_time_step_(1. / 240) {
+    : internal_time_step_(1. / 240) {
   collision_config_ = std::make_shared<btDefaultCollisionConfiguration>();
   dispatcher_ = std::make_shared<btCollisionDispatcher>(collision_config_.get());
   pair_cache_ = std::make_shared<btHashedOverlappingPairCache>();
@@ -17,8 +16,11 @@ BulletSimulation::BulletSimulation()
 }
 
 BulletSimulation::~BulletSimulation() {
-  for (auto &wrapper : robot_wrappers_) {
-    unregisterRobotWrapper(wrapper);
+  for (auto &robot_wrapper : robot_wrappers_) {
+    unregisterRobotWrapper(robot_wrapper);
+  }
+  for (auto &prop_wrapper : prop_wrappers_) {
+    unregisterPropWrapper(prop_wrapper);
   }
 }
 
@@ -90,10 +92,10 @@ void BulletSimulation::addRobot(std::shared_ptr<const Robot> robot) {
     auto collider = std::make_shared<btMultiBodyLinkCollider>(
         wrapper.multi_body_.get(), i - 1);
     collider->setCollisionShape(wrapper.col_shapes_[i].get());
+    collider->setFriction(robot->friction_);
     world_->addCollisionObject(collider.get(),
                                /*collisionFilterGroup=*/1,
                                /*collisionFilterMask=*/1);
-    collider->setFriction(robot->friction_);
     if (i == 0) {
       wrapper.multi_body_->setBaseCollider(collider.get());
     } else {
@@ -111,6 +113,33 @@ void BulletSimulation::addRobot(std::shared_ptr<const Robot> robot) {
   wrapper.multi_body_->updateCollisionObjectWorldTransforms(world_to_local, local_origin);
 }
 
+void BulletSimulation::addProp(std::shared_ptr<const Prop> prop) {
+  prop_wrappers_.emplace_back(prop);
+  BulletPropWrapper &wrapper = prop_wrappers_.back();
+
+  wrapper.col_shape_ = std::make_shared<btBoxShape>(bulletVector3FromEigen(prop->half_extents_));
+  // TODO: generalize to other shapes
+  Scalar mass = 8 * prop->half_extents_.prod() * prop->density_;
+  btVector3 inertia(0, 0, 0);
+  if (mass != 0) {
+    wrapper.col_shape_->calculateLocalInertia(mass, inertia);
+  }
+
+  btRigidBody::btRigidBodyConstructionInfo rigid_body_info(
+      /*mass=*/mass,
+      /*motionState=*/nullptr,
+      /*collisionShape=*/wrapper.col_shape_.get(),
+      /*localInertia=*/inertia);
+  rigid_body_info.m_friction = prop->friction_;
+  wrapper.rigid_body_ = std::make_shared<btRigidBody>(rigid_body_info);
+  wrapper.rigid_body_->setCenterOfMassTransform(btTransform(
+      /*q=*/bulletQuaternionFromEigen(prop->initial_rot_),
+      /*c=*/bulletVector3FromEigen(prop->initial_pos_)));
+  world_->addRigidBody(wrapper.rigid_body_.get(),
+                       /*collisionFilterGroup=*/1,
+                       /*collisionFilterMask=*/1);
+}
+
 void BulletSimulation::removeRobot(std::shared_ptr<const Robot> robot) {
   auto it = std::find_if(robot_wrappers_.begin(), robot_wrappers_.end(),
       [&](const BulletRobotWrapper &wrapper) { return wrapper.robot_ == robot; });
@@ -120,21 +149,41 @@ void BulletSimulation::removeRobot(std::shared_ptr<const Robot> robot) {
   }
 }
 
-std::shared_ptr<const Robot> BulletSimulation::getRobot(Index i) const {
-  return robot_wrappers_[i].robot_;
+void BulletSimulation::removeProp(std::shared_ptr<const Prop> prop) {
+  auto it = std::find_if(prop_wrappers_.begin(), prop_wrappers_.end(),
+      [&](const BulletPropWrapper &wrapper) { return wrapper.prop_ == prop; });
+  if (it != prop_wrappers_.end()) {
+    unregisterPropWrapper(*it);
+    prop_wrappers_.erase(it);
+  }
+}
+
+std::shared_ptr<const Robot> BulletSimulation::getRobot(Index robot_idx) const {
+  return robot_wrappers_[robot_idx].robot_;
+}
+
+std::shared_ptr<const Prop> BulletSimulation::getProp(Index prop_idx) const {
+  return prop_wrappers_[prop_idx].prop_;
 }
 
 Index BulletSimulation::getRobotCount() const {
   return robot_wrappers_.size();
 }
 
-void BulletSimulation::unregisterRobotWrapper(BulletRobotWrapper &wrapper) {
-  // Remove collision objects from world
-  for (auto collider : wrapper.colliders_) {
+Index BulletSimulation::getPropCount() const {
+  return prop_wrappers_.size();
+}
+
+void BulletSimulation::unregisterRobotWrapper(BulletRobotWrapper &robot_wrapper) {
+  // Remove collision objects for every link
+  for (auto collider : robot_wrapper.colliders_) {
     world_->removeCollisionObject(collider.get());
   }
+  world_->removeMultiBody(robot_wrapper.multi_body_.get());
+}
 
-  world_->removeMultiBody(wrapper.multi_body_.get());
+void BulletSimulation::unregisterPropWrapper(BulletPropWrapper &prop_wrapper) {
+  world_->removeRigidBody(prop_wrapper.rigid_body_.get());
 }
 
 void BulletSimulation::getLinkTransform(Index robot_idx, Index link_idx,
@@ -146,6 +195,11 @@ void BulletSimulation::getLinkTransform(Index robot_idx, Index link_idx,
   } else {
     transform = eigenMatrix4FromBullet(multi_body.getLink(link_idx - 1).m_cachedWorldTransform);
   }
+}
+
+void BulletSimulation::getPropTransform(Index prop_idx, Matrix4 &transform) const {
+  btRigidBody &rigid_body = *prop_wrappers_[prop_idx].rigid_body_;
+  transform = eigenMatrix4FromBullet(rigid_body.getCenterOfMassTransform());
 }
 
 void BulletSimulation::advance(Scalar dt) {

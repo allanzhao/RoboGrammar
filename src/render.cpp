@@ -206,6 +206,14 @@ void GLFWRenderer::render(const Simulation &sim) {
     }
   }
 
+  for (Index prop_idx = 0; prop_idx < sim.getPropCount(); ++prop_idx) {
+    const Prop &prop = *sim.getProp(prop_idx);
+    Matrix4 prop_transform;
+    sim.getPropTransform(prop_idx, prop_transform);
+    drawBox(prop_transform.cast<float>(), prop.half_extents_.cast<float>(),
+            *default_program_);
+  }
+
   glfwSwapBuffers(window_);
   glfwPollEvents();
 }
