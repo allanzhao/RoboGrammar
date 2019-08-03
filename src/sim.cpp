@@ -32,7 +32,7 @@ void BulletSimulation::addRobot(std::shared_ptr<const Robot> robot) {
   for (int i = 0; i < robot->links_.size(); ++i) {
     const Link &link = robot->links_[i];
 
-    auto col_shape = std::make_shared<btCapsuleShape>(robot->link_radius_,
+    auto col_shape = std::make_shared<btCapsuleShapeX>(robot->link_radius_,
         link.length_);
     Scalar link_mass = link.length_ * robot->link_density_;
     btVector3 link_inertia;
