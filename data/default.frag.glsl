@@ -5,5 +5,6 @@ in vec3 view_normal;
 out vec4 out_color;
 
 void main() {
-  out_color = vec4(normalize(view_normal), 1.0);
+  vec3 object_color = vec3(0.5, 0.5, 0.5);
+  out_color = vec4(normalize(view_normal).z * object_color + 0.25, 1.0);
 }
