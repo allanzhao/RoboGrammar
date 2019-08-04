@@ -78,9 +78,7 @@ private:
       ACTION_MOVE_FORWARD, ACTION_MOVE_LEFT, ACTION_MOVE_BACKWARD,
       ACTION_MOVE_RIGHT, ACTION_MOVE_UP, ACTION_MOVE_DOWN, ACTION_PAN_TILT,
       ACTION_COUNT};
-  static constexpr std::array<int, ACTION_COUNT> DEFAULT_KEY_BINDINGS = {
-      GLFW_KEY_W, GLFW_KEY_A, GLFW_KEY_S, GLFW_KEY_D, GLFW_KEY_Q, GLFW_KEY_E,
-      GLFW_MOUSE_BUTTON_LEFT};
+  static const std::array<int, ACTION_COUNT> DEFAULT_KEY_BINDINGS;
   Eigen::Vector3f position_;
   float yaw_, pitch_;
   float move_speed_;
