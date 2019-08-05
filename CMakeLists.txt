@@ -8,11 +8,13 @@ set(ARGS_INCLUDE_DIRS extern/args)
 
 set(USE_DOUBLE_PRECISION ON)  # Use double precision in Bullet
 set(BULLET_ROOT extern/bullet3)
-set(BULLET_INCLUDE_DIRS ${BULLET_ROOT}/src)
+set(BULLET_INCLUDE_DIRS ${BULLET_ROOT}/src ${BULLET_ROOT}/Extras)
 file(GLOB_RECURSE BULLET_SOURCES
     ${BULLET_ROOT}/src/BulletCollision/*.cpp
     ${BULLET_ROOT}/src/BulletDynamics/*.cpp
     ${BULLET_ROOT}/src/LinearMath/*.cpp
+    ${BULLET_ROOT}/Extras/Serialize/BulletFileLoader/*.cpp
+    ${BULLET_ROOT}/Extras/Serialize/BulletWorldImporter/*.cpp
 )
 
 set(EIGEN_INCLUDE_DIRS extern/eigen)

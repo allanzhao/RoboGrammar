@@ -1,5 +1,6 @@
 #include <robot_design/sim.h>
 #include <robot_design/utils.h>
+#include <Serialize/BulletWorldImporter/btMultiBodyWorldImporter.h>
 
 namespace robot_design {
 
@@ -202,6 +203,36 @@ void BulletSimulation::getLinkTransform(Index robot_idx, Index link_idx,
 void BulletSimulation::getPropTransform(Index prop_idx, Matrix4 &transform) const {
   btRigidBody &rigid_body = *prop_wrappers_[prop_idx].rigid_body_;
   transform = eigenMatrix4FromBullet(rigid_body.getCenterOfMassTransform());
+}
+
+Index BulletSimulation::saveState() {
+  auto serializer = std::make_shared<btDefaultSerializer>();
+  int ser_flags = serializer->getSerializationFlags();
+  serializer->setSerializationFlags(ser_flags | BT_SERIALIZE_CONTACT_MANIFOLDS);
+  world_->serialize(serializer.get());
+
+  auto bullet_file = std::make_shared<bParse::btBulletFile>(
+      (char *)serializer->getBufferPointer(),
+      serializer->getCurrentBufferSize());
+  bullet_file->parse(false);
+  if (bullet_file->ok()) {
+    saved_states_.emplace_back(std::move(serializer), std::move(bullet_file));
+    return saved_states_.size() - 1;
+  } else {
+    return -1;
+  }
+}
+
+void BulletSimulation::restoreState(Index state_idx) {
+  auto importer = std::make_shared<btMultiBodyWorldImporter>(world_.get());
+  importer->setImporterFlags(eRESTORE_EXISTING_OBJECTS);
+  BulletSavedState &state = saved_states_[state_idx];
+  importer->convertAllObjects(state.bullet_file_.get());
+}
+
+void BulletSimulation::removeState(Index state_idx) {
+  auto it = saved_states_.begin() + state_idx;
+  saved_states_.erase(it);
 }
 
 void BulletSimulation::advance(Scalar dt) {

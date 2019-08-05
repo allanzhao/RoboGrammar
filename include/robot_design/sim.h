@@ -8,6 +8,7 @@
 #include <robot_design/prop.h>
 #include <robot_design/robot.h>
 #include <robot_design/types.h>
+#include <Serialize/BulletFileLoader/btBulletFile.h>
 
 namespace robot_design {
 
@@ -26,6 +27,9 @@ public:
   virtual void getLinkTransform(Index robot_idx, Index link_idx,
                             Matrix4 &transform) const = 0;
   virtual void getPropTransform(Index prop_idx, Matrix4 &transform) const = 0;
+  virtual Index saveState() = 0;
+  virtual void restoreState(Index state_idx) = 0;
+  virtual void removeState(Index state_idx) = 0;
   virtual void advance(Scalar dt) = 0;
 };
 
@@ -47,6 +51,14 @@ struct BulletPropWrapper {
   std::shared_ptr<btCollisionObject> col_object_;
 };
 
+struct BulletSavedState {
+  BulletSavedState(std::shared_ptr<btSerializer> serializer,
+                   std::shared_ptr<bParse::btBulletFile> bullet_file)
+      : serializer_(serializer), bullet_file_(bullet_file) {}
+  std::shared_ptr<btSerializer> serializer_;
+  std::shared_ptr<bParse::btBulletFile> bullet_file_;
+};
+
 class BulletSimulation : public Simulation {
 public:
   BulletSimulation();
@@ -66,6 +78,9 @@ public:
   virtual void getLinkTransform(Index robot_idx, Index link_idx,
                                 Matrix4 &transform) const override;
   virtual void getPropTransform(Index prop_idx, Matrix4 &transform) const override;
+  virtual Index saveState() override;
+  virtual void restoreState(Index state_idx) override;
+  virtual void removeState(Index state_idx) override;
   virtual void advance(Scalar dt) override;
 
 private:
@@ -81,6 +96,7 @@ private:
   std::shared_ptr<btMultiBodyDynamicsWorld> world_;
   std::vector<BulletRobotWrapper> robot_wrappers_;
   std::vector<BulletPropWrapper> prop_wrappers_;
+  std::vector<BulletSavedState> saved_states_;
 };
 
 }  // namespace robot_design
