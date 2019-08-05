@@ -25,8 +25,8 @@ BulletSimulation::~BulletSimulation() {
   }
 }
 
-void BulletSimulation::addRobot(std::shared_ptr<const Robot> robot,
-                                const Vector3 &pos, const Quaternion &rot) {
+Index BulletSimulation::addRobot(std::shared_ptr<const Robot> robot,
+                                 const Vector3 &pos, const Quaternion &rot) {
   robot_wrappers_.emplace_back(robot);
   BulletRobotWrapper &wrapper = robot_wrappers_.back();
   wrapper.col_shapes_.resize(robot->links_.size());
@@ -115,10 +115,12 @@ void BulletSimulation::addRobot(std::shared_ptr<const Robot> robot,
   btAlignedObjectArray<btQuaternion> world_to_local;
   btAlignedObjectArray<btVector3> local_origin;
   wrapper.multi_body_->updateCollisionObjectWorldTransforms(world_to_local, local_origin);
+
+  return robot_wrappers_.size() - 1;
 }
 
-void BulletSimulation::addProp(std::shared_ptr<const Prop> prop,
-                               const Vector3 &pos, const Quaternion &rot) {
+Index BulletSimulation::addProp(std::shared_ptr<const Prop> prop,
+                                const Vector3 &pos, const Quaternion &rot) {
   prop_wrappers_.emplace_back(prop);
   BulletPropWrapper &wrapper = prop_wrappers_.back();
 
@@ -143,28 +145,20 @@ void BulletSimulation::addProp(std::shared_ptr<const Prop> prop,
   world_->addRigidBody(wrapper.rigid_body_.get(),
                        /*collisionFilterGroup=*/2,
                        /*collisionFilterMask=*/3);
+
+  return prop_wrappers_.size() - 1;
 }
 
-void BulletSimulation::removeRobot(const Robot &robot) {
-  auto it = std::find_if(robot_wrappers_.begin(), robot_wrappers_.end(),
-      [&](const BulletRobotWrapper &wrapper) {
-        return wrapper.robot_.get() == &robot;
-      });
-  if (it != robot_wrappers_.end()) {
-    unregisterRobotWrapper(*it);
-    robot_wrappers_.erase(it);
-  }
+void BulletSimulation::removeRobot(Index robot_idx) {
+  auto it = robot_wrappers_.begin() + robot_idx;
+  unregisterRobotWrapper(*it);
+  robot_wrappers_.erase(it);
 }
 
-void BulletSimulation::removeProp(const Prop &prop) {
-  auto it = std::find_if(prop_wrappers_.begin(), prop_wrappers_.end(),
-      [&](const BulletPropWrapper &wrapper) {
-        return wrapper.prop_.get() == &prop;
-      });
-  if (it != prop_wrappers_.end()) {
-    unregisterPropWrapper(*it);
-    prop_wrappers_.erase(it);
-  }
+void BulletSimulation::removeProp(Index prop_idx) {
+  auto it = prop_wrappers_.begin() + prop_idx;
+  unregisterPropWrapper(*it);
+  prop_wrappers_.erase(it);
 }
 
 std::shared_ptr<const Robot> BulletSimulation::getRobot(Index robot_idx) const {
