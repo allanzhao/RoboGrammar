@@ -8,8 +8,8 @@
 
 namespace robot_design {
 
-const VertexAttribute ATTRIB_POSITION(0, "position");
-const VertexAttribute ATTRIB_NORMAL(1, "normal");
+const VertexAttribute ATTRIB_POSITION(0, "model_position");
+const VertexAttribute ATTRIB_NORMAL(1, "model_normal");
 
 Program::Program(const std::string &vertex_shader_source,
                  const std::string &fragment_shader_source)
@@ -54,6 +54,7 @@ Program::Program(const std::string &vertex_shader_source,
 
   // Find uniform indices
   proj_matrix_index_ = glGetUniformLocation(program_, "proj_matrix");
+  view_matrix_index_ = glGetUniformLocation(program_, "view_matrix");
   model_view_matrix_index_ = glGetUniformLocation(program_, "model_view_matrix");
   normal_matrix_index_ = glGetUniformLocation(program_, "normal_matrix");
 }
@@ -74,10 +75,12 @@ void Program::setProjectionMatrix(const Eigen::Matrix4f &proj_matrix) const {
   glUniformMatrix4fv(proj_matrix_index_, 1, GL_FALSE, proj_matrix.data());
 }
 
-void Program::setModelViewMatrix(const Eigen::Matrix4f &model_view_matrix) const {
-  glUniformMatrix4fv(model_view_matrix_index_, 1, GL_FALSE, model_view_matrix.data());
-  // Also set the normal matrix
+void Program::setModelViewMatrices(const Eigen::Matrix4f &model_matrix,
+                                   const Eigen::Matrix4f &view_matrix) const {
+  Eigen::Matrix4f model_view_matrix = view_matrix * model_matrix;
   Eigen::Matrix3f normal_matrix = model_view_matrix.topLeftCorner<3, 3>().inverse().transpose();
+  glUniformMatrix4fv(view_matrix_index_, 1, GL_FALSE, view_matrix.data());
+  glUniformMatrix4fv(model_view_matrix_index_, 1, GL_FALSE, model_view_matrix.data());
   glUniformMatrix3fv(normal_matrix_index_, 1, GL_FALSE, normal_matrix.data());
 }
 
@@ -279,36 +282,34 @@ void GLFWRenderer::render(const Simulation &sim) {
 void GLFWRenderer::drawBox(const Eigen::Matrix4f &transform,
                            const Eigen::Vector3f &half_extents,
                            const Program &program) const {
-  Eigen::Affine3f base_transform(view_matrix_ * transform);
+  Eigen::Affine3f model_transform = Eigen::Affine3f(transform) *
+      Eigen::DiagonalMatrix<float, 3>(half_extents);
   box_mesh_->bind();
-  program.setModelViewMatrix((base_transform *
-      Eigen::DiagonalMatrix<float, 3>(half_extents)).matrix());
+  program.setModelViewMatrices(model_transform.matrix(), view_matrix_);
   box_mesh_->draw();
 }
 
 void GLFWRenderer::drawCapsule(const Eigen::Matrix4f &transform,
                                float half_length, float radius,
                                const Program &program) const {
-  Eigen::Affine3f base_transform(view_matrix_ * transform);
-
-  // Draw the ends
+  Eigen::Affine3f right_end_model_transform = Eigen::Affine3f(transform) *
+      Eigen::Translation3f(half_length, 0, 0) *
+      Eigen::DiagonalMatrix<float, 3>(radius, radius, radius);
   capsule_end_mesh_->bind();
-  program.setModelViewMatrix((base_transform *
-                              Eigen::Translation3f(half_length, 0, 0) *
-                              Eigen::DiagonalMatrix<float, 3>(
-                                  radius, radius, radius)).matrix());
-  capsule_end_mesh_->draw();
-  program.setModelViewMatrix((base_transform *
-                              Eigen::Translation3f(-half_length, 0, 0) *
-                              Eigen::DiagonalMatrix<float, 3>(
-                                  -radius, radius, -radius)).matrix());
+  program.setModelViewMatrices(right_end_model_transform.matrix(), view_matrix_);
   capsule_end_mesh_->draw();
 
-  // Draw the middle
+  Eigen::Affine3f left_end_model_transform = Eigen::Affine3f(transform) *
+      Eigen::Translation3f(-half_length, 0, 0) *
+      Eigen::DiagonalMatrix<float, 3>(-radius, radius, -radius);
+  capsule_end_mesh_->bind();
+  program.setModelViewMatrices(left_end_model_transform.matrix(), view_matrix_);
+  capsule_end_mesh_->draw();
+
+  Eigen::Affine3f middle_model_transform = Eigen::Affine3f(transform) *
+      Eigen::DiagonalMatrix<float, 3>(half_length, radius, radius);
   capsule_middle_mesh_->bind();
-  program.setModelViewMatrix((base_transform *
-                              Eigen::DiagonalMatrix<float, 3>(
-                                  half_length, radius, radius)).matrix());
+  program.setModelViewMatrices(middle_model_transform.matrix(), view_matrix_);
   capsule_middle_mesh_->draw();
 }
 
