@@ -131,6 +131,10 @@ void Mesh::draw() const {
   glDrawElements(GL_TRIANGLES, index_count_, GL_UNSIGNED_INT, 0);
 }
 
+const std::array<int, FPSCameraController::ACTION_COUNT> FPSCameraController::DEFAULT_KEY_BINDINGS = {
+    GLFW_KEY_W, GLFW_KEY_A, GLFW_KEY_S, GLFW_KEY_D, GLFW_KEY_Q, GLFW_KEY_E,
+    GLFW_MOUSE_BUTTON_LEFT};
+
 void FPSCameraController::handleKey(int key, int scancode, int action, int mods) {
   for (int i = 0; i < ACTION_COUNT; ++i) {
     if (key == key_bindings_[i]) {
