@@ -62,15 +62,18 @@ class FPSCameraController {
 public:
   FPSCameraController(
       const Eigen::Vector3f &position = Eigen::Vector3f::Zero(),
-      float yaw = 0.0f, float pitch = 0.0f, float move_speed = 2.0f,
-      float mouse_sensitivity = 0.005f)
-      : position_(position), yaw_(yaw), pitch_(pitch), move_speed_(move_speed),
-        mouse_sensitivity_(mouse_sensitivity), cursor_x_(0), cursor_y_(0),
+      float yaw = 0.0f, float pitch = 0.0f, float distance = 1.0f,
+      float move_speed = 2.0f, float mouse_sensitivity = 0.005f,
+      float scroll_sensitivity = 0.1f)
+      : position_(position), yaw_(yaw), pitch_(pitch), distance_(distance),
+        move_speed_(move_speed), mouse_sensitivity_(mouse_sensitivity),
+        scroll_sensitivity_(scroll_sensitivity), cursor_x_(0), cursor_y_(0),
         last_cursor_x_(0), last_cursor_y_(0), action_flags_(),
         key_bindings_(DEFAULT_KEY_BINDINGS) {}
   void handleKey(int key, int scancode, int action, int mods);
   void handleMouseButton(int button, int action, int mods);
   void handleCursorPosition(double xpos, double ypos);
+  void handleScroll(double xoffset, double yoffset);
   void update(float dt);
   void getViewMatrix(Eigen::Matrix4f &view_matrix) const;
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
@@ -83,8 +86,10 @@ private:
   static const std::array<int, ACTION_COUNT> DEFAULT_KEY_BINDINGS;
   Eigen::Vector3f position_;
   float yaw_, pitch_;
+  float distance_;
   float move_speed_;
   float mouse_sensitivity_;
+  float scroll_sensitivity_;
   double cursor_x_, cursor_y_;
   double last_cursor_x_, last_cursor_y_;
   std::array<bool, ACTION_COUNT> action_flags_;
@@ -106,6 +111,7 @@ public:
   static void mouseButtonCallback(GLFWwindow *window, int button, int action,
                                   int mods);
   static void cursorPositionCallback(GLFWwindow *window, double xpos, double ypos);
+  static void scrollCallback(GLFWwindow *window, double xoffset, double yoffset);
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
 private:

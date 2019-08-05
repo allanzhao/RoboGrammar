@@ -157,6 +157,10 @@ void FPSCameraController::handleCursorPosition(double xpos, double ypos) {
   cursor_y_ = ypos;
 }
 
+void FPSCameraController::handleScroll(double xoffset, double yoffset) {
+  distance_ *= std::pow(1.0 - scroll_sensitivity_, yoffset);
+}
+
 void FPSCameraController::update(float dt) {
   Eigen::Vector3f offset = Eigen::Vector3f::Zero();
   float pan = 0.0f;
@@ -182,6 +186,7 @@ void FPSCameraController::update(float dt) {
 
 void FPSCameraController::getViewMatrix(Eigen::Matrix4f &view_matrix) const {
   Eigen::Affine3f view_transform(
+      Eigen::Translation3f(0.0f, 0.0f, -distance_) *
       Eigen::AngleAxisf(-pitch_, Eigen::Vector3f::UnitX()) *
       Eigen::AngleAxisf(-yaw_, Eigen::Vector3f::UnitY()) *
       Eigen::Translation3f(-position_));
@@ -225,6 +230,7 @@ GLFWRenderer::GLFWRenderer() : z_near_(1.0f), z_far_(1000.0f), fov_(M_PI / 3),
   glfwSetKeyCallback(window_, keyCallback);
   glfwSetMouseButtonCallback(window_, mouseButtonCallback);
   glfwSetCursorPosCallback(window_, cursorPositionCallback);
+  glfwSetScrollCallback(window_, scrollCallback);
 
   // Initialize projection matrix
   glfwGetWindowSize(window_, &window_width_, &window_height_);
@@ -347,6 +353,12 @@ void GLFWRenderer::cursorPositionCallback(GLFWwindow *window, double xpos,
                                           double ypos) {
   GLFWRenderer *renderer = static_cast<GLFWRenderer*>(glfwGetWindowUserPointer(window));
   renderer->camera_controller_.handleCursorPosition(xpos, ypos);
+}
+
+void GLFWRenderer::scrollCallback(GLFWwindow *window, double xoffset,
+                                  double yoffset) {
+  GLFWRenderer *renderer = static_cast<GLFWRenderer*>(glfwGetWindowUserPointer(window));
+  renderer->camera_controller_.handleScroll(xoffset, yoffset);
 }
 
 void GLFWRenderer::updateProjectionMatrix() {
