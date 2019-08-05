@@ -24,7 +24,8 @@ BulletSimulation::~BulletSimulation() {
   }
 }
 
-void BulletSimulation::addRobot(std::shared_ptr<const Robot> robot) {
+void BulletSimulation::addRobot(std::shared_ptr<const Robot> robot,
+                                const Vector3 &pos, const Quaternion &rot) {
   robot_wrappers_.emplace_back(robot);
   BulletRobotWrapper &wrapper = robot_wrappers_.back();
   wrapper.col_shapes_.resize(robot->links_.size());
@@ -46,7 +47,9 @@ void BulletSimulation::addRobot(std::shared_ptr<const Robot> robot) {
           /*inertia=*/link_inertia,
           /*fixedBase=*/false,
           /*canSleep=*/false);
-      wrapper.multi_body_->setBaseWorldTransform(btTransform::getIdentity());
+      wrapper.multi_body_->setBaseWorldTransform(btTransform(
+          /*q=*/bulletQuaternionFromEigen(rot),
+          /*c=*/bulletVector3FromEigen(pos)));
     } else {
       btQuaternion joint_rot = bulletQuaternionFromEigen(link.joint_rot_);
       btVector3 joint_axis = bulletVector3FromEigen(link.joint_axis_);
@@ -113,7 +116,8 @@ void BulletSimulation::addRobot(std::shared_ptr<const Robot> robot) {
   wrapper.multi_body_->updateCollisionObjectWorldTransforms(world_to_local, local_origin);
 }
 
-void BulletSimulation::addProp(std::shared_ptr<const Prop> prop) {
+void BulletSimulation::addProp(std::shared_ptr<const Prop> prop,
+                               const Vector3 &pos, const Quaternion &rot) {
   prop_wrappers_.emplace_back(prop);
   BulletPropWrapper &wrapper = prop_wrappers_.back();
 
@@ -133,8 +137,8 @@ void BulletSimulation::addProp(std::shared_ptr<const Prop> prop) {
   rigid_body_info.m_friction = prop->friction_;
   wrapper.rigid_body_ = std::make_shared<btRigidBody>(rigid_body_info);
   wrapper.rigid_body_->setCenterOfMassTransform(btTransform(
-      /*q=*/bulletQuaternionFromEigen(prop->initial_rot_),
-      /*c=*/bulletVector3FromEigen(prop->initial_pos_)));
+      /*q=*/bulletQuaternionFromEigen(rot),
+      /*c=*/bulletVector3FromEigen(pos)));
   world_->addRigidBody(wrapper.rigid_body_.get(),
                        /*collisionFilterGroup=*/1,
                        /*collisionFilterMask=*/1);

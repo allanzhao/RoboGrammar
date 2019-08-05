@@ -55,15 +55,13 @@ int main(int argc, char **argv) {
 
   // Create a floor
   std::shared_ptr<Prop> floor = std::make_shared<Prop>(
-      /*initial_pos=*/Vector3{0.0, -2.0, 0.0},
-      /*initial_rot=*/Quaternion::Identity(),
       /*density=*/0.0,  // static
       /*friction=*/0.9,
       /*half_extents=*/Vector3{10.0, 1.0, 10.0});
 
   std::shared_ptr<BulletSimulation> sim = std::make_shared<BulletSimulation>();
-  sim->addProp(floor);
-  sim->addRobot(robot);
+  sim->addProp(floor, Vector3{0.0, -1.0, 0.0}, Quaternion::Identity());
+  sim->addRobot(robot, Vector3{0.0, 1.0, 0.0}, Quaternion::Identity());
   GLFWRenderer renderer;
   renderer.run(*sim);
   sim->removeRobot(robot);

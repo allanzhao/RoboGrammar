@@ -13,8 +13,10 @@ namespace robot_design {
 
 class Simulation {
 public:
-  virtual void addRobot(std::shared_ptr<const Robot> robot) = 0;
-  virtual void addProp(std::shared_ptr<const Prop> prop) = 0;
+  virtual void addRobot(std::shared_ptr<const Robot> robot, const Vector3 &pos,
+                        const Quaternion &rot) = 0;
+  virtual void addProp(std::shared_ptr<const Prop> prop, const Vector3 &pos,
+                       const Quaternion &rot) = 0;
   virtual void removeRobot(std::shared_ptr<const Robot> robot) = 0;
   virtual void removeProp(std::shared_ptr<const Prop> prop) = 0;
   virtual std::shared_ptr<const Robot> getRobot(Index robot_idx) const = 0;
@@ -51,8 +53,10 @@ public:
   virtual ~BulletSimulation();
   BulletSimulation(const BulletSimulation &other) = delete;
   BulletSimulation &operator=(const BulletSimulation &other) = delete;
-  virtual void addRobot(std::shared_ptr<const Robot> robot) override;
-  virtual void addProp(std::shared_ptr<const Prop> prop) override;
+  virtual void addRobot(std::shared_ptr<const Robot> robot, const Vector3 &pos,
+                        const Quaternion &rot) override;
+  virtual void addProp(std::shared_ptr<const Prop> prop, const Vector3 &pos,
+                       const Quaternion &rot) override;
   virtual void removeRobot(std::shared_ptr<const Robot> robot) override;
   virtual void removeProp(std::shared_ptr<const Prop> prop) override;
   virtual std::shared_ptr<const Robot> getRobot(Index robot_idx) const override;
