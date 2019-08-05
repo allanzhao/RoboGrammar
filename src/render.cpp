@@ -238,6 +238,10 @@ GLFWRenderer::GLFWRenderer() : z_near_(1.0f), z_far_(1000.0f), fov_(M_PI / 3),
 
   // Enable depth test
   glEnable(GL_DEPTH_TEST);
+
+  // Set default camera parameters
+  camera_controller_.pitch_ = -M_PI / 6;
+  camera_controller_.distance_ = 2.0;
 }
 
 GLFWRenderer::~GLFWRenderer() {

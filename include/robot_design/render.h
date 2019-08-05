@@ -78,18 +78,19 @@ public:
   void getViewMatrix(Eigen::Matrix4f &view_matrix) const;
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
-private:
-  enum Action {
-      ACTION_MOVE_FORWARD, ACTION_MOVE_LEFT, ACTION_MOVE_BACKWARD,
-      ACTION_MOVE_RIGHT, ACTION_MOVE_UP, ACTION_MOVE_DOWN, ACTION_PAN_TILT,
-      ACTION_COUNT};
-  static const std::array<int, ACTION_COUNT> DEFAULT_KEY_BINDINGS;
   Eigen::Vector3f position_;
   float yaw_, pitch_;
   float distance_;
   float move_speed_;
   float mouse_sensitivity_;
   float scroll_sensitivity_;
+
+private:
+  enum Action {
+      ACTION_MOVE_FORWARD, ACTION_MOVE_LEFT, ACTION_MOVE_BACKWARD,
+      ACTION_MOVE_RIGHT, ACTION_MOVE_UP, ACTION_MOVE_DOWN, ACTION_PAN_TILT,
+      ACTION_COUNT};
+  static const std::array<int, ACTION_COUNT> DEFAULT_KEY_BINDINGS;
   double cursor_x_, cursor_y_;
   double last_cursor_x_, last_cursor_y_;
   std::array<bool, ACTION_COUNT> action_flags_;
