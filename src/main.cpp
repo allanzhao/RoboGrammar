@@ -60,11 +60,11 @@ int main(int argc, char **argv) {
       /*half_extents=*/Vector3{10.0, 1.0, 10.0});
 
   std::shared_ptr<BulletSimulation> sim = std::make_shared<BulletSimulation>();
-  sim->addProp(floor, Vector3{0.0, -1.0, 0.0}, Quaternion::Identity());
-  sim->addRobot(robot, Vector3{0.0, 1.0, 0.0}, Quaternion::Identity());
+  Index prop_idx = sim->addProp(floor, Vector3{0.0, -1.0, 0.0}, Quaternion::Identity());
+  Index robot_idx = sim->addRobot(robot, Vector3{0.0, 1.0, 0.0}, Quaternion::Identity());
   GLFWRenderer renderer;
   renderer.run(*sim);
-  sim->removeRobot(robot);
-  sim->removeProp(floor);
+  sim->removeRobot(robot_idx);
+  sim->removeProp(prop_idx);
 }
 
