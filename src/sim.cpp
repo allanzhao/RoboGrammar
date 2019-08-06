@@ -14,6 +14,7 @@ BulletSimulation::BulletSimulation()
   world_ = std::make_shared<btMultiBodyDynamicsWorld>(dispatcher_.get(),
       broadphase_.get(), solver_.get(), collision_config_.get());
   world_->setGravity(btVector3(0, -9.81, 0));
+  world_->getDispatchInfo().m_deterministicOverlappingPairs = true;
 }
 
 BulletSimulation::~BulletSimulation() {
@@ -233,7 +234,9 @@ void BulletSimulation::restoreState() {
 }
 
 void BulletSimulation::advance(Scalar dt) {
-  world_->stepSimulation(dt, INT_MAX, internal_time_step_);
+  for (int i = 0; i * internal_time_step_ < dt; ++i) {
+    world_->stepSimulation(internal_time_step_, 0, internal_time_step_);
+  }
   world_->forwardKinematics();  // Update m_cachedWorldTransform for every link
 }
 
