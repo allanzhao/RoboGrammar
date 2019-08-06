@@ -235,6 +235,11 @@ void BulletSimulation::restoreState() {
 
 void BulletSimulation::advance(Scalar dt) {
   for (int i = 0; i * internal_time_step_ < dt; ++i) {
+    for (auto &robot_wrapper : robot_wrappers_) {
+      for (int j = 1; j < robot_wrapper.multi_body_->getNumLinks(); ++j) {
+        robot_wrapper.multi_body_->addJointTorque(j, -10.0);
+      }
+    }
     world_->stepSimulation(internal_time_step_, 0, internal_time_step_);
   }
   world_->forwardKinematics();  // Update m_cachedWorldTransform for every link
