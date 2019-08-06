@@ -100,7 +100,7 @@ void BulletSimulation::addRobot(std::shared_ptr<const Robot> robot,
     collider->setFriction(robot->friction_);
     world_->addCollisionObject(collider.get(),
                                /*collisionFilterGroup=*/1,
-                               /*collisionFilterMask=*/1);
+                               /*collisionFilterMask=*/2);
     if (i == 0) {
       wrapper.multi_body_->setBaseCollider(collider.get());
     } else {
@@ -142,8 +142,8 @@ void BulletSimulation::addProp(std::shared_ptr<const Prop> prop,
       /*q=*/bulletQuaternionFromEigen(rot),
       /*c=*/bulletVector3FromEigen(pos)));
   world_->addRigidBody(wrapper.rigid_body_.get(),
-                       /*collisionFilterGroup=*/1,
-                       /*collisionFilterMask=*/1);
+                       /*collisionFilterGroup=*/2,
+                       /*collisionFilterMask=*/3);
 }
 
 void BulletSimulation::removeRobot(std::shared_ptr<const Robot> robot) {
