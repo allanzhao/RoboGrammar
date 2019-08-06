@@ -207,7 +207,7 @@ void BulletSimulation::getPropTransform(Index prop_idx, Matrix4 &transform) cons
   transform = eigenMatrix4FromBullet(rigid_body.getCenterOfMassTransform());
 }
 
-Index BulletSimulation::saveState() {
+void BulletSimulation::saveState() {
   auto serializer = std::make_shared<btDefaultSerializer>();
   int ser_flags = serializer->getSerializationFlags();
   serializer->setSerializationFlags(ser_flags | BT_SERIALIZE_CONTACT_MANIFOLDS);
@@ -218,23 +218,18 @@ Index BulletSimulation::saveState() {
       serializer->getCurrentBufferSize());
   bullet_file->parse(false);
   if (bullet_file->ok()) {
-    saved_states_.emplace_back(std::move(serializer), std::move(bullet_file));
-    return saved_states_.size() - 1;
+    saved_state_ = BulletSavedState(std::move(serializer), std::move(bullet_file));
   } else {
-    return -1;
+    saved_state_ = BulletSavedState();
   }
 }
 
-void BulletSimulation::restoreState(Index state_idx) {
-  auto importer = std::make_shared<btMultiBodyWorldImporter>(world_.get());
-  importer->setImporterFlags(eRESTORE_EXISTING_OBJECTS);
-  BulletSavedState &state = saved_states_[state_idx];
-  importer->convertAllObjects(state.bullet_file_.get());
-}
-
-void BulletSimulation::removeState(Index state_idx) {
-  auto it = saved_states_.begin() + state_idx;
-  saved_states_.erase(it);
+void BulletSimulation::restoreState() {
+  if (saved_state_.bullet_file_ != nullptr) {
+    auto importer = std::make_shared<btMultiBodyWorldImporter>(world_.get());
+    importer->setImporterFlags(eRESTORE_EXISTING_OBJECTS);
+    importer->convertAllObjects(saved_state_.bullet_file_.get());
+  }
 }
 
 void BulletSimulation::advance(Scalar dt) {
