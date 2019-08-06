@@ -37,7 +37,7 @@ int main(int argc, char **argv) {
 
   // Create a quadruped robot
   std::shared_ptr<Robot> robot = std::make_shared<Robot>(
-      /*link_density=*/10.0,
+      /*link_density=*/1.0,
       /*link_radius=*/0.05,
       /*friction=*/0.9);
   robot->links_.emplace_back(
@@ -46,7 +46,7 @@ int main(int argc, char **argv) {
       /*joint_pos=*/1.0,
       /*joint_rot=*/Quaternion::Identity(),
       /*joint_axis=*/Vector3{0.0, 0.0, 1.0},
-      /*length=*/0.5);
+      /*length=*/0.4);
   for (Index i = 0; i < 4; ++i) {
     Quaternion joint_rot(Eigen::AngleAxis<Scalar>(0.0, Vector3::UnitZ()) *
                          Eigen::AngleAxis<Scalar>((i - 0.5) * M_PI / 2, Vector3::UnitY()) *
@@ -57,7 +57,7 @@ int main(int argc, char **argv) {
         /*joint_pos=*/(i < 2) ? 1.0 : 0.0,
         /*joint_rot=*/joint_rot,
         /*joint_axis=*/Vector3{0.0, 1.0, 0.0},
-        /*length=*/0.1);
+        /*length=*/0.2);
     robot->links_.emplace_back(
         /*parent=*/i * 2 + 1,
         /*joint_type=*/JointType::HINGE,

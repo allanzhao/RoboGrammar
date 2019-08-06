@@ -236,8 +236,13 @@ void BulletSimulation::restoreState() {
 void BulletSimulation::advance(Scalar dt) {
   for (int i = 0; i * internal_time_step_ < dt; ++i) {
     for (auto &robot_wrapper : robot_wrappers_) {
-      for (int j = 1; j < robot_wrapper.multi_body_->getNumLinks(); ++j) {
-        robot_wrapper.multi_body_->addJointTorque(j, -10.0);
+      for (int j = 0; j < robot_wrapper.multi_body_->getNumLinks(); ++j) {
+        Scalar pos = robot_wrapper.multi_body_->getJointPos(j);
+        Scalar vel = robot_wrapper.multi_body_->getJointVel(j);
+        Scalar target_pos = (j % 2 == 0) ? 0.0 : -M_PI / 2;
+        Scalar torque = -1.0 * (pos - target_pos) - 0.1 * vel;
+        torque = std::max(-1.0, std::min(1.0, torque));
+        robot_wrapper.multi_body_->addJointTorque(j, torque);
       }
     }
     world_->stepSimulation(internal_time_step_, 0, internal_time_step_);
