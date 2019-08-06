@@ -6,7 +6,8 @@ set(CMAKE_CXX_STANDARD 11)
 
 set(ARGS_INCLUDE_DIRS extern/args)
 
-set(USE_DOUBLE_PRECISION ON)  # Use double precision in Bullet
+# Use double precision in Bullet
+add_compile_options(-DBT_USE_DOUBLE_PRECISION)
 set(BULLET_ROOT extern/bullet3)
 set(BULLET_INCLUDE_DIRS ${BULLET_ROOT}/src ${BULLET_ROOT}/Extras)
 file(GLOB_RECURSE BULLET_SOURCES
