@@ -35,22 +35,36 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  // Create a snake robot
+  // Create a quadruped robot
   std::shared_ptr<Robot> robot = std::make_shared<Robot>(
       /*link_density=*/10.0,
       /*link_radius=*/0.05,
       /*friction=*/0.9);
-  for (Index i = 0; i < 5; ++i) {
+  robot->links_.emplace_back(
+      /*parent=*/-1,
+      /*joint_type=*/JointType::FREE,
+      /*joint_pos=*/1.0,
+      /*joint_rot=*/Quaternion::Identity(),
+      /*joint_axis=*/Vector3{0.0, 0.0, 1.0},
+      /*length=*/0.5);
+  for (Index i = 0; i < 4; ++i) {
     Quaternion joint_rot(Eigen::AngleAxis<Scalar>(0.0, Vector3::UnitZ()) *
-                         Eigen::AngleAxis<Scalar>(0.0, Vector3::UnitY()) *
+                         Eigen::AngleAxis<Scalar>((i - 0.5) * M_PI / 2, Vector3::UnitY()) *
                          Eigen::AngleAxis<Scalar>(0.0, Vector3::UnitX()));
     robot->links_.emplace_back(
-        /*parent=*/i - 1,
-        /*joint_type=*/(i == 0) ? JointType::FREE : JointType::HINGE,
-        /*joint_pos=*/1.0,
+        /*parent=*/0,
+        /*joint_type=*/JointType::HINGE,
+        /*joint_pos=*/(i < 2) ? 1.0 : 0.0,
         /*joint_rot=*/joint_rot,
+        /*joint_axis=*/Vector3{0.0, 1.0, 0.0},
+        /*length=*/0.1);
+    robot->links_.emplace_back(
+        /*parent=*/i * 2 + 1,
+        /*joint_type=*/JointType::HINGE,
+        /*joint_pos=*/1.0,
+        /*joint_rot=*/Quaternion::Identity(),
         /*joint_axis=*/Vector3{0.0, 0.0, 1.0},
-        /*length=*/0.5);
+        /*length=*/0.4);
   }
 
   // Create a floor
