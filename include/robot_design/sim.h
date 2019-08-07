@@ -18,14 +18,14 @@ public:
                         const Quaternion &rot) = 0;
   virtual void addProp(std::shared_ptr<const Prop> prop, const Vector3 &pos,
                        const Quaternion &rot) = 0;
-  virtual void removeRobot(std::shared_ptr<const Robot> robot) = 0;
-  virtual void removeProp(std::shared_ptr<const Prop> prop) = 0;
+  virtual void removeRobot(const Robot &robot) = 0;
+  virtual void removeProp(const Prop &prop) = 0;
   virtual std::shared_ptr<const Robot> getRobot(Index robot_idx) const = 0;
   virtual std::shared_ptr<const Prop> getProp(Index prop_idx) const = 0;
   virtual Index getRobotCount() const = 0;
   virtual Index getPropCount() const = 0;
   virtual void getLinkTransform(Index robot_idx, Index link_idx,
-                            Matrix4 &transform) const = 0;
+                                Matrix4 &transform) const = 0;
   virtual void getPropTransform(Index prop_idx, Matrix4 &transform) const = 0;
   virtual void saveState() = 0;
   virtual void restoreState() = 0;
@@ -69,8 +69,8 @@ public:
                         const Quaternion &rot) override;
   virtual void addProp(std::shared_ptr<const Prop> prop, const Vector3 &pos,
                        const Quaternion &rot) override;
-  virtual void removeRobot(std::shared_ptr<const Robot> robot) override;
-  virtual void removeProp(std::shared_ptr<const Prop> prop) override;
+  virtual void removeRobot(const Robot &robot) override;
+  virtual void removeProp(const Prop &prop) override;
   virtual std::shared_ptr<const Robot> getRobot(Index robot_idx) const override;
   virtual std::shared_ptr<const Prop> getProp(Index prop_idx) const override;
   virtual Index getRobotCount() const override;

@@ -90,7 +90,7 @@ int main(int argc, char **argv) {
     renderer.render(*sim);
   }
 
-  sim->removeRobot(robot);
-  sim->removeProp(floor);
+  sim->removeRobot(*robot);
+  sim->removeProp(*floor);
 }
 

@@ -145,18 +145,22 @@ void BulletSimulation::addProp(std::shared_ptr<const Prop> prop,
                        /*collisionFilterMask=*/3);
 }
 
-void BulletSimulation::removeRobot(std::shared_ptr<const Robot> robot) {
+void BulletSimulation::removeRobot(const Robot &robot) {
   auto it = std::find_if(robot_wrappers_.begin(), robot_wrappers_.end(),
-      [&](const BulletRobotWrapper &wrapper) { return wrapper.robot_ == robot; });
+      [&](const BulletRobotWrapper &wrapper) {
+        return wrapper.robot_.get() == &robot;
+      });
   if (it != robot_wrappers_.end()) {
     unregisterRobotWrapper(*it);
     robot_wrappers_.erase(it);
   }
 }
 
-void BulletSimulation::removeProp(std::shared_ptr<const Prop> prop) {
+void BulletSimulation::removeProp(const Prop &prop) {
   auto it = std::find_if(prop_wrappers_.begin(), prop_wrappers_.end(),
-      [&](const BulletPropWrapper &wrapper) { return wrapper.prop_ == prop; });
+      [&](const BulletPropWrapper &wrapper) {
+        return wrapper.prop_.get() == &prop;
+      });
   if (it != prop_wrappers_.end()) {
     unregisterPropWrapper(*it);
     prop_wrappers_.erase(it);
