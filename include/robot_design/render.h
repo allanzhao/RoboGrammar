@@ -74,7 +74,7 @@ public:
   void handleMouseButton(int button, int action, int mods);
   void handleCursorPosition(double xpos, double ypos);
   void handleScroll(double xoffset, double yoffset);
-  void update(float dt);
+  void update(double dt);
   void getViewMatrix(Eigen::Matrix4f &view_matrix) const;
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
@@ -103,8 +103,9 @@ public:
   virtual ~GLFWRenderer();
   GLFWRenderer(const GLFWRenderer &other) = delete;
   GLFWRenderer &operator=(const GLFWRenderer &other) = delete;
-  void run(Simulation &sim);
+  void update(double dt);
   void render(const Simulation &sim);
+  bool shouldClose() const;
   static void windowSizeCallback(GLFWwindow *window, int width, int height);
   static void framebufferSizeCallback(GLFWwindow *window, int width, int height);
   static void keyCallback(GLFWwindow *window, int key, int scancode, int action,

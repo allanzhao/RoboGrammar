@@ -29,7 +29,7 @@ public:
   virtual void getPropTransform(Index prop_idx, Matrix4 &transform) const = 0;
   virtual void saveState() = 0;
   virtual void restoreState() = 0;
-  virtual void advance(Scalar dt) = 0;
+  virtual void step(Scalar dt) = 0;
 };
 
 struct BulletRobotWrapper {
@@ -80,13 +80,12 @@ public:
   virtual void getPropTransform(Index prop_idx, Matrix4 &transform) const override;
   virtual void saveState() override;
   virtual void restoreState() override;
-  virtual void advance(Scalar dt) override;
+  virtual void step(Scalar dt) override;
 
 private:
   void unregisterRobotWrapper(BulletRobotWrapper &robot_wrapper);
   void unregisterPropWrapper(BulletPropWrapper &prop_wrapper);
 
-  Scalar internal_time_step_;
   std::shared_ptr<btDefaultCollisionConfiguration> collision_config_;
   std::shared_ptr<btHashedOverlappingPairCache> pair_cache_;
   std::shared_ptr<btCollisionDispatcher> dispatcher_;

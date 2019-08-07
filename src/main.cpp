@@ -77,7 +77,19 @@ int main(int argc, char **argv) {
   sim->addProp(floor, Vector3{0.0, -1.0, 0.0}, Quaternion::Identity());
   sim->addRobot(robot, Vector3{0.0, 1.0, 0.0}, Quaternion::Identity());
   GLFWRenderer renderer;
-  renderer.run(*sim);
+
+  const double time_step = 1.0 / 240;
+  double sim_time = glfwGetTime();
+  while (!renderer.shouldClose()) {
+    double current_time = glfwGetTime();
+    while (sim_time < current_time) {
+      sim->step(time_step);
+      renderer.update(time_step);
+      sim_time += time_step;
+    }
+    renderer.render(*sim);
+  }
+
   sim->removeRobot(robot);
   sim->removeProp(floor);
 }

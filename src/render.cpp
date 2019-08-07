@@ -161,7 +161,7 @@ void FPSCameraController::handleScroll(double xoffset, double yoffset) {
   distance_ *= std::pow(1.0 - scroll_sensitivity_, yoffset);
 }
 
-void FPSCameraController::update(float dt) {
+void FPSCameraController::update(double dt) {
   Eigen::Vector3f offset = Eigen::Vector3f::Zero();
   float pan = 0.0f;
   float tilt = 0.0f;
@@ -249,21 +249,13 @@ GLFWRenderer::~GLFWRenderer() {
   glfwTerminate();
 }
 
-void GLFWRenderer::run(Simulation &sim) {
-  double last_time = glfwGetTime();
-  while (!glfwWindowShouldClose(window_)) {
-    double current_time = glfwGetTime();
-    double dt = current_time - last_time;
-    sim.advance(dt);
-    camera_controller_.update(dt);
-    last_time = current_time;
-
-    camera_controller_.getViewMatrix(view_matrix_);
-    render(sim);
-  }
+void GLFWRenderer::update(double dt) {
+  camera_controller_.update(dt);
 }
 
 void GLFWRenderer::render(const Simulation &sim) {
+  camera_controller_.getViewMatrix(view_matrix_);
+
   glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -291,6 +283,10 @@ void GLFWRenderer::render(const Simulation &sim) {
 
   glfwSwapBuffers(window_);
   glfwPollEvents();
+}
+
+bool GLFWRenderer::shouldClose() const {
+  return glfwWindowShouldClose(window_);
 }
 
 void GLFWRenderer::drawBox(const Eigen::Matrix4f &transform,
