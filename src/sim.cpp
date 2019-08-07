@@ -177,6 +177,20 @@ Index BulletSimulation::getPropCount() const {
   return prop_wrappers_.size();
 }
 
+Index BulletSimulation::findRobotIndex(const Robot &robot) const {
+  for (std::size_t i = 0; i < robot_wrappers_.size(); ++i) {
+    if (robot_wrappers_[i].robot_.get() == &robot) { return i; }
+  }
+  return -1;
+}
+
+Index BulletSimulation::findPropIndex(const Prop &prop) const {
+  for (std::size_t i = 0; i < prop_wrappers_.size(); ++i) {
+    if (prop_wrappers_[i].prop_.get() == &prop) { return i; }
+  }
+  return -1;
+}
+
 void BulletSimulation::unregisterRobotWrapper(BulletRobotWrapper &robot_wrapper) {
   // Remove collision objects for every link
   for (auto collider : robot_wrapper.colliders_) {
