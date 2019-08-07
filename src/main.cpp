@@ -74,8 +74,8 @@ int main(int argc, char **argv) {
       /*half_extents=*/Vector3{10.0, 1.0, 10.0});
 
   std::shared_ptr<BulletSimulation> sim = std::make_shared<BulletSimulation>();
-  Index prop_idx = sim->addProp(floor, Vector3{0.0, -1.0, 0.0}, Quaternion::Identity());
-  Index robot_idx = sim->addRobot(robot, Vector3{0.0, 1.0, 0.0}, Quaternion::Identity());
+  sim->addProp(floor, Vector3{0.0, -1.0, 0.0}, Quaternion::Identity());
+  sim->addRobot(robot, Vector3{0.0, 1.0, 0.0}, Quaternion::Identity());
   GLFWRenderer renderer;
 
   const double time_step = 1.0 / 240;
@@ -89,8 +89,5 @@ int main(int argc, char **argv) {
     }
     renderer.render(*sim);
   }
-
-  sim->removeRobot(robot_idx);
-  sim->removeProp(prop_idx);
 }
 
