@@ -219,6 +219,43 @@ void BulletSimulation::getPropTransform(Index prop_idx, Matrix4 &transform) cons
   transform = eigenMatrix4FromBullet(rigid_body.getCenterOfMassTransform());
 }
 
+void BulletSimulation::getJointPositions(Index robot_idx, VectorX &pos) const {
+  const btMultiBody &multi_body = *robot_wrappers_[robot_idx].multi_body_;
+  pos.resize(multi_body.getNumPosVars());
+  int offset = 0;
+  for (int link_idx = 0; link_idx < multi_body.getNumLinks(); ++link_idx) {
+    const btMultibodyLink &link = multi_body.getLink(link_idx);
+    for (int pos_var_idx = 0; pos_var_idx < link.m_posVarCount; ++pos_var_idx) {
+      pos(offset) = multi_body.getJointPosMultiDof(link_idx)[pos_var_idx];
+      ++offset;
+    }
+  }
+}
+
+void BulletSimulation::getJointVelocities(Index robot_idx, VectorX &vel) const {
+  const btMultiBody &multi_body = *robot_wrappers_[robot_idx].multi_body_;
+  vel.resize(multi_body.getNumDofs());
+  int offset = 0;
+  for (int link_idx = 0; link_idx < multi_body.getNumLinks(); ++link_idx) {
+    const btMultibodyLink &link = multi_body.getLink(link_idx);
+    for (int dof_idx = 0; dof_idx < link.m_dofCount; ++dof_idx) {
+      vel(offset) = multi_body.getJointVelMultiDof(link_idx)[dof_idx];
+      ++offset;
+    }
+  }
+}
+
+void BulletSimulation::addJointTorques(Index robot_idx, VectorX &torque) {
+  btMultiBody &multi_body = *robot_wrappers_[robot_idx].multi_body_;
+  assert(torque.size() == multi_body.getNumDofs());
+  int offset = 0;
+  for (int link_idx = 0; link_idx < multi_body.getNumLinks(); ++link_idx) {
+    const btMultibodyLink &link = multi_body.getLink(link_idx);
+    multi_body.addJointTorqueMultiDof(link_idx, &torque(offset));
+    offset += link.m_dofCount;
+  }
+}
+
 void BulletSimulation::saveState() {
   auto serializer = std::make_shared<btDefaultSerializer>();
   int ser_flags = serializer->getSerializationFlags();
