@@ -29,6 +29,7 @@ public:
   virtual void getLinkTransform(Index robot_idx, Index link_idx,
                                 Matrix4 &transform) const = 0;
   virtual void getPropTransform(Index prop_idx, Matrix4 &transform) const = 0;
+  virtual int getRobotDofCount(Index robot_idx) const = 0;
   virtual void getJointPositions(Index robot_idx, VectorX &pos) const = 0;
   virtual void getJointVelocities(Index robot_idx, VectorX &vel) const = 0;
   virtual void addJointTorques(Index robot_idx, VectorX &torque) = 0;
@@ -85,6 +86,7 @@ public:
   virtual void getLinkTransform(Index robot_idx, Index link_idx,
                                 Matrix4 &transform) const override;
   virtual void getPropTransform(Index prop_idx, Matrix4 &transform) const override;
+  virtual int getRobotDofCount(Index robot_idx) const override;
   virtual void getJointPositions(Index robot_idx, VectorX &pos) const override;
   virtual void getJointVelocities(Index robot_idx, VectorX &vel) const override;
   virtual void addJointTorques(Index robot_idx, VectorX &torque) override;

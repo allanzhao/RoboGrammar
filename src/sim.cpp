@@ -219,6 +219,11 @@ void BulletSimulation::getPropTransform(Index prop_idx, Matrix4 &transform) cons
   transform = eigenMatrix4FromBullet(rigid_body.getCenterOfMassTransform());
 }
 
+int BulletSimulation::getRobotDofCount(Index robot_idx) const {
+  const btMultiBody &multi_body = *robot_wrappers_[robot_idx].multi_body_;
+  return multi_body.getNumDofs();
+}
+
 void BulletSimulation::getJointPositions(Index robot_idx, VectorX &pos) const {
   const btMultiBody &multi_body = *robot_wrappers_[robot_idx].multi_body_;
   pos.resize(multi_body.getNumPosVars());
@@ -282,16 +287,6 @@ void BulletSimulation::restoreState() {
 }
 
 void BulletSimulation::step(Scalar dt) {
-  for (auto &robot_wrapper : robot_wrappers_) {
-    for (int j = 0; j < robot_wrapper.multi_body_->getNumLinks(); ++j) {
-      Scalar pos = robot_wrapper.multi_body_->getJointPos(j);
-      Scalar vel = robot_wrapper.multi_body_->getJointVel(j);
-      Scalar target_pos = (j % 2 == 0) ? 0.0 : -M_PI / 2;
-      Scalar torque = -1.0 * (pos - target_pos) - 0.1 * vel;
-      torque = std::max(-1.0, std::min(1.0, torque));
-      robot_wrapper.multi_body_->addJointTorque(j, torque);
-    }
-  }
   world_->stepSimulation(dt, 0, dt);
   world_->forwardKinematics();  // Update m_cachedWorldTransform for every link
 }

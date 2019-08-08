@@ -36,6 +36,7 @@ include_directories(
 )
 
 add_executable(RobotDesign
+    src/control.cpp
     src/main.cpp
     src/render.cpp
     src/sim.cpp

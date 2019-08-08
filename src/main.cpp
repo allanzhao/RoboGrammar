@@ -2,6 +2,7 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <iostream>
+#include <robot_design/control.h>
 #include <robot_design/render.h>
 #include <robot_design/sim.h>
 
@@ -76,6 +77,10 @@ int main(int argc, char **argv) {
   std::shared_ptr<BulletSimulation> sim = std::make_shared<BulletSimulation>();
   sim->addProp(floor, Vector3{0.0, -1.0, 0.0}, Quaternion::Identity());
   sim->addRobot(robot, Vector3{0.0, 1.0, 0.0}, Quaternion::Identity());
+  PDController controller(*robot, *sim);
+  controller.kp_.fill(10.0);
+  controller.kd_.fill(1.0);
+  controller.pos_target_ << 0.0, -M_PI / 2, 0.0, -M_PI / 2, 0.0, -M_PI / 2, 0.0, -M_PI / 2;
   GLFWRenderer renderer;
 
   const double time_step = 1.0 / 240;
@@ -83,6 +88,7 @@ int main(int argc, char **argv) {
   while (!renderer.shouldClose()) {
     double current_time = glfwGetTime();
     while (sim_time < current_time) {
+      controller.update();
       sim->step(time_step);
       renderer.update(time_step);
       sim_time += time_step;
