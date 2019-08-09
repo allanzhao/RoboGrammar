@@ -26,11 +26,7 @@ find_package(OpenGL REQUIRED)
 set(GLFW_ROOT extern/glfw)
 add_subdirectory(${GLFW_ROOT})
 
-find_package(OpenMP)
-if(OPENMP_FOUND)
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
-endif(OPENMP_FOUND)
+set(THREADPOOL_INCLUDE_DIRS extern/ThreadPool)
 
 include_directories(
     include
@@ -39,6 +35,7 @@ include_directories(
     ${EIGEN_INCLUDE_DIRS}
     ${GLEW_INCLUDE_DIRS}
     ${GLFW_INCLUDE_DIRS}
+    ${THREADPOOL_INCLUDE_DIRS}
 )
 
 add_executable(RobotDesign

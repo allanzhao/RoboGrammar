@@ -94,8 +94,10 @@ int main(int argc, char **argv) {
 
   // Create the "main" simulation
   std::shared_ptr<Simulation> main_sim = make_sim_fn();
+  unsigned int thread_count = std::thread::hardware_concurrency();
   MPCController controller(*robot, *main_sim, /*horizon=*/1, /*period=*/15,
-                           make_sim_fn, objective_fn);
+                           make_sim_fn, objective_fn,
+                           /*thread_count=*/thread_count);
   GLFWRenderer renderer;
 
   double sim_time = glfwGetTime();
