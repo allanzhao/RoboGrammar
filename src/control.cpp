@@ -22,4 +22,37 @@ void PDController::update() {
   sim_.addJointTorques(robot_idx, torque_);
 }
 
+MPCController::MPCController(const Robot &robot, Simulation &sim, int horizon,
+                             int period, const MakeSimFunction &make_sim_fn,
+                             const ObjectiveFunction &objective_fn)
+    : robot_(robot), sim_(sim), horizon_(horizon), period_(period),
+      objective_fn_(objective_fn) {
+  Index robot_idx = sim_.findRobotIndex(robot);
+  int dof_count = sim_.getRobotDofCount(robot_idx);
+
+  // Create independent simulation instances for finite differencing
+  int instance_count = 2 * dof_count * horizon;
+  sim_instances_.reserve(instance_count);
+  for (int i = 0; i < instance_count; ++i) {
+    sim_instances_.push_back(make_sim_fn());
+  }
+
+  // Define initial input trajectory
+  inputs_ = MatrixX::Zero(dof_count, horizon);
+}
+
+void MPCController::update() {
+  // Assume the robot index is the same in every simulation instance
+  Index robot_idx = sim_.findRobotIndex(robot_);
+
+  #pragma omp parallel for
+  for (int i = 0; i < sim_instances_.size(); ++i) {
+    sim_instances_[i]->saveState();
+    for (int j = 0; j < horizon_ * period_; ++j) {
+      sim_instances_[i]->step();
+    }
+    sim_instances_[i]->restoreState();
+  }
+}
+
 }  // namespace robot_design

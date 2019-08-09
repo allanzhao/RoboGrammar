@@ -36,6 +36,8 @@ int main(int argc, char **argv) {
     return 1;
   }
 
+  const Scalar time_step = 1.0 / 240;
+
   // Create a quadruped robot
   std::shared_ptr<Robot> robot = std::make_shared<Robot>(
       /*link_density=*/1.0,
@@ -74,26 +76,37 @@ int main(int argc, char **argv) {
       /*friction=*/0.9,
       /*half_extents=*/Vector3{10.0, 1.0, 10.0});
 
-  std::shared_ptr<BulletSimulation> sim = std::make_shared<BulletSimulation>();
-  sim->addProp(floor, Vector3{0.0, -1.0, 0.0}, Quaternion::Identity());
-  sim->addRobot(robot, Vector3{0.0, 1.0, 0.0}, Quaternion::Identity());
-  PDController controller(*robot, *sim);
-  controller.kp_.fill(10.0);
-  controller.kd_.fill(1.0);
-  controller.pos_target_ << 0.0, -M_PI / 2, 0.0, -M_PI / 2, 0.0, -M_PI / 2, 0.0, -M_PI / 2;
+  // Define a lambda function for making simulation instances
+  auto make_sim_fn = [&]() -> std::shared_ptr<Simulation> {
+    std::shared_ptr<BulletSimulation> sim = std::make_shared<BulletSimulation>(time_step);
+    sim->addProp(floor, Vector3{0.0, -1.0, 0.0}, Quaternion::Identity());
+    sim->addRobot(robot, Vector3{0.0, 1.0, 0.0}, Quaternion::Identity());
+    return sim;
+  };
+
+  // Define an objective function
+  auto objective_fn = [&](const Simulation &sim) -> Scalar {
+    Index robot_idx = sim.findRobotIndex(*robot);
+    Matrix4 base_transform;
+    sim.getLinkTransform(robot_idx, 0, base_transform);
+    return base_transform(0, 3);  // X-axis translation
+  };
+
+  // Create the "main" simulation
+  std::shared_ptr<Simulation> main_sim = make_sim_fn();
+  MPCController controller(*robot, *main_sim, /*horizon=*/1, /*period=*/15,
+                           make_sim_fn, objective_fn);
   GLFWRenderer renderer;
 
-  const double time_step = 1.0 / 240;
   double sim_time = glfwGetTime();
   while (!renderer.shouldClose()) {
     double current_time = glfwGetTime();
     while (sim_time < current_time) {
       controller.update();
-      sim->step(time_step);
+      main_sim->step();
       renderer.update(time_step);
       sim_time += time_step;
     }
-    renderer.render(*sim);
+    renderer.render(*main_sim);
   }
 }
-

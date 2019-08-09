@@ -35,7 +35,7 @@ public:
   virtual void addJointTorques(Index robot_idx, VectorX &torque) = 0;
   virtual void saveState() = 0;
   virtual void restoreState() = 0;
-  virtual void step(Scalar dt) = 0;
+  virtual void step() = 0;
 };
 
 struct BulletRobotWrapper {
@@ -67,7 +67,7 @@ struct BulletSavedState {
 
 class BulletSimulation : public Simulation {
 public:
-  BulletSimulation();
+  BulletSimulation(Scalar time_step);
   virtual ~BulletSimulation();
   BulletSimulation(const BulletSimulation &other) = delete;
   BulletSimulation &operator=(const BulletSimulation &other) = delete;
@@ -92,12 +92,13 @@ public:
   virtual void addJointTorques(Index robot_idx, VectorX &torque) override;
   virtual void saveState() override;
   virtual void restoreState() override;
-  virtual void step(Scalar dt) override;
+  virtual void step() override;
 
 private:
   void unregisterRobotWrapper(BulletRobotWrapper &robot_wrapper);
   void unregisterPropWrapper(BulletPropWrapper &prop_wrapper);
 
+  Scalar time_step_;
   std::shared_ptr<btDefaultCollisionConfiguration> collision_config_;
   std::shared_ptr<btHashedOverlappingPairCache> pair_cache_;
   std::shared_ptr<btCollisionDispatcher> dispatcher_;

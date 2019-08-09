@@ -4,7 +4,8 @@
 
 namespace robot_design {
 
-BulletSimulation::BulletSimulation() {
+BulletSimulation::BulletSimulation(Scalar time_step = 1.0 / 240)
+    : time_step_(time_step) {
   collision_config_ = std::make_shared<btDefaultCollisionConfiguration>();
   dispatcher_ = std::make_shared<btCollisionDispatcher>(collision_config_.get());
   pair_cache_ = std::make_shared<btHashedOverlappingPairCache>();
@@ -286,8 +287,8 @@ void BulletSimulation::restoreState() {
   }
 }
 
-void BulletSimulation::step(Scalar dt) {
-  world_->stepSimulation(dt, 0, dt);
+void BulletSimulation::step() {
+  world_->stepSimulation(time_step_, 0, time_step_);
   world_->forwardKinematics();  // Update m_cachedWorldTransform for every link
 }
 
