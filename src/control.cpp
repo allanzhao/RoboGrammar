@@ -23,11 +23,12 @@ void PDController::update() {
 }
 
 MPCController::MPCController(const Robot &robot, Simulation &sim, int horizon,
-                             int period, const MakeSimFunction &make_sim_fn,
+                             int interval, const MakeSimFunction &make_sim_fn,
                              const ObjectiveFunction &objective_fn,
                              int thread_count)
-    : robot_(robot), sim_(sim), horizon_(horizon), period_(period),
-      objective_fn_(objective_fn), thread_pool_(thread_count) {
+    : robot_(robot), sim_(sim), horizon_(horizon), interval_(interval),
+      objective_fn_(objective_fn), thread_pool_(thread_count), step_count_(0),
+      dx_(1e-8) {
   Index robot_idx = sim_.findRobotIndex(robot);
   int dof_count = sim_.getRobotDofCount(robot_idx);
 
@@ -40,29 +41,72 @@ MPCController::MPCController(const Robot &robot, Simulation &sim, int horizon,
   sim_results_.resize(instance_count);
 
   // Define initial input trajectory
-  inputs_ = MatrixX::Zero(dof_count, horizon);
+  // Trajectory contains (horizon + 1) steps because the first step is fixed
+  input_trajectory_ = MatrixX::Zero(dof_count, horizon + 1);
 }
 
 void MPCController::update() {
-  // Assume the robot index is the same in every simulation instance
   Index robot_idx = sim_.findRobotIndex(robot_);
+  int dof_count = sim_.getRobotDofCount(robot_idx);
 
-  for (int i = 0; i < sim_instances_.size(); ++i) {
-    sim_results_[i] = thread_pool_.enqueue(&MPCController::runSimulation, this, i);
+  // Apply the best inputs found so far for this time step
+  VectorX inputs = input_trajectory_.col(0);
+  sim_.addJointTorques(robot_idx, inputs);
+
+  if (step_count_ % interval_ == 0) {
+    if (step_count_ > 0) {
+      // Update input trajectory using results from previous interval
+      MatrixX objective_grad = MatrixX::Zero(dof_count, horizon_);
+      for (int j = 0; j < horizon_; ++j) {
+        for (int i = 0; i < dof_count; ++i) {
+          Scalar fp = sim_results_[2 * (dof_count * j + i)].get();
+          Scalar fm = sim_results_[2 * (dof_count * j + i) + 1].get();
+          objective_grad(i, j) = (fp - fm) / (2 * dx_);
+        }
+      }
+      input_trajectory_.rightCols(horizon_) += 0.01 * objective_grad;
+      input_trajectory_.leftCols(horizon_) = input_trajectory_.rightCols(horizon_);
+    }
+
+    for (int i = 0; i < sim_instances_.size(); ++i) {
+      sim_results_[i] = thread_pool_.enqueue(&MPCController::runSimulation, this, i);
+    }
   }
 
-  for (auto &sim_result : sim_results_) {
-    std::cout << sim_result.get() << std::endl;
-  }
+  ++step_count_;
 }
 
-Scalar MPCController::runSimulation(int sim_index) {
-  sim_instances_[sim_index]->saveState();
-  for (int j = 0; j < horizon_ * period_; ++j) {
-    sim_instances_[sim_index]->step();
+void MPCController::perturbInputs(MatrixX &input_trajectory, int sim_idx) const {
+  Scalar amount = (sim_idx % 2 == 0) ? dx_ : -dx_;
+  input_trajectory.reshaped()(sim_idx / 2) += amount;
+}
+
+Scalar MPCController::runSimulation(int sim_idx) {
+  Simulation &sim_instance = *sim_instances_[sim_idx];
+  Index robot_idx = sim_instance.findRobotIndex(robot_);
+
+  // "Catch up" with the main simulation by applying the same inputs
+  VectorX inputs = input_trajectory_.col(0);
+  for (int j = 0; j < interval_; ++j) {
+    sim_instance.addJointTorques(robot_idx, inputs);
+    sim_instance.step();
   }
-  Scalar objective_value = objective_fn_(*sim_instances_[sim_index]);
-  sim_instances_[sim_index]->restoreState();
+
+  sim_instance.saveState();
+
+  // Apply the rest of the inputs plus a perturbation
+  MatrixX future_inputs = input_trajectory_.rightCols(horizon_);
+  perturbInputs(future_inputs, sim_idx);
+  for (int j = 0; j < horizon_; ++j) {
+    VectorX inputs = future_inputs.col(j);
+    for (int i = 0; i < interval_; ++i) {
+      sim_instance.addJointTorques(robot_idx, inputs);
+      sim_instance.step();
+    }
+  }
+
+  Scalar objective_value = objective_fn_(sim_instance);
+  sim_instance.restoreState();
   return objective_value;
 }
 

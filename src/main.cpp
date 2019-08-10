@@ -89,15 +89,18 @@ int main(int argc, char **argv) {
     Index robot_idx = sim.findRobotIndex(*robot);
     Matrix4 base_transform;
     sim.getLinkTransform(robot_idx, 0, base_transform);
-    return base_transform(0, 3);  // X-axis translation
+    return base_transform(1, 3);  // Height of base above ground
   };
 
   // Create the "main" simulation
   std::shared_ptr<Simulation> main_sim = make_sim_fn();
   unsigned int thread_count = std::thread::hardware_concurrency();
-  MPCController controller(*robot, *main_sim, /*horizon=*/1, /*period=*/15,
+  MPCController controller(*robot, *main_sim, /*horizon=*/5, /*interval=*/30,
                            make_sim_fn, objective_fn,
                            /*thread_count=*/thread_count);
+  for (int i = 0; i < controller.input_trajectory_.rows(); ++i) {
+    controller.input_trajectory_(i, 0) = (i % 2 == 0) ? 0 : -0.5;
+  }
   GLFWRenderer renderer;
 
   double sim_time = glfwGetTime();

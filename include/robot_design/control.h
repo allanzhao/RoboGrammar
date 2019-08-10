@@ -32,23 +32,27 @@ using ObjectiveFunction = std::function<Scalar(const Simulation &)>;
 
 class MPCController {
 public:
-  MPCController(const Robot &robot, Simulation &sim, int horizon, int period,
+  MPCController(const Robot &robot, Simulation &sim, int horizon, int interval,
                 const MakeSimFunction &make_sim_fn,
                 const ObjectiveFunction &objective_fn, int thread_count);
   void update();
 
+  MatrixX input_trajectory_;
+
 private:
-  Scalar runSimulation(int sim_index);
+  void perturbInputs(MatrixX &input_trajectory, int sim_idx) const;
+  Scalar runSimulation(int sim_idx);
 
   const Robot &robot_;
   Simulation &sim_;
   int horizon_;
-  int period_;
+  int interval_;
   ObjectiveFunction objective_fn_;
   ThreadPool thread_pool_;
+  int step_count_;
+  Scalar dx_;
   std::vector<std::shared_ptr<Simulation>> sim_instances_;
   std::vector<std::future<Scalar>> sim_results_;
-  MatrixX inputs_;
 };
 
 }  // namespace robot_design
