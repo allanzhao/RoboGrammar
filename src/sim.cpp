@@ -91,6 +91,11 @@ Index BulletSimulation::addRobot(std::shared_ptr<const Robot> robot,
   wrapper.multi_body_->setLinearDamping(0.0);
   wrapper.multi_body_->setAngularDamping(0.0);
 
+  // Initialize joint target positions and velocities
+  int dof_count = wrapper.multi_body_->getNumDofs();
+  wrapper.joint_target_pos_ = VectorX::Zero(dof_count);
+  wrapper.joint_target_vel_ = VectorX::Zero(dof_count);
+
   // Add collision objects to world
   wrapper.colliders_.resize(wrapper.col_shapes_.size());
   for (int i = 0; i < wrapper.col_shapes_.size(); ++i) {
@@ -251,6 +256,14 @@ void BulletSimulation::getJointVelocities(Index robot_idx, VectorX &vel) const {
   }
 }
 
+void BulletSimulation::setJointTargetPositions(Index robot_idx, const VectorX &target_pos) {
+  robot_wrappers_[robot_idx].joint_target_pos_ = target_pos;
+}
+
+void BulletSimulation::setJointTargetVelocities(Index robot_idx, const VectorX &target_vel) {
+  robot_wrappers_[robot_idx].joint_target_vel_ = target_vel;
+}
+
 void BulletSimulation::addJointTorques(Index robot_idx, VectorX &torque) {
   btMultiBody &multi_body = *robot_wrappers_[robot_idx].multi_body_;
   assert(torque.size() == multi_body.getNumDofs());
@@ -288,6 +301,18 @@ void BulletSimulation::restoreState() {
 }
 
 void BulletSimulation::step() {
+  // Run joint PD controllers
+  for (Index robot_idx = 0; robot_idx < getRobotCount(); ++robot_idx) {
+    BulletRobotWrapper &wrapper = robot_wrappers_[robot_idx];
+    VectorX joint_pos, joint_vel;
+    getJointPositions(robot_idx, joint_pos);
+    getJointVelocities(robot_idx, joint_vel);
+    VectorX joint_pos_error = wrapper.joint_target_pos_ - joint_pos;
+    VectorX joint_vel_error = wrapper.joint_target_vel_ - joint_vel;
+    VectorX joint_torques = wrapper.robot_->motor_kp_ * joint_pos_error +
+                            wrapper.robot_->motor_kd_ * joint_vel_error;
+    addJointTorques(robot_idx, joint_torques);
+  }
   world_->stepSimulation(time_step_, 0, time_step_);
   world_->forwardKinematics();  // Update m_cachedWorldTransform for every link
 }

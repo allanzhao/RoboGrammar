@@ -52,7 +52,7 @@ void MPCController::update() {
 
   // Apply the best inputs found so far for this time step
   VectorX inputs = input_trajectory_.col(0);
-  sim_.addJointTorques(robot_idx, inputs);
+  sim_.setJointTargetPositions(robot_idx, inputs);
 
   if (step_count_ % interval_ == 0) {
     if (step_count_ > 0) {
@@ -65,7 +65,7 @@ void MPCController::update() {
           objective_grad(i, j) = clamp((fp - fm) / (2 * dx_), -1.0, 1.0);
         }
       }
-      input_trajectory_.rightCols(horizon_) += objective_grad;
+      input_trajectory_.rightCols(horizon_) += 0.1 * objective_grad;
       input_trajectory_.leftCols(horizon_) = input_trajectory_.rightCols(horizon_);
     }
 
@@ -89,7 +89,7 @@ Scalar MPCController::runSimulation(int sim_idx) {
   // "Catch up" with the main simulation by applying the same inputs
   VectorX inputs = input_trajectory_.col(0);
   for (int j = 0; j < interval_; ++j) {
-    sim_instance.addJointTorques(robot_idx, inputs);
+    sim_instance.setJointTargetPositions(robot_idx, inputs);
     sim_instance.step();
   }
 
@@ -102,7 +102,7 @@ Scalar MPCController::runSimulation(int sim_idx) {
   for (int j = 0; j < horizon_; ++j) {
     VectorX inputs = future_inputs.col(j);
     for (int i = 0; i < interval_; ++i) {
-      sim_instance.addJointTorques(robot_idx, inputs);
+      sim_instance.setJointTargetPositions(robot_idx, inputs);
       sim_instance.step();
       objective_value += objective_fn_(sim_instance);
     }

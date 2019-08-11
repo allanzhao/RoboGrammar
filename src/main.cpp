@@ -42,7 +42,9 @@ int main(int argc, char **argv) {
   std::shared_ptr<Robot> robot = std::make_shared<Robot>(
       /*link_density=*/1.0,
       /*link_radius=*/0.05,
-      /*friction=*/0.9);
+      /*friction=*/0.9,
+      /*motor_kp=*/10.0,
+      /*motor_kd=*/0.1);
   robot->links_.emplace_back(
       /*parent=*/-1,
       /*joint_type=*/JointType::FREE,

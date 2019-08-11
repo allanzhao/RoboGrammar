@@ -32,6 +32,8 @@ public:
   virtual int getRobotDofCount(Index robot_idx) const = 0;
   virtual void getJointPositions(Index robot_idx, VectorX &pos) const = 0;
   virtual void getJointVelocities(Index robot_idx, VectorX &vel) const = 0;
+  virtual void setJointTargetPositions(Index robot_idx, const VectorX &target_pos) = 0;
+  virtual void setJointTargetVelocities(Index robot_idx, const VectorX &target_vel) = 0;
   virtual void addJointTorques(Index robot_idx, VectorX &torque) = 0;
   virtual void saveState() = 0;
   virtual void restoreState() = 0;
@@ -39,12 +41,13 @@ public:
 };
 
 struct BulletRobotWrapper {
-  BulletRobotWrapper(std::shared_ptr<const Robot> robot)
-      : robot_(robot), multi_body_(), col_shapes_(), colliders_() {}
+  BulletRobotWrapper(std::shared_ptr<const Robot> robot) : robot_(robot) {}
   std::shared_ptr<const Robot> robot_;
   std::shared_ptr<btMultiBody> multi_body_;
   std::vector<std::shared_ptr<btCollisionShape>> col_shapes_;
   std::vector<std::shared_ptr<btMultiBodyLinkCollider>> colliders_;
+  VectorX joint_target_pos_;
+  VectorX joint_target_vel_;
 };
 
 struct BulletPropWrapper {
@@ -89,6 +92,8 @@ public:
   virtual int getRobotDofCount(Index robot_idx) const override;
   virtual void getJointPositions(Index robot_idx, VectorX &pos) const override;
   virtual void getJointVelocities(Index robot_idx, VectorX &vel) const override;
+  virtual void setJointTargetPositions(Index robot_idx, const VectorX &target_pos) override;
+  virtual void setJointTargetVelocities(Index robot_idx, const VectorX &target_vel) override;
   virtual void addJointTorques(Index robot_idx, VectorX &torque) override;
   virtual void saveState() override;
   virtual void restoreState() override;
