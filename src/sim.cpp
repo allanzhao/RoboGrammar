@@ -225,6 +225,17 @@ void BulletSimulation::getPropTransform(Index prop_idx, Matrix4 &transform) cons
   transform = eigenMatrix4FromBullet(rigid_body.getCenterOfMassTransform());
 }
 
+void BulletSimulation::getLinkVelocity(Index robot_idx, Index link_idx, Vector6 &vel) const {
+  btMultiBody &multi_body = *robot_wrappers_[robot_idx].multi_body_;
+  if (link_idx == 0) {
+    // Base link
+    vel.head<3>() = eigenVector3FromBullet(multi_body.getBaseVel());
+    vel.tail<3>() = eigenVector3FromBullet(multi_body.getBaseOmega());
+  } else {
+    // TODO: implement for links other than the base
+  }
+}
+
 int BulletSimulation::getRobotDofCount(Index robot_idx) const {
   const btMultiBody &multi_body = *robot_wrappers_[robot_idx].multi_body_;
   return multi_body.getNumDofs();
