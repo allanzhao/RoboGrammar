@@ -48,11 +48,11 @@ private:
   int horizon_;
   int interval_;
   ObjectiveFunction objective_fn_;
-  ThreadPool thread_pool_;
   int step_count_;
   Scalar dx_;
   std::vector<std::shared_ptr<Simulation>> sim_instances_;
   std::vector<std::future<Scalar>> sim_results_;
+  ThreadPool thread_pool_;
 };
 
 }  // namespace robot_design
