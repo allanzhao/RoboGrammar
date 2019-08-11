@@ -105,9 +105,6 @@ int main(int argc, char **argv) {
   MPCController controller(*robot, *main_sim, /*horizon=*/5, /*interval=*/30,
                            make_sim_fn, objective_fn,
                            /*thread_count=*/thread_count);
-  for (int i = 0; i < controller.input_trajectory_.rows(); ++i) {
-    controller.input_trajectory_(i, 0) = (i % 2 == 0) ? 0 : -0.5;
-  }
   GLFWRenderer renderer;
 
   double sim_time = glfwGetTime();
