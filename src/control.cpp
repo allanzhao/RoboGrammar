@@ -1,5 +1,6 @@
 #include <iostream>
 #include <robot_design/control.h>
+#include <robot_design/utils.h>
 
 namespace robot_design {
 
@@ -61,10 +62,10 @@ void MPCController::update() {
         for (int i = 0; i < dof_count; ++i) {
           Scalar fp = sim_results_[2 * (dof_count * j + i)].get();
           Scalar fm = sim_results_[2 * (dof_count * j + i) + 1].get();
-          objective_grad(i, j) = (fp - fm) / (2 * dx_);
+          objective_grad(i, j) = clamp((fp - fm) / (2 * dx_), -1.0, 1.0);
         }
       }
-      input_trajectory_.rightCols(horizon_) += 0.01 * objective_grad;
+      input_trajectory_.rightCols(horizon_) += objective_grad;
       input_trajectory_.leftCols(horizon_) = input_trajectory_.rightCols(horizon_);
     }
 

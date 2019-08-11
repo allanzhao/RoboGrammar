@@ -50,4 +50,9 @@ inline Matrix4 eigenMatrix4FromBullet(const btTransform &t) {
   return result;
 }
 
+template <typename T>
+inline T clamp(T val, T lower, T upper) {
+  return std::max(lower, std::min(upper, val));
+}
+
 }  // namespace robot_design
