@@ -62,7 +62,7 @@ int main(int argc, char **argv) {
         /*joint_pos=*/(i < 2) ? 1.0 : 0.0,
         /*joint_rot=*/leg_rot,
         /*joint_axis=*/Vector3{0.0, 1.0, 0.0},
-        /*length=*/0.2);
+        /*length=*/0.4);
     robot->links_.emplace_back(
         /*parent=*/i * 3 + 1,
         /*joint_type=*/JointType::HINGE,
@@ -97,14 +97,21 @@ int main(int argc, char **argv) {
   auto objective_fn = [&](const Simulation &sim) -> Scalar {
     Index robot_idx = sim.findRobotIndex(*robot);
     Matrix4 base_transform;
+    Vector6 base_vel;
     sim.getLinkTransform(robot_idx, 0, base_transform);
-    return base_transform(1, 3);  // Height of base above ground
+    sim.getLinkVelocity(robot_idx, 0, base_vel);
+    Scalar base_height_term = base_transform(1, 3);
+    Scalar forward_progress_term = base_vel(0);
+    Scalar stability_term = std::pow(base_transform(1, 1), 2.0);
+    return 1.0 * base_height_term +
+           10.0 * forward_progress_term +
+           1.0 * stability_term;
   };
 
   // Create the "main" simulation
   std::shared_ptr<Simulation> main_sim = make_sim_fn();
   unsigned int thread_count = std::thread::hardware_concurrency();
-  MPCController controller(*robot, *main_sim, /*horizon=*/5, /*interval=*/30,
+  MPCController controller(*robot, *main_sim, /*horizon=*/7, /*interval=*/60,
                            make_sim_fn, objective_fn,
                            /*thread_count=*/thread_count);
   GLFWRenderer renderer;
