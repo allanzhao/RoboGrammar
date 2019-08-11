@@ -97,15 +97,16 @@ Scalar MPCController::runSimulation(int sim_idx) {
   // Apply the rest of the inputs plus a perturbation
   MatrixX future_inputs = input_trajectory_.rightCols(horizon_);
   perturbInputs(future_inputs, sim_idx);
+  Scalar objective_value = 0.0;
   for (int j = 0; j < horizon_; ++j) {
     VectorX inputs = future_inputs.col(j);
     for (int i = 0; i < interval_; ++i) {
       sim_instance.addJointTorques(robot_idx, inputs);
       sim_instance.step();
+      objective_value += objective_fn_(sim_instance);
     }
   }
 
-  Scalar objective_value = objective_fn_(sim_instance);
   sim_instance.restoreState();
   return objective_value;
 }
