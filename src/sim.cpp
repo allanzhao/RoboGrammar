@@ -4,8 +4,7 @@
 
 namespace robot_design {
 
-BulletSimulation::BulletSimulation(Scalar time_step = 1.0 / 240)
-    : time_step_(time_step) {
+BulletSimulation::BulletSimulation(Scalar time_step) : time_step_(time_step) {
   collision_config_ = std::make_shared<btDefaultCollisionConfiguration>();
   dispatcher_ = std::make_shared<btCollisionDispatcher>(collision_config_.get());
   pair_cache_ = std::make_shared<btHashedOverlappingPairCache>();
@@ -79,6 +78,9 @@ Index BulletSimulation::addRobot(std::shared_ptr<const Robot> robot,
           /*rotParentToThis=*/joint_rot,
           /*parentComToThisPivotOffset=*/joint_offset,
           /*thisPivotToThisComOffset=*/com_offset);
+        break;
+      default:
+        assert(false && "Robot contains unexpected joint type");
         break;
       }
     }

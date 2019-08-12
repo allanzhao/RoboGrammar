@@ -71,7 +71,7 @@ struct BulletSavedState {
 
 class BulletSimulation : public Simulation {
 public:
-  BulletSimulation(Scalar time_step);
+  BulletSimulation(Scalar time_step = 1.0 / 240);
   virtual ~BulletSimulation();
   BulletSimulation(const BulletSimulation &other) = delete;
   BulletSimulation &operator=(const BulletSimulation &other) = delete;
