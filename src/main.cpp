@@ -43,7 +43,7 @@ int main(int argc, char **argv) {
       /*link_density=*/1.0,
       /*link_radius=*/0.05,
       /*friction=*/0.9,
-      /*motor_kp=*/10.0,
+      /*motor_kp=*/5.0,
       /*motor_kd=*/0.1);
   robot->links_.emplace_back(
       /*parent=*/-1,
@@ -54,15 +54,16 @@ int main(int argc, char **argv) {
       /*length=*/0.4);
   for (Index i = 0; i < 4; ++i) {
     Quaternion leg_rot(Eigen::AngleAxis<Scalar>((i - 0.5) * M_PI / 2, Vector3::UnitY()));
-    Quaternion thigh_rot(Eigen::AngleAxis<Scalar>(M_PI / 2, Vector3::UnitZ()));
-    Quaternion shin_rot(Eigen::AngleAxis<Scalar>(M_PI / 8, Vector3::UnitZ()));
+    Quaternion thigh_rot(Eigen::AngleAxis<Scalar>(M_PI / 2, Vector3::UnitZ()) *
+        Eigen::AngleAxis<Scalar>((i - 0.5) * -M_PI / 2, Vector3::UnitY()));
+    Quaternion shin_rot(Eigen::AngleAxis<Scalar>(0.0, Vector3::UnitZ()));
     robot->links_.emplace_back(
         /*parent=*/0,
         /*joint_type=*/JointType::FIXED,
         /*joint_pos=*/(i < 2) ? 1.0 : 0.0,
         /*joint_rot=*/leg_rot,
         /*joint_axis=*/Vector3{0.0, 1.0, 0.0},
-        /*length=*/0.4);
+        /*length=*/0.2);
     robot->links_.emplace_back(
         /*parent=*/i * 3 + 1,
         /*joint_type=*/JointType::HINGE,
@@ -89,7 +90,7 @@ int main(int argc, char **argv) {
   auto make_sim_fn = [&]() -> std::shared_ptr<Simulation> {
     std::shared_ptr<BulletSimulation> sim = std::make_shared<BulletSimulation>(time_step);
     sim->addProp(floor, Vector3{0.0, -1.0, 0.0}, Quaternion::Identity());
-    sim->addRobot(robot, Vector3{0.0, 0.425, 0.0}, Quaternion::Identity());
+    sim->addRobot(robot, Vector3{0.0, 0.45, 0.0}, Quaternion::Identity());
     return sim;
   };
 
@@ -98,20 +99,24 @@ int main(int argc, char **argv) {
     Index robot_idx = sim.findRobotIndex(*robot);
     Matrix4 base_transform;
     Vector6 base_vel;
+    VectorX joint_pos;
     sim.getLinkTransform(robot_idx, 0, base_transform);
     sim.getLinkVelocity(robot_idx, 0, base_vel);
+    sim.getJointPositions(robot_idx, joint_pos);
     Scalar base_height_term = base_transform(1, 3);
     Scalar forward_progress_term = base_vel(0);
     Scalar stability_term = std::pow(base_transform(1, 1), 2.0);
-    return 1.0 * base_height_term +
-           10.0 * forward_progress_term +
-           1.0 * stability_term;
+    Scalar pose_matching_term = -joint_pos.dot(joint_pos);
+    return 0.0 * base_height_term +
+           0.1 * forward_progress_term +
+           0.0 * stability_term +
+           0.0 * pose_matching_term;
   };
 
   // Create the "main" simulation
   std::shared_ptr<Simulation> main_sim = make_sim_fn();
   unsigned int thread_count = std::thread::hardware_concurrency();
-  MPCController controller(*robot, *main_sim, /*horizon=*/7, /*interval=*/60,
+  MPCController controller(*robot, *main_sim, /*horizon=*/6, /*interval=*/30,
                            make_sim_fn, objective_fn,
                            /*thread_count=*/thread_count);
   GLFWRenderer renderer;

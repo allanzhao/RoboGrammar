@@ -65,7 +65,7 @@ void MPCController::update() {
           objective_grad(i, j) = clamp((fp - fm) / (2 * dx_), -1.0, 1.0);
         }
       }
-      input_trajectory_.rightCols(horizon_) += 0.1 * objective_grad;
+      input_trajectory_.rightCols(horizon_) += 0.05 * objective_grad;
       input_trajectory_.leftCols(horizon_) = input_trajectory_.rightCols(horizon_);
     }
 
