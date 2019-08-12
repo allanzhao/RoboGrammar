@@ -229,8 +229,8 @@ void BulletSimulation::getLinkVelocity(Index robot_idx, Index link_idx, Vector6 
   btMultiBody &multi_body = *robot_wrappers_[robot_idx].multi_body_;
   if (link_idx == 0) {
     // Base link
-    vel.head<3>() = eigenVector3FromBullet(multi_body.getBaseVel());
-    vel.tail<3>() = eigenVector3FromBullet(multi_body.getBaseOmega());
+    vel.head<3>() = eigenVector3FromBullet(multi_body.getBaseOmega());
+    vel.tail<3>() = eigenVector3FromBullet(multi_body.getBaseVel());
   } else {
     // TODO: implement for links other than the base
   }

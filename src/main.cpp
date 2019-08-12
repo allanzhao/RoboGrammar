@@ -104,7 +104,7 @@ int main(int argc, char **argv) {
     sim.getLinkVelocity(robot_idx, 0, base_vel);
     sim.getJointPositions(robot_idx, joint_pos);
     Scalar base_height_term = base_transform(1, 3);
-    Scalar forward_progress_term = base_vel(0);
+    Scalar forward_progress_term = base_vel(3);
     Scalar stability_term = std::pow(base_transform(1, 1), 2.0);
     Scalar pose_matching_term = -joint_pos.dot(joint_pos);
     return 0.0 * base_height_term +
