@@ -2,7 +2,6 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <iostream>
-#include <robot_design/control.h>
 #include <robot_design/render.h>
 #include <robot_design/sim.h>
 
@@ -115,17 +114,12 @@ int main(int argc, char **argv) {
 
   // Create the "main" simulation
   std::shared_ptr<Simulation> main_sim = make_sim_fn();
-  unsigned int thread_count = std::thread::hardware_concurrency();
-  MPCController controller(*robot, *main_sim, /*horizon=*/6, /*interval=*/30,
-                           make_sim_fn, objective_fn,
-                           /*thread_count=*/thread_count);
   GLFWRenderer renderer;
 
   double sim_time = glfwGetTime();
   while (!renderer.shouldClose()) {
     double current_time = glfwGetTime();
     while (sim_time < current_time) {
-      controller.update();
       main_sim->step();
       renderer.update(time_step);
       sim_time += time_step;
