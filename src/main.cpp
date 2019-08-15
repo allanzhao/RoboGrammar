@@ -41,7 +41,7 @@ int main(int argc, char **argv) {
   }
 
   constexpr Scalar time_step = 1.0 / 240;
-  constexpr int horizon = 240 * 5;
+  constexpr int horizon = 240 * 4;
   // Use the provided random seed to generate all other seeds
   std::mt19937 generator(args::get(seed_flag));
 
@@ -132,10 +132,10 @@ int main(int argc, char **argv) {
   unsigned int thread_count = std::thread::hardware_concurrency();
   unsigned int opt_seed = generator();
   MPPIOptimizer optimizer(
-      /*kappa=*/1000.0, /*dof_count=*/dof_count, /*horizon=*/horizon,
+      /*kappa=*/100.0, /*dof_count=*/dof_count, /*horizon=*/horizon,
       /*sample_count=*/128, /*thread_count=*/thread_count, /*seed=*/opt_seed,
       /*make_sim_fn=*/make_sim_fn, /*objective_fn=*/objective_fn);
-  for (int i = 0; i < 20; ++i) {
+  for (int i = 0; i < 50; ++i) {
     optimizer.update();
   }
 
