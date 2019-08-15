@@ -243,7 +243,7 @@ int BulletSimulation::getRobotDofCount(Index robot_idx) const {
   return multi_body.getNumDofs();
 }
 
-void BulletSimulation::getJointPositions(Index robot_idx, VectorX &pos) const {
+void BulletSimulation::getJointPositions(Index robot_idx, Ref<VectorX> pos) const {
   const btMultiBody &multi_body = *robot_wrappers_[robot_idx].multi_body_;
   pos.resize(multi_body.getNumPosVars());
   int offset = 0;
@@ -256,7 +256,7 @@ void BulletSimulation::getJointPositions(Index robot_idx, VectorX &pos) const {
   }
 }
 
-void BulletSimulation::getJointVelocities(Index robot_idx, VectorX &vel) const {
+void BulletSimulation::getJointVelocities(Index robot_idx, Ref<VectorX> vel) const {
   const btMultiBody &multi_body = *robot_wrappers_[robot_idx].multi_body_;
   vel.resize(multi_body.getNumDofs());
   int offset = 0;
@@ -269,15 +269,15 @@ void BulletSimulation::getJointVelocities(Index robot_idx, VectorX &vel) const {
   }
 }
 
-void BulletSimulation::setJointTargetPositions(Index robot_idx, const VectorX &target_pos) {
+void BulletSimulation::setJointTargetPositions(Index robot_idx, const Ref<const VectorX> &target_pos) {
   robot_wrappers_[robot_idx].joint_target_pos_ = target_pos;
 }
 
-void BulletSimulation::setJointTargetVelocities(Index robot_idx, const VectorX &target_vel) {
+void BulletSimulation::setJointTargetVelocities(Index robot_idx, const Ref<const VectorX> &target_vel) {
   robot_wrappers_[robot_idx].joint_target_vel_ = target_vel;
 }
 
-void BulletSimulation::addJointTorques(Index robot_idx, VectorX &torque) {
+void BulletSimulation::addJointTorques(Index robot_idx, const Ref<const VectorX> &torque) {
   btMultiBody &multi_body = *robot_wrappers_[robot_idx].multi_body_;
   assert(torque.size() == multi_body.getNumDofs());
   int offset = 0;
@@ -319,7 +319,8 @@ void BulletSimulation::step() {
   // Run joint PD controllers
   for (Index robot_idx = 0; robot_idx < getRobotCount(); ++robot_idx) {
     BulletRobotWrapper &wrapper = robot_wrappers_[robot_idx];
-    VectorX joint_pos, joint_vel;
+    int dof_count = wrapper.multi_body_->getNumDofs();
+    VectorX joint_pos(dof_count), joint_vel(dof_count);
     getJointPositions(robot_idx, joint_pos);
     getJointVelocities(robot_idx, joint_vel);
     VectorX joint_pos_error = wrapper.joint_target_pos_ - joint_pos;

@@ -12,6 +12,8 @@
 
 namespace robot_design {
 
+using Eigen::Ref;
+
 class Simulation {
 public:
   virtual Index addRobot(std::shared_ptr<const Robot> robot, const Vector3 &pos,
@@ -31,11 +33,11 @@ public:
   virtual void getPropTransform(Index prop_idx, Matrix4 &transform) const = 0;
   virtual void getLinkVelocity(Index robot_idx, Index link_idx, Vector6 &vel) const = 0;
   virtual int getRobotDofCount(Index robot_idx) const = 0;
-  virtual void getJointPositions(Index robot_idx, VectorX &pos) const = 0;
-  virtual void getJointVelocities(Index robot_idx, VectorX &vel) const = 0;
-  virtual void setJointTargetPositions(Index robot_idx, const VectorX &target_pos) = 0;
-  virtual void setJointTargetVelocities(Index robot_idx, const VectorX &target_vel) = 0;
-  virtual void addJointTorques(Index robot_idx, VectorX &torque) = 0;
+  virtual void getJointPositions(Index robot_idx, Ref<VectorX> pos) const = 0;
+  virtual void getJointVelocities(Index robot_idx, Ref<VectorX> vel) const = 0;
+  virtual void setJointTargetPositions(Index robot_idx, const Ref<const VectorX> &target_pos) = 0;
+  virtual void setJointTargetVelocities(Index robot_idx, const Ref<const VectorX> &target_vel) = 0;
+  virtual void addJointTorques(Index robot_idx, const Ref<const VectorX> &torque) = 0;
   virtual void saveState() = 0;
   virtual void restoreState() = 0;
   virtual void step() = 0;
@@ -92,11 +94,11 @@ public:
   virtual void getPropTransform(Index prop_idx, Matrix4 &transform) const override;
   virtual void getLinkVelocity(Index robot_idx, Index link_idx, Vector6 &vel) const override;
   virtual int getRobotDofCount(Index robot_idx) const override;
-  virtual void getJointPositions(Index robot_idx, VectorX &pos) const override;
-  virtual void getJointVelocities(Index robot_idx, VectorX &vel) const override;
-  virtual void setJointTargetPositions(Index robot_idx, const VectorX &target_pos) override;
-  virtual void setJointTargetVelocities(Index robot_idx, const VectorX &target_vel) override;
-  virtual void addJointTorques(Index robot_idx, VectorX &torque) override;
+  virtual void getJointPositions(Index robot_idx, Ref<VectorX> pos) const override;
+  virtual void getJointVelocities(Index robot_idx, Ref<VectorX> vel) const override;
+  virtual void setJointTargetPositions(Index robot_idx, const Ref<const VectorX> &target_pos) override;
+  virtual void setJointTargetVelocities(Index robot_idx, const Ref<const VectorX> &target_vel) override;
+  virtual void addJointTorques(Index robot_idx, const Ref<const VectorX> &torque) override;
   virtual void saveState() override;
   virtual void restoreState() override;
   virtual void step() override;
