@@ -283,7 +283,9 @@ void BulletSimulation::addJointTorques(Index robot_idx, VectorX &torque) {
   int offset = 0;
   for (int link_idx = 0; link_idx < multi_body.getNumLinks(); ++link_idx) {
     const btMultibodyLink &link = multi_body.getLink(link_idx);
-    multi_body.addJointTorqueMultiDof(link_idx, &torque(offset));
+    for (int dof = 0; dof < link.m_dofCount; ++dof) {
+      multi_body.addJointTorqueMultiDof(link_idx, dof, torque(offset + dof));
+    }
     offset += link.m_dofCount;
   }
 }
