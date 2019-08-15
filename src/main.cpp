@@ -2,8 +2,10 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <iostream>
+#include <robot_design/optim.h>
 #include <robot_design/render.h>
 #include <robot_design/sim.h>
+#include <thread>
 
 using namespace robot_design;
 
@@ -35,14 +37,15 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  const Scalar time_step = 1.0 / 240;
+  constexpr Scalar time_step = 1.0 / 240;
+  constexpr int horizon = 240 * 5;
 
   // Create a quadruped robot
   std::shared_ptr<Robot> robot = std::make_shared<Robot>(
       /*link_density=*/1.0,
       /*link_radius=*/0.05,
       /*friction=*/0.9,
-      /*motor_kp=*/5.0,
+      /*motor_kp=*/2.0,
       /*motor_kd=*/0.1);
   robot->links_.emplace_back(
       /*parent=*/-1,
@@ -94,35 +97,56 @@ int main(int argc, char **argv) {
   };
 
   // Define an objective function
-  auto objective_fn = [&](const Simulation &sim) -> Scalar {
-    Index robot_idx = sim.findRobotIndex(*robot);
-    Matrix4 base_transform;
-    Vector6 base_vel;
-    VectorX joint_pos;
-    sim.getLinkTransform(robot_idx, 0, base_transform);
-    sim.getLinkVelocity(robot_idx, 0, base_vel);
-    sim.getJointPositions(robot_idx, joint_pos);
-    Scalar base_height_term = base_transform(1, 3);
-    Scalar forward_progress_term = base_vel(3);
-    Scalar stability_term = std::pow(base_transform(1, 1), 2.0);
-    Scalar pose_matching_term = -joint_pos.dot(joint_pos);
-    return 0.0 * base_height_term +
-           0.1 * forward_progress_term +
-           0.0 * stability_term +
-           0.0 * pose_matching_term;
+  auto objective_fn = [&](const Simulation &sim, int step) -> Scalar {
+    // We only care about the final state
+    if (step == horizon - 1) {
+      Index robot_idx = sim.findRobotIndex(*robot);
+      Matrix4 base_transform;
+      Vector6 base_vel;
+      VectorX joint_pos(sim.getRobotDofCount(robot_idx));
+      sim.getLinkTransform(robot_idx, 0, base_transform);
+      sim.getLinkVelocity(robot_idx, 0, base_vel);
+      sim.getJointPositions(robot_idx, joint_pos);
+      Scalar base_height_term = base_transform(1, 3);
+      Scalar forward_progress_term = base_transform(0, 3);
+      Scalar stability_term = std::pow(base_transform(1, 1), 2.0);
+      Scalar pose_matching_term = -joint_pos.dot(joint_pos);
+      return 0.0 * base_height_term +
+             1.0 * forward_progress_term +
+             0.0 * stability_term +
+             0.0 * pose_matching_term;
+    } else {
+      return 0.0;
+    }
   };
 
   // Create the "main" simulation
   std::shared_ptr<Simulation> main_sim = make_sim_fn();
-  GLFWRenderer renderer;
+  Index robot_idx = main_sim->findRobotIndex(*robot);
+  int dof_count = main_sim->getRobotDofCount(robot_idx);
+  unsigned int thread_count = std::thread::hardware_concurrency();
+  MPPIOptimizer optimizer(/*kappa=*/1000.0, /*dof_count=*/dof_count,
+      /*horizon=*/horizon, /*sample_count=*/256, /*thread_count=*/thread_count,
+      /*seed=*/1, /*make_sim_fn=*/make_sim_fn, /*objective_fn=*/objective_fn);
+  for (int i = 0; i < 20; ++i) {
+    optimizer.update();
+  }
 
+  main_sim->saveState();
+  GLFWRenderer renderer;
   double sim_time = glfwGetTime();
+  int j = 0;
   while (!renderer.shouldClose()) {
     double current_time = glfwGetTime();
     while (sim_time < current_time) {
+      main_sim->setJointTargetPositions(robot_idx, optimizer.input_sequence_.col(j++));
       main_sim->step();
       renderer.update(time_step);
       sim_time += time_step;
+      if (j >= horizon) {
+        j = 0;
+        main_sim->restoreState();
+      }
     }
     renderer.render(*main_sim);
   }

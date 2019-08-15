@@ -40,6 +40,7 @@ include_directories(
 
 add_executable(RobotDesign
     src/main.cpp
+    src/optim.cpp
     src/render.cpp
     src/sim.cpp
     ${BULLET_SOURCES}
