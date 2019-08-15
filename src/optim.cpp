@@ -51,7 +51,7 @@ void MPPIOptimizer::update() {
   seed_ += sample_count_;
 }
 
-Scalar MPPIOptimizer::runSimulation(int sample_seed) {
+Scalar MPPIOptimizer::runSimulation(unsigned int sample_seed) {
   thread_local int thread_id = next_thread_id_++;
   Simulation &sim = *sim_instances_[thread_id];
   Index robot_idx = 0;  // TODO: don't assume there is only one robot
@@ -68,7 +68,7 @@ Scalar MPPIOptimizer::runSimulation(int sample_seed) {
   return reward;
 }
 
-void MPPIOptimizer::sampleInputSequence(MatrixX &rand_input_seq, int sample_seed) const {
+void MPPIOptimizer::sampleInputSequence(MatrixX &rand_input_seq, unsigned int sample_seed) const {
   std::mt19937 generator(sample_seed);
   std::normal_distribution<Scalar> distribution(0.0, 0.1);
   rand_input_seq = input_sequence_ + MatrixX::NullaryExpr(dof_count_, horizon_,

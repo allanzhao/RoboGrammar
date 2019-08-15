@@ -2,6 +2,7 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <iostream>
+#include <random>
 #include <robot_design/optim.h>
 #include <robot_design/render.h>
 #include <robot_design/sim.h>
@@ -11,10 +12,12 @@ using namespace robot_design;
 
 int main(int argc, char **argv) {
   args::ArgumentParser parser("Robot design search demo.");
-  args::HelpFlag help(parser, "help", "Display this help message",
-                      {'h', "help"});
-  args::Flag verbose(parser, "verbose", "Enable verbose mode",
-                     {'v', "verbose"});
+  args::HelpFlag help_flag(parser, "help", "Display this help message",
+                           {'h', "help"});
+  args::Flag verbose_flag(parser, "verbose", "Enable verbose mode",
+                          {'v', "verbose"});
+  args::ValueFlag<unsigned int> seed_flag(parser, "seed", "Random seed",
+                                          {'s', "seed"});
 
   // Don't show the (overly verbose) message about the '--' flag
   parser.helpParams.showTerminator = false;
@@ -39,6 +42,8 @@ int main(int argc, char **argv) {
 
   constexpr Scalar time_step = 1.0 / 240;
   constexpr int horizon = 240 * 5;
+  // Use the provided random seed to generate all other seeds
+  std::mt19937 generator(args::get(seed_flag));
 
   // Create a quadruped robot
   std::shared_ptr<Robot> robot = std::make_shared<Robot>(
@@ -125,9 +130,11 @@ int main(int argc, char **argv) {
   Index robot_idx = main_sim->findRobotIndex(*robot);
   int dof_count = main_sim->getRobotDofCount(robot_idx);
   unsigned int thread_count = std::thread::hardware_concurrency();
-  MPPIOptimizer optimizer(/*kappa=*/1000.0, /*dof_count=*/dof_count,
-      /*horizon=*/horizon, /*sample_count=*/256, /*thread_count=*/thread_count,
-      /*seed=*/1, /*make_sim_fn=*/make_sim_fn, /*objective_fn=*/objective_fn);
+  unsigned int opt_seed = generator();
+  MPPIOptimizer optimizer(
+      /*kappa=*/1000.0, /*dof_count=*/dof_count, /*horizon=*/horizon,
+      /*sample_count=*/128, /*thread_count=*/thread_count, /*seed=*/opt_seed,
+      /*make_sim_fn=*/make_sim_fn, /*objective_fn=*/objective_fn);
   for (int i = 0; i < 20; ++i) {
     optimizer.update();
   }

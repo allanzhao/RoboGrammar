@@ -24,8 +24,8 @@ public:
   MatrixX input_sequence_;
 
 private:
-  Scalar runSimulation(int sample_seed);
-  void sampleInputSequence(MatrixX &rand_input_seq, int sample_seed) const;
+  Scalar runSimulation(unsigned int sample_seed);
+  void sampleInputSequence(MatrixX &rand_input_seq, unsigned int sample_seed) const;
 
   Scalar kappa_;
   int dof_count_;
