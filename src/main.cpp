@@ -107,19 +107,9 @@ int main(int argc, char **argv) {
     if (step == horizon - 1) {
       Index robot_idx = sim.findRobotIndex(*robot);
       Matrix4 base_transform;
-      Vector6 base_vel;
-      VectorX joint_pos(sim.getRobotDofCount(robot_idx));
       sim.getLinkTransform(robot_idx, 0, base_transform);
-      sim.getLinkVelocity(robot_idx, 0, base_vel);
-      sim.getJointPositions(robot_idx, joint_pos);
-      Scalar base_height_term = base_transform(1, 3);
       Scalar forward_progress_term = base_transform(0, 3);
-      Scalar stability_term = std::pow(base_transform(1, 1), 2.0);
-      Scalar pose_matching_term = -joint_pos.dot(joint_pos);
-      return 0.0 * base_height_term +
-             1.0 * forward_progress_term +
-             0.0 * stability_term +
-             0.0 * pose_matching_term;
+      return 1.0 * forward_progress_term;
     } else {
       return 0.0;
     }
