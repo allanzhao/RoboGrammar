@@ -51,6 +51,18 @@ void MPPIOptimizer::update() {
   seed_ += sample_count_;
 }
 
+void MPPIOptimizer::advance(int step_count) {
+  Index robot_idx = 0;  // TODO: don't assume there is only one robot
+  for (auto &sim : sim_instances_) {
+    for (int j = 0; j < step_count; ++j) {
+      sim->setJointTargetPositions(robot_idx, input_sequence_.col(j));
+      sim->step();
+    }
+  }
+  input_sequence_.leftCols(horizon_ - step_count) = input_sequence_.rightCols(horizon_ - step_count);
+  input_sequence_.rightCols(step_count) = MatrixX::Zero(dof_count_, step_count);
+}
+
 Scalar MPPIOptimizer::runSimulation(unsigned int sample_seed) {
   thread_local int thread_id = next_thread_id_++;
   Simulation &sim = *sim_instances_[thread_id];

@@ -123,10 +123,18 @@ int main(int argc, char **argv) {
   unsigned int opt_seed = generator();
   MPPIOptimizer optimizer(
       /*kappa=*/100.0, /*dof_count=*/dof_count, /*horizon=*/horizon,
-      /*sample_count=*/128, /*thread_count=*/thread_count, /*seed=*/opt_seed,
+      /*sample_count=*/64, /*thread_count=*/thread_count, /*seed=*/opt_seed,
       /*make_sim_fn=*/make_sim_fn, /*objective_fn=*/objective_fn);
-  for (int i = 0; i < 50; ++i) {
+  for (int i = 0; i < 20; ++i) {
     optimizer.update();
+  }
+  // Receding horizon control
+  constexpr int interval = 4;
+  MatrixX input_sequence = MatrixX::Zero(dof_count, 240 * interval);
+  for (int j = 0; j < input_sequence.cols(); j += interval) {
+    optimizer.update();
+    input_sequence.block(0, j, dof_count, interval) = optimizer.input_sequence_.leftCols(interval);
+    optimizer.advance(interval);
   }
 
   main_sim->saveState();
@@ -136,11 +144,11 @@ int main(int argc, char **argv) {
   while (!renderer.shouldClose()) {
     double current_time = glfwGetTime();
     while (sim_time < current_time) {
-      main_sim->setJointTargetPositions(robot_idx, optimizer.input_sequence_.col(j++));
+      main_sim->setJointTargetPositions(robot_idx, input_sequence.col(j++));
       main_sim->step();
       renderer.update(time_step);
       sim_time += time_step;
-      if (j >= horizon) {
+      if (j >= input_sequence.cols()) {
         j = 0;
         main_sim->restoreState();
       }

@@ -20,6 +20,7 @@ public:
                 const MakeSimFunction &make_sim_fn,
                 const ObjectiveFunction &objective_fn);
   void update();
+  void advance(int step_count);
 
   MatrixX input_sequence_;
 
