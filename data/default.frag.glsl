@@ -5,7 +5,7 @@ in vec3 view_light_dir;
 
 out vec4 frag_color;
 
-uniform vec3 object_color = vec3(0.8, 0.8, 0.9);
+uniform vec3 object_color = vec3(0.5, 0.5, 0.5);
 uniform vec3 light_color = vec3(1.0, 1.0, 1.0);
 
 const vec3 view_camera_dir = vec3(0.0, 0.0, 1.0);

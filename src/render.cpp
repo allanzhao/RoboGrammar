@@ -57,6 +57,7 @@ Program::Program(const std::string &vertex_shader_source,
   view_matrix_index_ = glGetUniformLocation(program_, "view_matrix");
   model_view_matrix_index_ = glGetUniformLocation(program_, "model_view_matrix");
   normal_matrix_index_ = glGetUniformLocation(program_, "normal_matrix");
+  object_color_index_ = glGetUniformLocation(program_, "object_color");
 }
 
 Program::~Program() {
@@ -82,6 +83,10 @@ void Program::setModelViewMatrices(const Eigen::Matrix4f &model_matrix,
   glUniformMatrix4fv(view_matrix_index_, 1, GL_FALSE, view_matrix.data());
   glUniformMatrix4fv(model_view_matrix_index_, 1, GL_FALSE, model_view_matrix.data());
   glUniformMatrix3fv(normal_matrix_index_, 1, GL_FALSE, normal_matrix.data());
+}
+
+void Program::setObjectColor(const Eigen::Vector3f &object_color) const {
+  glUniform3fv(object_color_index_, 1, object_color.data());
 }
 
 Mesh::Mesh(const std::vector<GLfloat> &positions,
@@ -202,6 +207,8 @@ GLFWRenderer::GLFWRenderer() : z_near_(1.0f), z_far_(1000.0f), fov_(M_PI / 3),
   // Require OpenGL 3.2 or higher
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
+  // Enable 4x MSAA
+  glfwWindowHint(GLFW_SAMPLES, 4);
   window_ = glfwCreateWindow(640, 480, "GLFW Renderer", NULL, NULL);
   if (!window_) {
     return;
@@ -256,12 +263,13 @@ void GLFWRenderer::update(double dt) {
 void GLFWRenderer::render(const Simulation &sim) {
   camera_controller_.getViewMatrix(view_matrix_);
 
-  glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+  glClearColor(0.4f, 0.6f, 0.8f, 1.0f);  // Cornflower blue
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
   default_program_->use();
   default_program_->setProjectionMatrix(proj_matrix_);
 
+  default_program_->setObjectColor({0.45f, 0.5f, 0.55f});  // Slate gray
   for (Index robot_idx = 0; robot_idx < sim.getRobotCount(); ++robot_idx) {
     const Robot &robot = *sim.getRobot(robot_idx);
     for (Index link_idx = 0; link_idx < robot.links_.size(); ++link_idx) {
@@ -273,6 +281,7 @@ void GLFWRenderer::render(const Simulation &sim) {
     }
   }
 
+  default_program_->setObjectColor({0.8f, 0.7f, 0.6f});  // Tan
   for (Index prop_idx = 0; prop_idx < sim.getPropCount(); ++prop_idx) {
     const Prop &prop = *sim.getProp(prop_idx);
     Matrix4 prop_transform;

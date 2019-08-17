@@ -28,6 +28,7 @@ public:
   void setProjectionMatrix(const Eigen::Matrix4f &proj_matrix) const;
   void setModelViewMatrices(const Eigen::Matrix4f &model_matrix,
                             const Eigen::Matrix4f &view_matrix) const;
+  void setObjectColor(const Eigen::Vector3f &object_color) const;
 
 private:
   GLuint program_;
@@ -37,6 +38,7 @@ private:
   GLint view_matrix_index_;
   GLint model_view_matrix_index_;
   GLint normal_matrix_index_;
+  GLint object_color_index_;
 };
 
 class Mesh {
