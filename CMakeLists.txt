@@ -28,6 +28,8 @@ add_subdirectory(${GLFW_ROOT})
 
 set(THREADPOOL_INCLUDE_DIRS extern/ThreadPool)
 
+find_package(Torch REQUIRED)
+
 include_directories(
     include
     ${ARGS_INCLUDE_DIRS}
@@ -51,6 +53,7 @@ target_link_libraries(RobotDesign PRIVATE
     ${GLEW_LIBRARIES}
     ${GLFW_LIBRARIES}
     ${OPENGL_LIBRARIES}
+    ${TORCH_LIBRARIES}
 )
 
 file(COPY data DESTINATION ${CMAKE_BINARY_DIR})
