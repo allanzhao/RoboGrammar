@@ -103,16 +103,11 @@ int main(int argc, char **argv) {
 
   // Define an objective function
   auto objective_fn = [&](const Simulation &sim, int step) -> Scalar {
-    // We only care about the final state
-    if (step == horizon - 1) {
-      Index robot_idx = sim.findRobotIndex(*robot);
-      Matrix4 base_transform;
-      sim.getLinkTransform(robot_idx, 0, base_transform);
-      Scalar forward_progress_term = base_transform(0, 3);
-      return 1.0 * forward_progress_term;
-    } else {
-      return 0.0;
-    }
+    Index robot_idx = sim.findRobotIndex(*robot);
+    Vector6 base_vel;
+    sim.getLinkVelocity(robot_idx, 0, base_vel);
+    Scalar forward_progress_term = base_vel(3) * time_step;
+    return 1.0 * forward_progress_term;
   };
 
   // Create the "main" simulation
