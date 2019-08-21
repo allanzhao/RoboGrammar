@@ -46,7 +46,7 @@ void MPPIOptimizer::update() {
     input_sequence_sum += rand_input_seq * seq_weight;
     seq_weight_sum += seq_weight;
   }
-  input_sequence_ = input_sequence_sum / (seq_weight_sum + 1.0e-6);
+  input_sequence_ = input_sequence_sum / seq_weight_sum;
 
   seed_ += sample_count_;
 }
