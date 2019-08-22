@@ -25,18 +25,24 @@ struct FCValueNet : torch::nn::Module {
 
 class FCValueEstimator {
 public:
-  FCValueEstimator(const Simulation &sim, const torch::Device &device);
+  FCValueEstimator(const Simulation &sim, const torch::Device &device,
+                   int batch_size = 64, int epoch_count = 3);
   int getObservationSize(const Simulation &sim) const;
   void getObservation(const Simulation &sim, Eigen::Ref<VectorX> obs) const;
   void estimateValue(const MatrixX &obs, Eigen::Ref<VectorX> value_est) const;
+  void train(const MatrixX &obs, const Eigen::Ref<const VectorX> &value);
 
 private:
-  torch::Tensor torchTensorFromEigen(const MatrixX &mat) const;
-  void torchTensorToEigen(const torch::Tensor &tensor,
-                          Eigen::Ref<VectorX> vec) const;
+  torch::Tensor torchTensorFromEigenMatrix(const MatrixX &mat) const;
+  torch::Tensor torchTensorFromEigenVector(const Eigen::Ref<const VectorX> &vec) const;
+  void torchTensorToEigenVector(const torch::Tensor &tensor,
+                                Eigen::Ref<VectorX> vec) const;
 
   torch::Device device_;
+  int batch_size_;
+  int epoch_count_;
   std::shared_ptr<FCValueNet> net_;
+  std::shared_ptr<torch::optim::Adam> optimizer_;
 };
 
 }  // namespace robot_design
