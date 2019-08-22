@@ -4,11 +4,17 @@
 #include <robot_design/sim.h>
 #include <robot_design/types.h>
 #include <torch/torch.h>
+#include <type_traits>
 #include <vector>
 
 namespace robot_design {
 
-using Eigen::Ref;
+// Torch dtype corresponding to Scalar
+constexpr torch::Dtype SCALAR_DTYPE =
+    std::is_same<Scalar, double>::value ? torch::kFloat64 : torch::kFloat32;
+
+// Torch dtype used internally
+constexpr torch::Dtype TORCH_DTYPE = torch::kFloat32;
 
 struct FCValueNet : torch::nn::Module {
   FCValueNet(int obs_size, int hidden_layer_count, int hidden_layer_size);
@@ -19,12 +25,13 @@ struct FCValueNet : torch::nn::Module {
 
 class FCValueEstimator {
 public:
-  FCValueEstimator();
+  FCValueEstimator(const Simulation &sim, const torch::Device &device);
   int getObservationSize(const Simulation &sim) const;
-  void getObservation(const Simulation &sim, Ref<VectorX> obs) const;
-  void estimateValue(const MatrixX &obs, Ref<VectorX> value) const;
+  void getObservation(const Simulation &sim, Eigen::Ref<VectorX> obs) const;
+  void estimateValue(const MatrixX &obs, Eigen::Ref<VectorX> value) const;
 
 private:
+  torch::Device device_;
   std::shared_ptr<FCValueNet> net_;
 };
 
