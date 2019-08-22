@@ -7,6 +7,7 @@
 #include <robot_design/render.h>
 #include <robot_design/sim.h>
 #include <thread>
+#include <torch/torch.h>
 
 using namespace robot_design;
 
@@ -18,6 +19,9 @@ int main(int argc, char **argv) {
                           {'v', "verbose"});
   args::ValueFlag<unsigned int> seed_flag(parser, "seed", "Random seed",
                                           {'s', "seed"});
+  args::MapFlag<std::string, torch::DeviceType> device_flag(
+      parser, "device", "LibTorch device (cpu|cuda)", {'d', "device"},
+      {{"cpu", torch::kCPU}, {"cuda", torch::kCUDA}}, torch::kCPU);
 
   // Don't show the (overly verbose) message about the '--' flag
   parser.helpParams.showTerminator = false;
@@ -44,6 +48,7 @@ int main(int argc, char **argv) {
   constexpr int horizon = 240 * 4;
   // Use the provided random seed to generate all other seeds
   std::mt19937 generator(args::get(seed_flag));
+  torch::Device device(args::get(device_flag));
 
   // Create a quadruped robot
   std::shared_ptr<Robot> robot = std::make_shared<Robot>(
