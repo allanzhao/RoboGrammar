@@ -20,7 +20,7 @@ int main(int argc, char **argv) {
   args::ValueFlag<unsigned int> seed_flag(parser, "seed", "Random seed",
                                           {'s', "seed"});
   args::MapFlag<std::string, torch::DeviceType> device_flag(
-      parser, "device", "LibTorch device (cpu|cuda)", {'d', "device"},
+      parser, "device", "Torch device (cpu|cuda)", {'d', "device"},
       {{"cpu", torch::kCPU}, {"cuda", torch::kCUDA}}, torch::kCPU);
 
   // Don't show the (overly verbose) message about the '--' flag
@@ -49,6 +49,9 @@ int main(int argc, char **argv) {
   // Use the provided random seed to generate all other seeds
   std::mt19937 generator(args::get(seed_flag));
   torch::Device device(args::get(device_flag));
+
+  // Set Torch random seed
+  torch::manual_seed(generator());
 
   // Create a quadruped robot
   std::shared_ptr<Robot> robot = std::make_shared<Robot>(
