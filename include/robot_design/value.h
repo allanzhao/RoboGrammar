@@ -31,6 +31,10 @@ public:
   void estimateValue(const MatrixX &obs, Eigen::Ref<VectorX> value) const;
 
 private:
+  torch::Tensor torchTensorFromEigen(const MatrixX &mat) const;
+  void torchTensorToEigen(const torch::Tensor &tensor,
+                          Eigen::Ref<VectorX> vec) const;
+
   torch::Device device_;
   std::shared_ptr<FCValueNet> net_;
 };

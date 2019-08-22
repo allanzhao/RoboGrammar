@@ -48,15 +48,23 @@ void FCValueEstimator::getObservation(const Simulation &sim,
 
 void FCValueEstimator::estimateValue(const MatrixX &obs,
                                      Eigen::Ref<VectorX> value) const {
+  torch::Tensor obs_tensor = torchTensorFromEigen(obs);
+  torch::Tensor value_tensor = net_->forward(obs_tensor);
+  torchTensorToEigen(value_tensor, value);
+}
+
+torch::Tensor FCValueEstimator::torchTensorFromEigen(const MatrixX &mat) const {
   // Create a row-major Torch tensor from a column-major Eigen matrix
-  torch::Tensor obs_tensor =
-      torch::from_blob(const_cast<Scalar *>(obs.data()),
-                       {obs.cols(), obs.rows()}, torch::dtype(SCALAR_DTYPE))
-          .toType(TORCH_DTYPE)
-          .to(device_);
-  torch::Tensor value_tensor = net_->forward(obs_tensor).cpu()
-      .toType(SCALAR_DTYPE);
-  value = Eigen::Map<VectorX>(value_tensor.data<Scalar>(), value.size());
+  return torch::from_blob(const_cast<Scalar *>(mat.data()),
+                          {mat.cols(), mat.rows()}, torch::dtype(SCALAR_DTYPE))
+      .toType(TORCH_DTYPE)
+      .to(device_);
+}
+
+void FCValueEstimator::torchTensorToEigen(const torch::Tensor &tensor,
+                                          Eigen::Ref<VectorX> vec) const {
+  vec = Eigen::Map<VectorX>(tensor.cpu().toType(SCALAR_DTYPE).data<Scalar>(),
+                            vec.size());
 }
 
 }  // namespace robot_design
