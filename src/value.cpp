@@ -47,10 +47,10 @@ void FCValueEstimator::getObservation(const Simulation &sim,
 }
 
 void FCValueEstimator::estimateValue(const MatrixX &obs,
-                                     Eigen::Ref<VectorX> value) const {
+                                     Eigen::Ref<VectorX> value_est) const {
   torch::Tensor obs_tensor = torchTensorFromEigen(obs);
-  torch::Tensor value_tensor = net_->forward(obs_tensor);
-  torchTensorToEigen(value_tensor, value);
+  torch::Tensor value_est_tensor = net_->forward(obs_tensor);
+  torchTensorToEigen(value_est_tensor, value_est);
 }
 
 torch::Tensor FCValueEstimator::torchTensorFromEigen(const MatrixX &mat) const {

@@ -28,7 +28,7 @@ public:
   FCValueEstimator(const Simulation &sim, const torch::Device &device);
   int getObservationSize(const Simulation &sim) const;
   void getObservation(const Simulation &sim, Eigen::Ref<VectorX> obs) const;
-  void estimateValue(const MatrixX &obs, Eigen::Ref<VectorX> value) const;
+  void estimateValue(const MatrixX &obs, Eigen::Ref<VectorX> value_est) const;
 
 private:
   torch::Tensor torchTensorFromEigen(const MatrixX &mat) const;
