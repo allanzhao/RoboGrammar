@@ -43,7 +43,7 @@ private:
   torch::Device device_;
   int batch_size_;
   int epoch_count_;
-  int obs_size_;
+  int dof_count_;
   std::shared_ptr<FCValueNet> net_;
   std::shared_ptr<torch::optim::Adam> optimizer_;
 };

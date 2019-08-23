@@ -31,23 +31,28 @@ FCValueEstimator::FCValueEstimator(const Simulation &sim, Index robot_idx,
                                    int epoch_count)
     : robot_idx_(robot_idx), device_(device), batch_size_(batch_size),
       epoch_count_(epoch_count) {
-  // Observations are joint positions and velocities
-  obs_size_ = sim.getRobotDofCount(robot_idx) * 2;
-  net_ = std::make_shared<FCValueNet>(obs_size_, 2, 32);
+  dof_count_ = sim.getRobotDofCount(robot_idx);
+  net_ = std::make_shared<FCValueNet>(getObservationSize(), 1, 64);
   net_->to(device);
   optimizer_ = std::make_shared<torch::optim::Adam>(
       net_->parameters(), torch::optim::AdamOptions(1e-3));
 }
 
 int FCValueEstimator::getObservationSize() const {
-  return obs_size_;
+  // Joint positions, joint velocities, base position, base rotation matrix
+  return 2 * dof_count_ + 3 + 9;
 }
 
 void FCValueEstimator::getObservation(const Simulation &sim,
                                       Eigen::Ref<VectorX> obs) const {
-  int dof_count = sim.getRobotDofCount(robot_idx_);
-  sim.getJointPositions(robot_idx_, obs.head(dof_count));
-  sim.getJointVelocities(robot_idx_, obs.tail(dof_count));
+  sim.getJointPositions(robot_idx_, obs.segment(0, dof_count_));
+  sim.getJointVelocities(robot_idx_, obs.segment(dof_count_, dof_count_));
+  Matrix4 base_transform;
+  sim.getLinkTransform(robot_idx_, 0, base_transform);
+  obs.segment(2 * dof_count_, 3) = base_transform.block<3, 1>(0, 3);
+  Matrix3 base_rotation = base_transform.topLeftCorner<3, 3>();
+  obs.segment(2 * dof_count_ + 3, 9) = Eigen::Map<VectorX>(
+      base_rotation.data(), base_rotation.size());
 }
 
 void FCValueEstimator::estimateValue(const MatrixX &obs,
