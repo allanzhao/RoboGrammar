@@ -12,7 +12,7 @@ namespace robot_design {
 
 using MakeSimFunction = std::function<std::shared_ptr<Simulation>()>;
 
-using ObjectiveFunction = std::function<Scalar(const Simulation &, int)>;
+using ObjectiveFunction = std::function<Scalar(const Simulation &)>;
 
 class MPPIOptimizer {
 public:

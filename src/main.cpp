@@ -110,7 +110,7 @@ int main(int argc, char **argv) {
   };
 
   // Define an objective function
-  auto objective_fn = [&](const Simulation &sim, int step) -> Scalar {
+  auto objective_fn = [&](const Simulation &sim) -> Scalar {
     Index robot_idx = sim.findRobotIndex(*robot);
     Vector6 base_vel;
     sim.getLinkVelocity(robot_idx, 0, base_vel);

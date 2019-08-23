@@ -82,7 +82,7 @@ Scalar MPPIOptimizer::runSimulation(int sample_idx, unsigned int sample_seed) {
   for (int j = 0; j < horizon_; ++j) {
     sim.setJointTargetPositions(robot_idx, rand_input_seq.col(j));
     sim.step();
-    reward += objective_fn_(sim, j);
+    reward += objective_fn_(sim);
   }
   // Collect observation for final state
   value_estimator_->getObservation(sim, final_obs_.col(sample_idx));
