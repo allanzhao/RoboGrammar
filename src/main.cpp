@@ -46,6 +46,7 @@ int main(int argc, char **argv) {
 
   constexpr Scalar time_step = 1.0 / 240;
   constexpr int horizon = 32;
+  constexpr Scalar discount_factor = 0.99;
   // Use the provided random seed to generate all other seeds
   std::mt19937 generator(args::get(seed_flag));
   torch::Device device(args::get(device_flag));
@@ -128,9 +129,13 @@ int main(int argc, char **argv) {
       /*epoch_count=*/3);
   int episode_len = 500;
   MatrixX input_sequence = MatrixX::Zero(dof_count, episode_len);
+  MatrixX obs(value_estimator->getObservationSize(), episode_len + 1);
+  VectorX rewards(episode_len);
+  VectorX returns(episode_len + 1);
 
   for (int episode_idx = 0; episode_idx < 20; ++episode_idx) {
     std::cout << "Episode " << episode_idx << std::endl;
+
     unsigned int opt_seed = generator();
     MPPIOptimizer optimizer(
         /*kappa=*/100.0, /*dof_count=*/dof_count, /*horizon=*/horizon,
@@ -139,11 +144,32 @@ int main(int argc, char **argv) {
         /*value_estimator=*/value_estimator);
     // Warm start the optimizer with last episode's input sequence
     optimizer.input_sequence_ = input_sequence.leftCols(horizon);
+
+    // Run the main simulation in lockstep with the optimizer's simulations
+    main_sim->saveState();
     for (int j = 0; j < input_sequence.cols(); ++j) {
       optimizer.update();
       input_sequence.col(j) = optimizer.input_sequence_.col(0);
       optimizer.advance(1);
+
+      value_estimator->getObservation(*main_sim, obs.col(j));
+      main_sim->setJointTargetPositions(robot_idx, input_sequence.col(j));
+      main_sim->step();
+      rewards(j) = objective_fn(*main_sim);
     }
+    value_estimator->getObservation(*main_sim, obs.col(episode_len));
+    main_sim->restoreState();
+
+    // Bootstrap returns with value estimator
+    value_estimator->estimateValue(obs.col(episode_len), returns.tail<1>());
+    for (int j = episode_len - 1; j >= 0; --j) {
+      returns(j) = rewards(j) + discount_factor * returns(j + 1);
+    }
+
+    value_estimator->train(obs.leftCols(episode_len),
+                           returns.head(episode_len));
+
+    std::cout << "Total reward: " << rewards.sum() << std::endl;
   }
 
   main_sim->saveState();
