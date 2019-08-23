@@ -25,9 +25,10 @@ struct FCValueNet : torch::nn::Module {
 
 class FCValueEstimator {
 public:
-  FCValueEstimator(const Simulation &sim, const torch::Device &device,
-                   int batch_size = 64, int epoch_count = 3);
-  int getObservationSize(const Simulation &sim) const;
+  FCValueEstimator(const Simulation &sim, Index robot_idx,
+                   const torch::Device &device, int batch_size = 64,
+                   int epoch_count = 3);
+  int getObservationSize() const;
   void getObservation(const Simulation &sim, Eigen::Ref<VectorX> obs) const;
   void estimateValue(const MatrixX &obs, Eigen::Ref<VectorX> value_est) const;
   void train(const MatrixX &obs, const Eigen::Ref<const VectorX> &value);
@@ -38,9 +39,11 @@ private:
   void torchTensorToEigenVector(const torch::Tensor &tensor,
                                 Eigen::Ref<VectorX> vec) const;
 
+  int robot_idx_;
   torch::Device device_;
   int batch_size_;
   int epoch_count_;
+  int obs_size_;
   std::shared_ptr<FCValueNet> net_;
   std::shared_ptr<torch::optim::Adam> optimizer_;
 };

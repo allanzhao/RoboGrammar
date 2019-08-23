@@ -26,27 +26,28 @@ torch::Tensor FCValueNet::forward(torch::Tensor x) {
   return layers_.back()->forward(x);  // No activation after last layer
 }
 
-FCValueEstimator::FCValueEstimator(const Simulation &sim,
-                                   const torch::Device &device,
-                                   int batch_size, int epoch_count)
-    : device_(device), batch_size_(batch_size), epoch_count_(epoch_count) {
-  net_ = std::make_shared<FCValueNet>(getObservationSize(sim), 2, 32);
+FCValueEstimator::FCValueEstimator(const Simulation &sim, Index robot_idx,
+                                   const torch::Device &device, int batch_size,
+                                   int epoch_count)
+    : robot_idx_(robot_idx), device_(device), batch_size_(batch_size),
+      epoch_count_(epoch_count) {
+  // Observations are joint positions and velocities
+  obs_size_ = sim.getRobotDofCount(robot_idx) * 2;
+  net_ = std::make_shared<FCValueNet>(obs_size_, 2, 32);
   net_->to(device);
   optimizer_ = std::make_shared<torch::optim::Adam>(
       net_->parameters(), torch::optim::AdamOptions(1e-3));
 }
 
-int FCValueEstimator::getObservationSize(const Simulation &sim) const {
-  Index robot_idx = 0;
-  return sim.getRobotDofCount(robot_idx) * 2;  // Joint positions and velocities
+int FCValueEstimator::getObservationSize() const {
+  return obs_size_;
 }
 
 void FCValueEstimator::getObservation(const Simulation &sim,
                                       Eigen::Ref<VectorX> obs) const {
-  Index robot_idx = 0;
-  int dof_count = sim.getRobotDofCount(robot_idx);
-  sim.getJointPositions(robot_idx, obs.head(dof_count));
-  sim.getJointVelocities(robot_idx, obs.tail(dof_count));
+  int dof_count = sim.getRobotDofCount(robot_idx_);
+  sim.getJointPositions(robot_idx_, obs.head(dof_count));
+  sim.getJointVelocities(robot_idx_, obs.tail(dof_count));
 }
 
 void FCValueEstimator::estimateValue(const MatrixX &obs,
@@ -90,8 +91,8 @@ torch::Tensor FCValueEstimator::torchTensorFromEigenMatrix(
 
 torch::Tensor FCValueEstimator::torchTensorFromEigenVector(
     const Eigen::Ref<const VectorX> &vec) const {
-  return torch::from_blob(const_cast<Scalar *>(vec.data()),
-                          {vec.size()}, torch::dtype(SCALAR_DTYPE))
+  return torch::from_blob(const_cast<Scalar *>(vec.data()), {vec.size()},
+                          torch::dtype(SCALAR_DTYPE))
       .toType(TORCH_DTYPE)
       .to(device_);
 }

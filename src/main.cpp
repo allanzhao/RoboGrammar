@@ -124,10 +124,14 @@ int main(int argc, char **argv) {
   int dof_count = main_sim->getRobotDofCount(robot_idx);
   unsigned int thread_count = std::thread::hardware_concurrency();
   unsigned int opt_seed = generator();
+  auto value_estimator = std::make_shared<FCValueEstimator>(
+      *main_sim, /*robot_idx=*/0, /*device=*/device, /*batch_size=*/64,
+      /*epoch_count=*/3);
   MPPIOptimizer optimizer(
       /*kappa=*/100.0, /*dof_count=*/dof_count, /*horizon=*/horizon,
       /*sample_count=*/64, /*thread_count=*/thread_count, /*seed=*/opt_seed,
-      /*make_sim_fn=*/make_sim_fn, /*objective_fn=*/objective_fn);
+      /*make_sim_fn=*/make_sim_fn, /*objective_fn=*/objective_fn,
+      /*value_estimator=*/value_estimator);
   for (int i = 0; i < 20; ++i) {
     optimizer.update();
   }

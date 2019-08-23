@@ -6,10 +6,12 @@ namespace robot_design {
 
 MPPIOptimizer::MPPIOptimizer(Scalar kappa, int dof_count, int horizon,
     int sample_count, int thread_count, unsigned int seed,
-    const MakeSimFunction &make_sim_fn, const ObjectiveFunction &objective_fn)
+    const MakeSimFunction &make_sim_fn, const ObjectiveFunction &objective_fn,
+    const std::shared_ptr<const FCValueEstimator> &value_estimator)
     : kappa_(kappa), dof_count_(dof_count), horizon_(horizon),
       sample_count_(sample_count), seed_(seed), objective_fn_(objective_fn),
-      next_thread_id_(0), thread_pool_(thread_count) {
+      value_estimator_(value_estimator), next_thread_id_(0),
+      thread_pool_(thread_count) {
   // Create a separate simulation instance for each thread
   sim_instances_.reserve(thread_count);
   for (int i = 0; i < thread_count; ++i) {
@@ -17,6 +19,7 @@ MPPIOptimizer::MPPIOptimizer(Scalar kappa, int dof_count, int horizon,
   }
 
   input_sequence_ = MatrixX::Zero(dof_count, horizon);
+  final_obs_.resize(value_estimator->getObservationSize(), sample_count);
 }
 
 void MPPIOptimizer::update() {
@@ -25,7 +28,7 @@ void MPPIOptimizer::update() {
   sim_results.reserve(sample_count_);
   for (int k = 0; k < sample_count_; ++k) {
     sim_results.emplace_back(thread_pool_.enqueue(
-        &MPPIOptimizer::runSimulation, this, seed_ + k));
+        &MPPIOptimizer::runSimulation, this, k, seed_ + k));
   }
 
   // Wait on results
@@ -33,6 +36,11 @@ void MPPIOptimizer::update() {
   for (int k = 0; k < sample_count_; ++k) {
     sim_rewards(k) = sim_results[k].get();
   }
+
+  // Estimate values of final states and add to simulation reward
+  VectorX final_value_est(sample_count_);
+  value_estimator_->estimateValue(final_obs_, final_value_est);
+  sim_rewards += final_value_est;
 
   MatrixX input_sequence_sum = MatrixX::Zero(dof_count_, horizon_);
   Scalar seq_weight_sum = 0.0;
@@ -63,7 +71,7 @@ void MPPIOptimizer::advance(int step_count) {
   input_sequence_.rightCols(step_count) = MatrixX::Zero(dof_count_, step_count);
 }
 
-Scalar MPPIOptimizer::runSimulation(unsigned int sample_seed) {
+Scalar MPPIOptimizer::runSimulation(int sample_idx, unsigned int sample_seed) {
   thread_local int thread_id = next_thread_id_++;
   Simulation &sim = *sim_instances_[thread_id];
   Index robot_idx = 0;  // TODO: don't assume there is only one robot
@@ -76,6 +84,8 @@ Scalar MPPIOptimizer::runSimulation(unsigned int sample_seed) {
     sim.step();
     reward += objective_fn_(sim, j);
   }
+  // Collect observation for final state
+  value_estimator_->getObservation(sim, final_obs_.col(sample_idx));
   sim.restoreState();
   return reward;
 }
