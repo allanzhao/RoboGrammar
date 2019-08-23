@@ -1,4 +1,3 @@
-#include <iostream>
 #include <random>
 #include <robot_design/optim.h>
 
@@ -46,7 +45,6 @@ void MPPIOptimizer::update() {
   Scalar seq_weight_sum = 0.0;
   MatrixX rand_input_seq;
   Scalar max_reward = sim_rewards.maxCoeff();
-  std::cout << max_reward << std::endl;
   for (int k = 0; k < sample_count_; ++k) {
     // Recreate the same input sequence used for the simulation
     sampleInputSequence(rand_input_seq, seed_ + k);

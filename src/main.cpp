@@ -45,7 +45,7 @@ int main(int argc, char **argv) {
   }
 
   constexpr Scalar time_step = 1.0 / 240;
-  constexpr int horizon = 240 * 4;
+  constexpr int horizon = 32;
   // Use the provided random seed to generate all other seeds
   std::mt19937 generator(args::get(seed_flag));
   torch::Device device(args::get(device_flag));
@@ -123,25 +123,27 @@ int main(int argc, char **argv) {
   Index robot_idx = main_sim->findRobotIndex(*robot);
   int dof_count = main_sim->getRobotDofCount(robot_idx);
   unsigned int thread_count = std::thread::hardware_concurrency();
-  unsigned int opt_seed = generator();
   auto value_estimator = std::make_shared<FCValueEstimator>(
-      *main_sim, /*robot_idx=*/0, /*device=*/device, /*batch_size=*/64,
+      *main_sim, /*robot_idx=*/robot_idx, /*device=*/device, /*batch_size=*/64,
       /*epoch_count=*/3);
-  MPPIOptimizer optimizer(
-      /*kappa=*/100.0, /*dof_count=*/dof_count, /*horizon=*/horizon,
-      /*sample_count=*/64, /*thread_count=*/thread_count, /*seed=*/opt_seed,
-      /*make_sim_fn=*/make_sim_fn, /*objective_fn=*/objective_fn,
-      /*value_estimator=*/value_estimator);
-  for (int i = 0; i < 20; ++i) {
-    optimizer.update();
-  }
-  // Receding horizon control
-  constexpr int interval = 4;
-  MatrixX input_sequence = MatrixX::Zero(dof_count, 240 * interval);
-  for (int j = 0; j < input_sequence.cols(); j += interval) {
-    optimizer.update();
-    input_sequence.block(0, j, dof_count, interval) = optimizer.input_sequence_.leftCols(interval);
-    optimizer.advance(interval);
+  int episode_len = 500;
+  MatrixX input_sequence = MatrixX::Zero(dof_count, episode_len);
+
+  for (int episode_idx = 0; episode_idx < 20; ++episode_idx) {
+    std::cout << "Episode " << episode_idx << std::endl;
+    unsigned int opt_seed = generator();
+    MPPIOptimizer optimizer(
+        /*kappa=*/100.0, /*dof_count=*/dof_count, /*horizon=*/horizon,
+        /*sample_count=*/64, /*thread_count=*/thread_count, /*seed=*/opt_seed,
+        /*make_sim_fn=*/make_sim_fn, /*objective_fn=*/objective_fn,
+        /*value_estimator=*/value_estimator);
+    // Warm start the optimizer with last episode's input sequence
+    optimizer.input_sequence_ = input_sequence.leftCols(horizon);
+    for (int j = 0; j < input_sequence.cols(); ++j) {
+      optimizer.update();
+      input_sequence.col(j) = optimizer.input_sequence_.col(0);
+      optimizer.advance(1);
+    }
   }
 
   main_sim->saveState();
