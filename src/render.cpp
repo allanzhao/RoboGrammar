@@ -198,7 +198,7 @@ void FPSCameraController::getViewMatrix(Eigen::Matrix4f &view_matrix) const {
   view_matrix = view_transform.matrix();
 }
 
-GLFWRenderer::GLFWRenderer() : z_near_(1.0f), z_far_(1000.0f), fov_(M_PI / 3),
+GLFWRenderer::GLFWRenderer() : z_near_(0.1f), z_far_(100.0f), fov_(M_PI / 3),
                                camera_controller_() {
   if (!glfwInit()) {
     return;
