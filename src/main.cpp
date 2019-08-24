@@ -143,8 +143,9 @@ int main(int argc, char **argv) {
         /*thread_count=*/thread_count, /*seed=*/opt_seed,
         /*make_sim_fn=*/make_sim_fn, /*objective_fn=*/objective_fn,
         /*value_estimator=*/value_estimator);
-    // Warm start the optimizer with last episode's input sequence
-    optimizer.input_sequence_ = input_sequence.leftCols(horizon);
+    for (int i = 0; i < 20; ++i) {
+      optimizer.update();
+    }
 
     // Run the main simulation in lockstep with the optimizer's simulations
     main_sim->saveState();
@@ -166,7 +167,6 @@ int main(int argc, char **argv) {
     for (int j = episode_len - 1; j >= 0; --j) {
       returns(j) = rewards(j) + discount_factor * returns(j + 1);
     }
-
     value_estimator->train(obs.leftCols(episode_len),
                            returns.head(episode_len));
 
