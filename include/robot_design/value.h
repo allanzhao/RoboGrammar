@@ -27,7 +27,7 @@ class FCValueEstimator {
 public:
   FCValueEstimator(const Simulation &sim, Index robot_idx,
                    const torch::Device &device, int batch_size = 64,
-                   int epoch_count = 3);
+                   int epoch_count = 3, int ensemble_size = 3);
   int getObservationSize() const;
   void getObservation(const Simulation &sim, Eigen::Ref<VectorX> obs) const;
   void estimateValue(const MatrixX &obs, Eigen::Ref<VectorX> value_est) const;
@@ -44,8 +44,8 @@ private:
   int batch_size_;
   int epoch_count_;
   int dof_count_;
-  std::shared_ptr<FCValueNet> net_;
-  std::shared_ptr<torch::optim::Adam> optimizer_;
+  std::vector<std::shared_ptr<FCValueNet>> nets_;
+  std::vector<std::shared_ptr<torch::optim::Adam>> optimizers_;
 };
 
 }  // namespace robot_design

@@ -28,14 +28,18 @@ torch::Tensor FCValueNet::forward(torch::Tensor x) {
 
 FCValueEstimator::FCValueEstimator(const Simulation &sim, Index robot_idx,
                                    const torch::Device &device, int batch_size,
-                                   int epoch_count)
+                                   int epoch_count, int ensemble_size)
     : robot_idx_(robot_idx), device_(device), batch_size_(batch_size),
       epoch_count_(epoch_count) {
   dof_count_ = sim.getRobotDofCount(robot_idx);
-  net_ = std::make_shared<FCValueNet>(getObservationSize(), 1, 64);
-  net_->to(device);
-  optimizer_ = std::make_shared<torch::optim::Adam>(
-      net_->parameters(), torch::optim::AdamOptions(1e-3));
+  nets_.reserve(ensemble_size);
+  optimizers_.reserve(ensemble_size);
+  for (int k = 0; k < ensemble_size; ++k) {
+    nets_.push_back(std::make_shared<FCValueNet>(getObservationSize(), 1, 64));
+    nets_.back()->to(device);
+    optimizers_.push_back(std::make_shared<torch::optim::Adam>(
+        nets_.back()->parameters(), torch::optim::AdamOptions(1e-3)));
+  }
 }
 
 int FCValueEstimator::getObservationSize() const {
@@ -58,7 +62,15 @@ void FCValueEstimator::getObservation(const Simulation &sim,
 void FCValueEstimator::estimateValue(const MatrixX &obs,
                                      Eigen::Ref<VectorX> value_est) const {
   torch::Tensor obs_tensor = torchTensorFromEigenMatrix(obs);
-  torch::Tensor value_est_tensor = net_->forward(obs_tensor);
+  std::vector<torch::Tensor> ensemble_outputs;
+  ensemble_outputs.reserve(nets_.size());
+  for (int k = 0; k < nets_.size(); ++k) {
+    ensemble_outputs.push_back(nets_[k]->forward(obs_tensor));
+  }
+  torch::Tensor ensemble_outputs_tensor = torch::stack(ensemble_outputs);
+  torch::Tensor value_est_tensor = (
+      torch::softmax(ensemble_outputs_tensor, 0) *
+      ensemble_outputs_tensor).sum(0);
   torchTensorToEigenVector(value_est_tensor, value_est);
 }
 
@@ -71,15 +83,17 @@ void FCValueEstimator::train(const MatrixX &obs,
     sampler.reset(example_count);
     auto index_batch = sampler.next(batch_size_);
     while (index_batch) {
-      net_->zero_grad();
       MatrixX obs_batch = obs(Eigen::all, *index_batch);
       VectorX value_batch = value(*index_batch);
       torch::Tensor obs_tensor = torchTensorFromEigenMatrix(obs_batch);
       torch::Tensor value_tensor = torchTensorFromEigenVector(value_batch);
-      torch::Tensor value_est_tensor = net_->forward(obs_tensor).flatten();
-      torch::Tensor loss = torch::mse_loss(value_est_tensor, value_tensor);
-      loss.backward();
-      optimizer_->step();
+      for (int k = 0; k < nets_.size(); ++k) {
+        nets_[k]->zero_grad();
+        torch::Tensor value_est_tensor = nets_[k]->forward(obs_tensor).flatten();
+        torch::Tensor loss = torch::mse_loss(value_est_tensor, value_tensor);
+        loss.backward();
+        optimizers_[k]->step();
+      }
       index_batch = sampler.next(batch_size_);
     }
   }
