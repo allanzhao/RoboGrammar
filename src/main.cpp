@@ -138,8 +138,9 @@ int main(int argc, char **argv) {
 
     unsigned int opt_seed = generator();
     MPPIOptimizer optimizer(
-        /*kappa=*/100.0, /*dof_count=*/dof_count, /*horizon=*/horizon,
-        /*sample_count=*/64, /*thread_count=*/thread_count, /*seed=*/opt_seed,
+        /*kappa=*/100.0, /*discount_factor=*/discount_factor,
+        /*dof_count=*/dof_count, /*horizon=*/horizon, /*sample_count=*/64,
+        /*thread_count=*/thread_count, /*seed=*/opt_seed,
         /*make_sim_fn=*/make_sim_fn, /*objective_fn=*/objective_fn,
         /*value_estimator=*/value_estimator);
     // Warm start the optimizer with last episode's input sequence

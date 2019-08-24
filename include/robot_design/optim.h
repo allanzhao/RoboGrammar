@@ -16,11 +16,11 @@ using ObjectiveFunction = std::function<Scalar(const Simulation &)>;
 
 class MPPIOptimizer {
 public:
-  MPPIOptimizer(Scalar kappa, int dof_count, int horizon, int sample_count,
-                int thread_count, unsigned int seed,
-                const MakeSimFunction &make_sim_fn,
-                const ObjectiveFunction &objective_fn,
-                const std::shared_ptr<const FCValueEstimator> &value_estimator);
+  MPPIOptimizer(
+      Scalar kappa, Scalar discount_factor, int dof_count, int horizon,
+      int sample_count, int thread_count, unsigned int seed,
+      const MakeSimFunction &make_sim_fn, const ObjectiveFunction &objective_fn,
+      const std::shared_ptr<const FCValueEstimator> &value_estimator);
   void update();
   void advance(int step_count);
 
@@ -31,6 +31,7 @@ private:
   void sampleInputSequence(MatrixX &rand_input_seq, unsigned int sample_seed) const;
 
   Scalar kappa_;
+  Scalar discount_factor_;
   int dof_count_;
   int horizon_;
   int sample_count_;
