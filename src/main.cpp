@@ -45,6 +45,7 @@ int main(int argc, char **argv) {
   }
 
   constexpr Scalar time_step = 1.0 / 240;
+  constexpr int interval = 4;
   constexpr int horizon = 64;
   constexpr Scalar discount_factor = 0.99;
   // Use the provided random seed to generate all other seeds
@@ -138,9 +139,9 @@ int main(int argc, char **argv) {
 
     unsigned int opt_seed = generator();
     MPPIOptimizer optimizer(
-        /*kappa=*/100.0, /*discount_factor=*/discount_factor,
-        /*dof_count=*/dof_count, /*horizon=*/horizon, /*sample_count=*/128,
-        /*thread_count=*/thread_count, /*seed=*/opt_seed,
+        /*kappa=*/1000.0, /*discount_factor=*/discount_factor,
+        /*dof_count=*/dof_count, /*interval=*/interval, /*horizon=*/horizon,
+        /*sample_count=*/64, /*thread_count=*/thread_count, /*seed=*/opt_seed,
         /*make_sim_fn=*/make_sim_fn, /*objective_fn=*/objective_fn,
         /*value_estimator=*/value_estimator);
     for (int i = 0; i < 20; ++i) {
@@ -155,9 +156,12 @@ int main(int argc, char **argv) {
       optimizer.advance(1);
 
       value_estimator->getObservation(*main_sim, obs.col(j));
-      main_sim->setJointTargetPositions(robot_idx, input_sequence.col(j));
-      main_sim->step();
-      rewards(j) = objective_fn(*main_sim);
+      rewards(j) = 0.0;
+      for (int i = 0; i < interval; ++i) {
+        main_sim->setJointTargetPositions(robot_idx, input_sequence.col(j));
+        main_sim->step();
+        rewards(j) += objective_fn(*main_sim);
+      }
     }
     value_estimator->getObservation(*main_sim, obs.col(episode_len));
     main_sim->restoreState();
@@ -176,15 +180,21 @@ int main(int argc, char **argv) {
   main_sim->saveState();
   GLFWRenderer renderer;
   double sim_time = glfwGetTime();
-  int j = 0;
+  int i = 0, j = 0;
   while (!renderer.shouldClose()) {
     double current_time = glfwGetTime();
     while (sim_time < current_time) {
-      main_sim->setJointTargetPositions(robot_idx, input_sequence.col(j++));
+      main_sim->setJointTargetPositions(robot_idx, input_sequence.col(j));
       main_sim->step();
       renderer.update(time_step);
       sim_time += time_step;
+      ++i;
+      if (i >= interval) {
+        i = 0;
+        ++j;
+      }
       if (j >= input_sequence.cols()) {
+        i = 0;
         j = 0;
         main_sim->restoreState();
       }

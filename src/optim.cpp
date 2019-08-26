@@ -4,14 +4,15 @@
 namespace robot_design {
 
 MPPIOptimizer::MPPIOptimizer(
-    Scalar kappa, Scalar discount_factor, int dof_count, int horizon,
-    int sample_count, int thread_count, unsigned int seed,
+    Scalar kappa, Scalar discount_factor, int dof_count, int interval,
+    int horizon, int sample_count, int thread_count, unsigned int seed,
     const MakeSimFunction &make_sim_fn, const ObjectiveFunction &objective_fn,
     const std::shared_ptr<const FCValueEstimator> &value_estimator)
     : kappa_(kappa), discount_factor_(discount_factor), dof_count_(dof_count),
-      horizon_(horizon), sample_count_(sample_count), seed_(seed),
-      objective_fn_(objective_fn), value_estimator_(value_estimator),
-      next_thread_id_(0), thread_pool_(thread_count) {
+      interval_(interval), horizon_(horizon), sample_count_(sample_count),
+      seed_(seed), objective_fn_(objective_fn),
+      value_estimator_(value_estimator), next_thread_id_(0),
+      thread_pool_(thread_count) {
   // Create a separate simulation instance for each thread
   sim_instances_.reserve(thread_count);
   for (int i = 0; i < thread_count; ++i) {
@@ -62,8 +63,10 @@ void MPPIOptimizer::advance(int step_count) {
   Index robot_idx = 0;  // TODO: don't assume there is only one robot
   for (auto &sim : sim_instances_) {
     for (int j = 0; j < step_count; ++j) {
-      sim->setJointTargetPositions(robot_idx, input_sequence_.col(j));
-      sim->step();
+      for (int i = 0; i < interval_; ++i) {
+        sim->setJointTargetPositions(robot_idx, input_sequence_.col(j));
+        sim->step();
+      }
     }
   }
   input_sequence_.leftCols(horizon_ - step_count) = input_sequence_.rightCols(horizon_ - step_count);
@@ -80,9 +83,11 @@ Scalar MPPIOptimizer::runSimulation(int sample_idx, unsigned int sample_seed) {
   Scalar reward = 0.0;
   Scalar discount_prod = 1.0;
   for (int j = 0; j < horizon_; ++j) {
-    sim.setJointTargetPositions(robot_idx, rand_input_seq.col(j));
-    sim.step();
-    reward += objective_fn_(sim) * discount_prod;
+    for (int i = 0; i < interval_; ++i) {
+      sim.setJointTargetPositions(robot_idx, rand_input_seq.col(j));
+      sim.step();
+      reward += objective_fn_(sim) * discount_prod;
+    }
     discount_prod *= discount_factor_;
   }
   // Collect observation for final state
