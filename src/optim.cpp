@@ -93,7 +93,7 @@ Scalar MPPIOptimizer::runSimulation(int sample_idx, unsigned int sample_seed) {
 
 void MPPIOptimizer::sampleInputSequence(MatrixX &rand_input_seq, unsigned int sample_seed) const {
   std::mt19937 generator(sample_seed);
-  std::normal_distribution<Scalar> distribution(0.0, 0.1);
+  std::normal_distribution<Scalar> distribution(0.0, 0.2);
   rand_input_seq = input_sequence_ + MatrixX::NullaryExpr(dof_count_, horizon_,
       [&]() { return distribution(generator); });
 }

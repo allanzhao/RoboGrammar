@@ -21,7 +21,7 @@ FCValueNet::FCValueNet(int obs_size, int hidden_layer_count,
 
 torch::Tensor FCValueNet::forward(torch::Tensor x) {
   for (int i = 0; i < layers_.size() - 1; ++i) {
-    x = torch::relu(layers_[i]->forward(x));
+    x = torch::tanh(layers_[i]->forward(x));
   }
   return layers_.back()->forward(x);  // No activation after last layer
 }
@@ -35,7 +35,7 @@ FCValueEstimator::FCValueEstimator(const Simulation &sim, Index robot_idx,
   nets_.reserve(ensemble_size);
   optimizers_.reserve(ensemble_size);
   for (int k = 0; k < ensemble_size; ++k) {
-    nets_.push_back(std::make_shared<FCValueNet>(getObservationSize(), 1, 64));
+    nets_.push_back(std::make_shared<FCValueNet>(getObservationSize(), 2, 16));
     nets_.back()->to(device);
     optimizers_.push_back(std::make_shared<torch::optim::Adam>(
         nets_.back()->parameters(), torch::optim::AdamOptions(1e-3)));

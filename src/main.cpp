@@ -45,7 +45,7 @@ int main(int argc, char **argv) {
   }
 
   constexpr Scalar time_step = 1.0 / 240;
-  constexpr int horizon = 32;
+  constexpr int horizon = 64;
   constexpr Scalar discount_factor = 0.99;
   // Use the provided random seed to generate all other seeds
   std::mt19937 generator(args::get(seed_flag));
@@ -139,7 +139,7 @@ int main(int argc, char **argv) {
     unsigned int opt_seed = generator();
     MPPIOptimizer optimizer(
         /*kappa=*/100.0, /*discount_factor=*/discount_factor,
-        /*dof_count=*/dof_count, /*horizon=*/horizon, /*sample_count=*/64,
+        /*dof_count=*/dof_count, /*horizon=*/horizon, /*sample_count=*/128,
         /*thread_count=*/thread_count, /*seed=*/opt_seed,
         /*make_sim_fn=*/make_sim_fn, /*objective_fn=*/objective_fn,
         /*value_estimator=*/value_estimator);

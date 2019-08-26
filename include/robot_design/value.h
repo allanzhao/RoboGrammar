@@ -26,8 +26,8 @@ struct FCValueNet : torch::nn::Module {
 class FCValueEstimator {
 public:
   FCValueEstimator(const Simulation &sim, Index robot_idx,
-                   const torch::Device &device, int batch_size = 64,
-                   int epoch_count = 3, int ensemble_size = 3);
+                   const torch::Device &device, int batch_size = 32,
+                   int epoch_count = 4, int ensemble_size = 6);
   int getObservationSize() const;
   void getObservation(const Simulation &sim, Eigen::Ref<VectorX> obs) const;
   void estimateValue(const MatrixX &obs, Eigen::Ref<VectorX> value_est) const;
