@@ -35,7 +35,7 @@ FCValueEstimator::FCValueEstimator(const Simulation &sim, Index robot_idx,
   nets_.reserve(ensemble_size);
   optimizers_.reserve(ensemble_size);
   for (int k = 0; k < ensemble_size; ++k) {
-    nets_.push_back(std::make_shared<FCValueNet>(getObservationSize(), 2, 16));
+    nets_.push_back(std::make_shared<FCValueNet>(getObservationSize(), 2, 64));
     nets_.back()->to(device);
     optimizers_.push_back(std::make_shared<torch::optim::Adam>(
         nets_.back()->parameters(), torch::optim::AdamOptions(1e-3)));

@@ -134,7 +134,7 @@ int main(int argc, char **argv) {
   VectorX rewards(episode_len);
   VectorX returns(episode_len + 1);
 
-  for (int episode_idx = 0; episode_idx < 5; ++episode_idx) {
+  for (int episode_idx = 0; episode_idx < 3; ++episode_idx) {
     std::cout << "Episode " << episode_idx << std::endl;
 
     unsigned int opt_seed = generator();
@@ -144,7 +144,7 @@ int main(int argc, char **argv) {
         /*sample_count=*/128, /*thread_count=*/thread_count, /*seed=*/opt_seed,
         /*make_sim_fn=*/make_sim_fn, /*objective_fn=*/objective_fn,
         /*value_estimator=*/value_estimator);
-    for (int i = 0; i < 20; ++i) {
+    for (int i = 0; i < 10; ++i) {
       optimizer.update();
     }
 
