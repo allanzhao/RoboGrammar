@@ -1,6 +1,5 @@
 #pragma once
 
-#include <atomic>
 #include <functional>
 #include <robot_design/robot.h>
 #include <robot_design/sim.h>
@@ -41,7 +40,6 @@ private:
   std::shared_ptr<const FCValueEstimator> value_estimator_;
   std::vector<std::shared_ptr<Simulation>> sim_instances_;
   MatrixX final_obs_;
-  std::atomic<int> next_thread_id_;
   ThreadPool thread_pool_;
 };
 

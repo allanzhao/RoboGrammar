@@ -18,6 +18,7 @@ file(GLOB_RECURSE BULLET_SOURCES
     ${BULLET_ROOT}/Extras/Serialize/BulletWorldImporter/*.cpp
 )
 
+add_compile_options(-DEIGEN_DONT_PARALLELIZE)
 set(EIGEN_INCLUDE_DIRS extern/eigen)
 
 find_package(GLEW 1.13 REQUIRED)

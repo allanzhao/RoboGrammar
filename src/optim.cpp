@@ -11,11 +11,10 @@ MPPIOptimizer::MPPIOptimizer(
     : kappa_(kappa), discount_factor_(discount_factor), dof_count_(dof_count),
       interval_(interval), horizon_(horizon), sample_count_(sample_count),
       seed_(seed), objective_fn_(objective_fn),
-      value_estimator_(value_estimator), next_thread_id_(0),
-      thread_pool_(thread_count) {
-  // Create a separate simulation instance for each thread
-  sim_instances_.reserve(thread_count);
-  for (int i = 0; i < thread_count; ++i) {
+      value_estimator_(value_estimator), thread_pool_(thread_count) {
+  // Create a separate simulation instance for each sample
+  sim_instances_.reserve(sample_count);
+  for (int i = 0; i < sample_count; ++i) {
     sim_instances_.push_back(std::move(make_sim_fn()));
   }
 
@@ -74,8 +73,7 @@ void MPPIOptimizer::advance(int step_count) {
 }
 
 Scalar MPPIOptimizer::runSimulation(int sample_idx, unsigned int sample_seed) {
-  thread_local int thread_id = next_thread_id_++;
-  Simulation &sim = *sim_instances_[thread_id];
+  Simulation &sim = *sim_instances_[sample_idx];
   Index robot_idx = 0;  // TODO: don't assume there is only one robot
   MatrixX rand_input_seq;
   sampleInputSequence(rand_input_seq, sample_seed);
