@@ -128,20 +128,20 @@ int main(int argc, char **argv) {
   auto value_estimator = std::make_shared<FCValueEstimator>(
       *main_sim, /*robot_idx=*/robot_idx, /*device=*/device, /*batch_size=*/64,
       /*epoch_count=*/3);
-  int episode_len = 500;
-  MatrixX input_sequence = MatrixX::Zero(dof_count, episode_len);
+  int episode_len = 250;
+  MatrixX input_sequence(dof_count, episode_len);
   MatrixX obs(value_estimator->getObservationSize(), episode_len + 1);
   VectorX rewards(episode_len);
   VectorX returns(episode_len + 1);
 
-  for (int episode_idx = 0; episode_idx < 20; ++episode_idx) {
+  for (int episode_idx = 0; episode_idx < 5; ++episode_idx) {
     std::cout << "Episode " << episode_idx << std::endl;
 
     unsigned int opt_seed = generator();
     MPPIOptimizer optimizer(
-        /*kappa=*/1000.0, /*discount_factor=*/discount_factor,
+        /*kappa=*/100.0, /*discount_factor=*/discount_factor,
         /*dof_count=*/dof_count, /*interval=*/interval, /*horizon=*/horizon,
-        /*sample_count=*/64, /*thread_count=*/thread_count, /*seed=*/opt_seed,
+        /*sample_count=*/128, /*thread_count=*/thread_count, /*seed=*/opt_seed,
         /*make_sim_fn=*/make_sim_fn, /*objective_fn=*/objective_fn,
         /*value_estimator=*/value_estimator);
     for (int i = 0; i < 20; ++i) {
