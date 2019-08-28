@@ -27,6 +27,7 @@ public:
 
 private:
   Scalar runSimulation(int sample_idx, unsigned int sample_seed);
+  void advanceSimulation(int sample_idx, int step_count);
   void sampleInputSequence(MatrixX &rand_input_seq, unsigned int sample_seed) const;
 
   Scalar kappa_;

@@ -59,15 +59,18 @@ void MPPIOptimizer::update() {
 }
 
 void MPPIOptimizer::advance(int step_count) {
-  Index robot_idx = 0;  // TODO: don't assume there is only one robot
-  for (auto &sim : sim_instances_) {
-    for (int j = 0; j < step_count; ++j) {
-      for (int i = 0; i < interval_; ++i) {
-        sim->setJointTargetPositions(robot_idx, input_sequence_.col(j));
-        sim->step();
-      }
-    }
+  std::vector<std::future<void>> futures;
+  futures.reserve(sample_count_);
+  for (int k = 0; k < sample_count_; ++k) {
+    futures.emplace_back(thread_pool_.enqueue(
+        &MPPIOptimizer::advanceSimulation, this, k, step_count));
   }
+
+  // Wait for all simulation instances to advance
+  for (int k = 0; k < sample_count_; ++k) {
+    futures[k].get();
+  }
+
   input_sequence_.leftCols(horizon_ - step_count) = input_sequence_.rightCols(horizon_ - step_count);
   input_sequence_.rightCols(step_count) = MatrixX::Zero(dof_count_, step_count);
 }
@@ -92,6 +95,17 @@ Scalar MPPIOptimizer::runSimulation(int sample_idx, unsigned int sample_seed) {
   value_estimator_->getObservation(sim, final_obs_.col(sample_idx));
   sim.restoreState();
   return reward;
+}
+
+void MPPIOptimizer::advanceSimulation(int sample_idx, int step_count) {
+  Simulation &sim = *sim_instances_[sample_idx];
+  Index robot_idx = 0;  // TODO: don't assume there is only one robot
+  for (int j = 0; j < step_count; ++j) {
+    for (int i = 0; i < interval_; ++i) {
+      sim.setJointTargetPositions(robot_idx, input_sequence_.col(j));
+      sim.step();
+    }
+  }
 }
 
 void MPPIOptimizer::sampleInputSequence(MatrixX &rand_input_seq, unsigned int sample_seed) const {
