@@ -268,27 +268,7 @@ void GLFWRenderer::render(const Simulation &sim) {
 
   default_program_->use();
   default_program_->setProjectionMatrix(proj_matrix_);
-
-  default_program_->setObjectColor({0.45f, 0.5f, 0.55f});  // Slate gray
-  for (Index robot_idx = 0; robot_idx < sim.getRobotCount(); ++robot_idx) {
-    const Robot &robot = *sim.getRobot(robot_idx);
-    for (Index link_idx = 0; link_idx < robot.links_.size(); ++link_idx) {
-      const Link &link = robot.links_[link_idx];
-      Matrix4 link_transform;
-      sim.getLinkTransform(robot_idx, link_idx, link_transform);
-      drawCapsule(link_transform.cast<float>(), link.length_ / 2,
-                  robot.link_radius_, *default_program_);
-    }
-  }
-
-  default_program_->setObjectColor({0.8f, 0.7f, 0.6f});  // Tan
-  for (Index prop_idx = 0; prop_idx < sim.getPropCount(); ++prop_idx) {
-    const Prop &prop = *sim.getProp(prop_idx);
-    Matrix4 prop_transform;
-    sim.getPropTransform(prop_idx, prop_transform);
-    drawBox(prop_transform.cast<float>(), prop.half_extents_.cast<float>(),
-            *default_program_);
-  }
+  draw(sim, *default_program_);
 
   glfwSwapBuffers(window_);
   glfwPollEvents();
@@ -296,6 +276,29 @@ void GLFWRenderer::render(const Simulation &sim) {
 
 bool GLFWRenderer::shouldClose() const {
   return glfwWindowShouldClose(window_);
+}
+
+void GLFWRenderer::draw(const Simulation &sim, const Program &program) const {
+  program.setObjectColor({0.45f, 0.5f, 0.55f});  // Slate gray
+  for (Index robot_idx = 0; robot_idx < sim.getRobotCount(); ++robot_idx) {
+    const Robot &robot = *sim.getRobot(robot_idx);
+    for (Index link_idx = 0; link_idx < robot.links_.size(); ++link_idx) {
+      const Link &link = robot.links_[link_idx];
+      Matrix4 link_transform;
+      sim.getLinkTransform(robot_idx, link_idx, link_transform);
+      drawCapsule(link_transform.cast<float>(), link.length_ / 2,
+                  robot.link_radius_, program);
+    }
+  }
+
+  program.setObjectColor({0.8f, 0.7f, 0.6f});  // Tan
+  for (Index prop_idx = 0; prop_idx < sim.getPropCount(); ++prop_idx) {
+    const Prop &prop = *sim.getProp(prop_idx);
+    Matrix4 prop_transform;
+    sim.getPropTransform(prop_idx, prop_transform);
+    drawBox(prop_transform.cast<float>(), prop.half_extents_.cast<float>(),
+            program);
+  }
 }
 
 void GLFWRenderer::drawBox(const Eigen::Matrix4f &transform,

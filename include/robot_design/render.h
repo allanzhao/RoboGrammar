@@ -119,6 +119,7 @@ public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
 private:
+  void draw(const Simulation &sim, const Program &program) const;
   void drawBox(const Eigen::Matrix4f &transform,
                const Eigen::Vector3f &half_extents,
                const Program &program) const;
