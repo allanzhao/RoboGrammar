@@ -17,8 +17,7 @@ struct VertexAttribute {
 extern const VertexAttribute ATTRIB_POSITION;
 extern const VertexAttribute ATTRIB_NORMAL;
 
-class Program {
-public:
+struct Program {
   Program(const std::string &vertex_shader_source,
           const std::string &fragment_shader_source);
   virtual ~Program();
@@ -30,7 +29,6 @@ public:
                             const Eigen::Matrix4f &view_matrix) const;
   void setObjectColor(const Eigen::Vector3f &object_color) const;
 
-private:
   GLuint program_;
   GLuint vertex_shader_;
   GLuint fragment_shader_;
@@ -41,8 +39,7 @@ private:
   GLint object_color_index_;
 };
 
-class Mesh {
-public:
+struct Mesh {
   Mesh(const std::vector<GLfloat> &positions,
        const std::vector<GLfloat> &normals,
        const std::vector<GLint> &indices);
@@ -52,7 +49,6 @@ public:
   void bind() const;
   void draw() const;
 
-private:
   GLuint vertex_array_;
   GLuint position_buffer_;
   GLuint normal_buffer_;
@@ -60,8 +56,7 @@ private:
   GLsizei index_count_;
 };
 
-class Texture2D {
-public:
+struct Texture2D {
   Texture2D(GLenum target, GLint level, GLint internal_format, GLsizei width,
             GLsizei height, GLenum format, GLenum type,
             const GLvoid *data = NULL);
@@ -70,20 +65,17 @@ public:
   Texture2D &operator=(const Texture2D &other) = delete;
   void bind() const;
 
-private:
   GLenum target_;
   GLuint texture_;
 };
 
-class Framebuffer {
-public:
+struct Framebuffer {
   Framebuffer();
   virtual ~Framebuffer();
   Framebuffer(const Framebuffer &other) = delete;
   Framebuffer &operator=(const Framebuffer &other) = delete;
   void bind() const;
 
-private:
   GLuint framebuffer_;
 };
 
