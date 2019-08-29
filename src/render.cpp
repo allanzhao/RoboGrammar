@@ -306,14 +306,15 @@ void GLFWRenderer::update(double dt) {
 }
 
 void GLFWRenderer::render(const Simulation &sim) {
-  camera_controller_.getViewMatrix(view_matrix_);
 
   glViewport(0, 0, framebuffer_width_, framebuffer_height_);
   glClearColor(0.4f, 0.6f, 0.8f, 1.0f);  // Cornflower blue
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   default_program_->use();
   default_program_->setProjectionMatrix(proj_matrix_);
-  draw(sim, *default_program_);
+  Eigen::Matrix4f camera_view_matrix;
+  camera_controller_.getViewMatrix(camera_view_matrix);
+  draw(sim, *default_program_, camera_view_matrix);
 
   glfwSwapBuffers(window_);
   glfwPollEvents();
@@ -323,7 +324,8 @@ bool GLFWRenderer::shouldClose() const {
   return glfwWindowShouldClose(window_);
 }
 
-void GLFWRenderer::draw(const Simulation &sim, const Program &program) const {
+void GLFWRenderer::draw(const Simulation &sim, const Program &program,
+                        const Eigen::Matrix4f &view_matrix) const {
   program.setObjectColor({0.45f, 0.5f, 0.55f});  // Slate gray
   for (Index robot_idx = 0; robot_idx < sim.getRobotCount(); ++robot_idx) {
     const Robot &robot = *sim.getRobot(robot_idx);
@@ -332,7 +334,7 @@ void GLFWRenderer::draw(const Simulation &sim, const Program &program) const {
       Matrix4 link_transform;
       sim.getLinkTransform(robot_idx, link_idx, link_transform);
       drawCapsule(link_transform.cast<float>(), link.length_ / 2,
-                  robot.link_radius_, program);
+                  robot.link_radius_, program, view_matrix);
     }
   }
 
@@ -342,41 +344,43 @@ void GLFWRenderer::draw(const Simulation &sim, const Program &program) const {
     Matrix4 prop_transform;
     sim.getPropTransform(prop_idx, prop_transform);
     drawBox(prop_transform.cast<float>(), prop.half_extents_.cast<float>(),
-            program);
+            program, view_matrix);
   }
 }
 
 void GLFWRenderer::drawBox(const Eigen::Matrix4f &transform,
                            const Eigen::Vector3f &half_extents,
-                           const Program &program) const {
+                           const Program &program,
+                           const Eigen::Matrix4f &view_matrix) const {
   Eigen::Affine3f model_transform = Eigen::Affine3f(transform) *
       Eigen::DiagonalMatrix<float, 3>(half_extents);
   box_mesh_->bind();
-  program.setModelViewMatrices(model_transform.matrix(), view_matrix_);
+  program.setModelViewMatrices(model_transform.matrix(), view_matrix);
   box_mesh_->draw();
 }
 
 void GLFWRenderer::drawCapsule(const Eigen::Matrix4f &transform,
                                float half_length, float radius,
-                               const Program &program) const {
+                               const Program &program,
+                               const Eigen::Matrix4f &view_matrix) const {
   Eigen::Affine3f right_end_model_transform = Eigen::Affine3f(transform) *
       Eigen::Translation3f(half_length, 0, 0) *
       Eigen::DiagonalMatrix<float, 3>(radius, radius, radius);
   capsule_end_mesh_->bind();
-  program.setModelViewMatrices(right_end_model_transform.matrix(), view_matrix_);
+  program.setModelViewMatrices(right_end_model_transform.matrix(), view_matrix);
   capsule_end_mesh_->draw();
 
   Eigen::Affine3f left_end_model_transform = Eigen::Affine3f(transform) *
       Eigen::Translation3f(-half_length, 0, 0) *
       Eigen::DiagonalMatrix<float, 3>(-radius, radius, -radius);
   capsule_end_mesh_->bind();
-  program.setModelViewMatrices(left_end_model_transform.matrix(), view_matrix_);
+  program.setModelViewMatrices(left_end_model_transform.matrix(), view_matrix);
   capsule_end_mesh_->draw();
 
   Eigen::Affine3f middle_model_transform = Eigen::Affine3f(transform) *
       Eigen::DiagonalMatrix<float, 3>(half_length, radius, radius);
   capsule_middle_mesh_->bind();
-  program.setModelViewMatrices(middle_model_transform.matrix(), view_matrix_);
+  program.setModelViewMatrices(middle_model_transform.matrix(), view_matrix);
   capsule_middle_mesh_->draw();
 }
 

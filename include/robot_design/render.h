@@ -138,12 +138,15 @@ public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
 private:
-  void draw(const Simulation &sim, const Program &program) const;
+  void draw(const Simulation &sim, const Program &program,
+            const Eigen::Matrix4f &view_matrix) const;
   void drawBox(const Eigen::Matrix4f &transform,
                const Eigen::Vector3f &half_extents,
-               const Program &program) const;
+               const Program &program,
+               const Eigen::Matrix4f &view_matrix) const;
   void drawCapsule(const Eigen::Matrix4f &transform, float half_length,
-                   float radius, const Program &program) const;
+                   float radius, const Program &program,
+                   const Eigen::Matrix4f &view_matrix) const;
   void updateProjectionMatrix();
   static std::string loadString(const std::string &path);
   GLFWwindow *window_;
@@ -154,7 +157,6 @@ private:
   int framebuffer_height_;
   FPSCameraController camera_controller_;
   Eigen::Matrix4f proj_matrix_;
-  Eigen::Matrix4f view_matrix_;
   std::shared_ptr<Program> default_program_;
   std::shared_ptr<Mesh> box_mesh_;
   std::shared_ptr<Mesh> capsule_end_mesh_;
