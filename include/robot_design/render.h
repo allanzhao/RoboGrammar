@@ -150,8 +150,8 @@ private:
   float z_near_;
   float z_far_;
   float fov_;
-  int window_width_;
-  int window_height_;
+  int framebuffer_width_;
+  int framebuffer_height_;
   FPSCameraController camera_controller_;
   Eigen::Matrix4f proj_matrix_;
   Eigen::Matrix4f view_matrix_;

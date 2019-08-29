@@ -278,7 +278,6 @@ GLFWRenderer::GLFWRenderer() : z_near_(0.1f), z_far_(100.0f), fov_(M_PI / 3),
   // Set up callbacks
   // Allow accessing "this" from static callbacks
   glfwSetWindowUserPointer(window_, this);
-  glfwSetWindowSizeCallback(window_, windowSizeCallback);
   glfwSetFramebufferSizeCallback(window_, framebufferSizeCallback);
   glfwSetKeyCallback(window_, keyCallback);
   glfwSetMouseButtonCallback(window_, mouseButtonCallback);
@@ -286,7 +285,7 @@ GLFWRenderer::GLFWRenderer() : z_near_(0.1f), z_far_(100.0f), fov_(M_PI / 3),
   glfwSetScrollCallback(window_, scrollCallback);
 
   // Initialize projection matrix
-  glfwGetWindowSize(window_, &window_width_, &window_height_);
+  glfwGetFramebufferSize(window_, &framebuffer_width_, &framebuffer_height_);
   updateProjectionMatrix();
 
   // Enable depth test
@@ -309,9 +308,9 @@ void GLFWRenderer::update(double dt) {
 void GLFWRenderer::render(const Simulation &sim) {
   camera_controller_.getViewMatrix(view_matrix_);
 
+  glViewport(0, 0, framebuffer_width_, framebuffer_height_);
   glClearColor(0.4f, 0.6f, 0.8f, 1.0f);  // Cornflower blue
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
   default_program_->use();
   default_program_->setProjectionMatrix(proj_matrix_);
   draw(sim, *default_program_);
@@ -381,15 +380,11 @@ void GLFWRenderer::drawCapsule(const Eigen::Matrix4f &transform,
   capsule_middle_mesh_->draw();
 }
 
-void GLFWRenderer::windowSizeCallback(GLFWwindow *window, int width, int height) {
-  GLFWRenderer *renderer = static_cast<GLFWRenderer*>(glfwGetWindowUserPointer(window));
-  renderer->window_width_ = width;
-  renderer->window_height_ = height;
-  renderer->updateProjectionMatrix();
-}
-
 void GLFWRenderer::framebufferSizeCallback(GLFWwindow *window, int width, int height) {
-  glViewport(0, 0, width, height);
+  GLFWRenderer *renderer = static_cast<GLFWRenderer*>(glfwGetWindowUserPointer(window));
+  renderer->framebuffer_width_ = width;
+  renderer->framebuffer_height_ = height;
+  renderer->updateProjectionMatrix();
 }
 
 void GLFWRenderer::keyCallback(GLFWwindow *window, int key, int scancode,
@@ -420,7 +415,7 @@ void GLFWRenderer::scrollCallback(GLFWwindow *window, double xoffset,
 }
 
 void GLFWRenderer::updateProjectionMatrix() {
-  float aspect_ratio = static_cast<float>(window_width_) / window_height_;
+  float aspect_ratio = static_cast<float>(framebuffer_width_) / framebuffer_height_;
   makePerspectiveProjection(aspect_ratio, z_near_, z_far_, fov_, proj_matrix_);
 }
 
