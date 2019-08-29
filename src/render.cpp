@@ -29,22 +29,27 @@ Program::Program(const std::string &vertex_shader_source,
   }
 
   // Create fragment shader
-  fragment_shader_ = glCreateShader(GL_FRAGMENT_SHADER);
-  const GLchar *fragment_shader_source_ptr = fragment_shader_source.c_str();
-  glShaderSource(fragment_shader_, 1, &fragment_shader_source_ptr, NULL);
-  glCompileShader(fragment_shader_);
-  // Check for compile errors
-  glGetShaderiv(fragment_shader_, GL_COMPILE_STATUS, &status);
-  if (!status) {
-    char buffer[512];
-    glGetShaderInfoLog(fragment_shader_, sizeof(buffer), NULL, buffer);
-    throw std::runtime_error(std::string("Failed to compile fragment shader: ") + buffer);
+  // Fragment shader is optional (source may be an empty string)
+  if (!fragment_shader_source.empty()) {
+    fragment_shader_ = glCreateShader(GL_FRAGMENT_SHADER);
+    const GLchar *fragment_shader_source_ptr = fragment_shader_source.c_str();
+    glShaderSource(fragment_shader_, 1, &fragment_shader_source_ptr, NULL);
+    glCompileShader(fragment_shader_);
+    // Check for compile errors
+    glGetShaderiv(fragment_shader_, GL_COMPILE_STATUS, &status);
+    if (!status) {
+      char buffer[512];
+      glGetShaderInfoLog(fragment_shader_, sizeof(buffer), NULL, buffer);
+      throw std::runtime_error(std::string("Failed to compile fragment shader: ") + buffer);
+    }
   }
 
   // Create program
   program_ = glCreateProgram();
   glAttachShader(program_, vertex_shader_);
-  glAttachShader(program_, fragment_shader_);
+  if (fragment_shader_) {
+    glAttachShader(program_, fragment_shader_);
+  }
 
   // Define fixed attribute indices
   glBindAttribLocation(program_, ATTRIB_POSITION.index_, ATTRIB_POSITION.name_.c_str());
