@@ -60,6 +60,33 @@ private:
   GLsizei index_count_;
 };
 
+class Texture2D {
+public:
+  Texture2D(GLenum target, GLint level, GLint internal_format, GLsizei width,
+            GLsizei height, GLenum format, GLenum type,
+            const GLvoid *data = NULL);
+  virtual ~Texture2D();
+  Texture2D(const Texture2D &other) = delete;
+  Texture2D &operator=(const Texture2D &other) = delete;
+  void bind() const;
+
+private:
+  GLenum target_;
+  GLuint texture_;
+};
+
+class Framebuffer {
+public:
+  Framebuffer();
+  virtual ~Framebuffer();
+  Framebuffer(const Framebuffer &other) = delete;
+  Framebuffer &operator=(const Framebuffer &other) = delete;
+  void bind() const;
+
+private:
+  GLuint framebuffer_;
+};
+
 class FPSCameraController {
 public:
   FPSCameraController(

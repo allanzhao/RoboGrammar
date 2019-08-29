@@ -136,6 +136,35 @@ void Mesh::draw() const {
   glDrawElements(GL_TRIANGLES, index_count_, GL_UNSIGNED_INT, 0);
 }
 
+Texture2D::Texture2D(GLenum target, GLint level, GLint internal_format,
+                     GLsizei width, GLsizei height, GLenum format, GLenum type,
+                     const GLvoid *data) : target_(target), texture_(0) {
+  glGenTextures(1, &texture_);
+  glBindTexture(target, texture_);
+  glTexImage2D(target, level, internal_format, width, height, 0, format,
+               type, data);
+}
+
+Texture2D::~Texture2D() {
+  glDeleteTextures(1, &texture_);
+}
+
+void Texture2D::bind() const {
+  glBindTexture(target_, texture_);
+}
+
+Framebuffer::Framebuffer() : framebuffer_(0) {
+  glGenFramebuffers(1, &framebuffer_);
+}
+
+Framebuffer::~Framebuffer() {
+  glDeleteFramebuffers(1, &framebuffer_);
+}
+
+void Framebuffer::bind() const {
+  glBindFramebuffer(GL_FRAMEBUFFER, framebuffer_);
+}
+
 const std::array<int, FPSCameraController::ACTION_COUNT> FPSCameraController::DEFAULT_KEY_BINDINGS = {
     GLFW_KEY_W, GLFW_KEY_A, GLFW_KEY_S, GLFW_KEY_D, GLFW_KEY_Q, GLFW_KEY_E,
     GLFW_MOUSE_BUTTON_LEFT};
