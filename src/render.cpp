@@ -153,8 +153,25 @@ void Texture2D::bind() const {
   glBindTexture(target_, texture_);
 }
 
-Framebuffer::Framebuffer() : framebuffer_(0) {
+Framebuffer::Framebuffer(const Texture2D *color_texture,
+                         const Texture2D *depth_texture) : framebuffer_(0) {
   glGenFramebuffers(1, &framebuffer_);
+  glBindFramebuffer(GL_FRAMEBUFFER, framebuffer_);
+  if (color_texture) {
+    glFramebufferTexture2D(
+        GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, color_texture->target_,
+        color_texture->texture_, 0);
+  } else {
+    // Necessary to make framebuffer complete without a color attachment
+    glDrawBuffer(GL_NONE);
+    glReadBuffer(GL_NONE);
+  }
+  if (depth_texture) {
+    glFramebufferTexture2D(
+        GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, depth_texture->target_,
+        depth_texture->texture_, 0);
+  }
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 Framebuffer::~Framebuffer() {

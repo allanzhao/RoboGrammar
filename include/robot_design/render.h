@@ -70,7 +70,7 @@ struct Texture2D {
 };
 
 struct Framebuffer {
-  Framebuffer();
+  Framebuffer(const Texture2D *color_texture, const Texture2D *depth_texture);
   virtual ~Framebuffer();
   Framebuffer(const Framebuffer &other) = delete;
   Framebuffer &operator=(const Framebuffer &other) = delete;
