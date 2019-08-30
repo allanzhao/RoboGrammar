@@ -129,13 +129,11 @@ private:
 
 struct DirectionalLight {
   DirectionalLight(
-      const Eigen::Vector3f &color, const Eigen::Vector3f &pos,
-      const Eigen::Vector3f &dir, const Eigen::Vector3f &up, GLsizei sm_width,
-      GLsizei sm_height);
+      const Eigen::Vector3f &color, const Eigen::Vector3f &dir,
+      const Eigen::Vector3f &up, GLsizei sm_width, GLsizei sm_height);
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
   Eigen::Vector3f color_;
-  Eigen::Vector3f pos_;
   Eigen::Vector3f dir_;
   GLsizei sm_width_;
   GLsizei sm_height_;

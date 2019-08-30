@@ -271,10 +271,9 @@ void FPSCameraController::getViewMatrix(Eigen::Matrix4f &view_matrix) const {
 }
 
 DirectionalLight::DirectionalLight(
-    const Eigen::Vector3f &color, const Eigen::Vector3f &pos,
-    const Eigen::Vector3f &dir, const Eigen::Vector3f &up, GLsizei sm_width,
-    GLsizei sm_height)
-    : color_(color), pos_(pos), dir_(dir.normalized()), sm_width_(sm_width),
+    const Eigen::Vector3f &color, const Eigen::Vector3f &dir,
+    const Eigen::Vector3f &up, GLsizei sm_width, GLsizei sm_height)
+    : color_(color), dir_(dir.normalized()), sm_width_(sm_width),
       sm_height_(sm_height) {
   makeOrthographicProjection(/*aspect_ratio=*/1.0f, /*z_near=*/0.1f,
                              /*z_far=*/100.0f, /*matrix=*/proj_matrix_);
@@ -285,8 +284,7 @@ DirectionalLight::DirectionalLight(
                          norm_up,
                          norm_dir;
   Eigen::Affine3f view_transform(
-      inv_view_rot_matrix.transpose() *
-      Eigen::Translation3f(-pos));
+      inv_view_rot_matrix.transpose());
   view_matrix_ = view_transform.matrix();
 
   sm_depth_texture_ = std::make_shared<Texture2D>(
@@ -335,7 +333,6 @@ GLFWRenderer::GLFWRenderer() : z_near_(0.1f), z_far_(100.0f), fov_(M_PI / 3),
   // Create directional light
   dir_light_ = std::make_shared<DirectionalLight>(
       /*color=*/Eigen::Vector3f{1.0f, 1.0f, 1.0f},
-      /*pos=*/Eigen::Vector3f{0.0f, 50.0f, 0.0f},
       /*dir=*/Eigen::Vector3f{0.0f, 1.0f, 0.0f},
       /*up=*/Eigen::Vector3f{0.0f, 0.0f, -1.0f},
       /*sm_width=*/1024, /*sm_height=*/1024);
