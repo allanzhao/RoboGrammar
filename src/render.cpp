@@ -63,6 +63,11 @@ Program::Program(const std::string &vertex_shader_source,
   model_view_matrix_index_ = glGetUniformLocation(program_, "model_view_matrix");
   normal_matrix_index_ = glGetUniformLocation(program_, "normal_matrix");
   object_color_index_ = glGetUniformLocation(program_, "object_color");
+  world_light_dir_index_ = glGetUniformLocation(program_, "world_light_dir");
+  light_proj_matrix_index_ = glGetUniformLocation(program_, "light_proj_matrix");
+  light_model_view_matrix_index_ = glGetUniformLocation(program_, "light_model_view_matrix");
+  light_color_index_ = glGetUniformLocation(program_, "light_color");
+  shadow_map_index_ = glGetUniformLocation(program_, "shadow_map");
 }
 
 Program::~Program() {
@@ -81,17 +86,29 @@ void Program::setProjectionMatrix(const Eigen::Matrix4f &proj_matrix) const {
   glUniformMatrix4fv(proj_matrix_index_, 1, GL_FALSE, proj_matrix.data());
 }
 
-void Program::setModelViewMatrices(const Eigen::Matrix4f &model_matrix,
-                                   const Eigen::Matrix4f &view_matrix) const {
+void Program::setModelViewMatrices(
+    const Eigen::Matrix4f &model_matrix, const Eigen::Matrix4f &view_matrix,
+    const Eigen::Matrix4f &light_view_matrix) const {
   Eigen::Matrix4f model_view_matrix = view_matrix * model_matrix;
   Eigen::Matrix3f normal_matrix = model_view_matrix.topLeftCorner<3, 3>().inverse().transpose();
+  Eigen::Matrix4f light_model_view_matrix = light_view_matrix * model_matrix;
   glUniformMatrix4fv(view_matrix_index_, 1, GL_FALSE, view_matrix.data());
   glUniformMatrix4fv(model_view_matrix_index_, 1, GL_FALSE, model_view_matrix.data());
   glUniformMatrix3fv(normal_matrix_index_, 1, GL_FALSE, normal_matrix.data());
+  glUniformMatrix4fv(light_model_view_matrix_index_, 1, GL_FALSE, light_model_view_matrix.data());
 }
 
 void Program::setObjectColor(const Eigen::Vector3f &object_color) const {
   glUniform3fv(object_color_index_, 1, object_color.data());
+}
+
+void Program::setDirectionalLight(const DirectionalLight &dir_light) const {
+  glUniform3fv(world_light_dir_index_, 1, dir_light.dir_.data());
+  glUniformMatrix4fv(light_proj_matrix_index_, 1, GL_FALSE, dir_light.proj_matrix_.data());
+  glUniform3fv(light_color_index_, 1, dir_light.color_.data());
+  glUniform1i(shadow_map_index_, 0);  // Use texture unit 0
+  glActiveTexture(GL_TEXTURE0);
+  dir_light.sm_depth_texture_->bind();
 }
 
 Mesh::Mesh(const std::vector<GLfloat> &positions,
@@ -148,6 +165,8 @@ Texture2D::Texture2D(GLenum target, GLint level, GLint internal_format,
   glBindTexture(target, texture_);
   glTexImage2D(target, level, internal_format, width, height, 0, format,
                type, data);
+  glTexParameteri(target, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(target, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 }
 
 Texture2D::~Texture2D() {
@@ -249,6 +268,32 @@ void FPSCameraController::getViewMatrix(Eigen::Matrix4f &view_matrix) const {
   view_matrix = view_transform.matrix();
 }
 
+DirectionalLight::DirectionalLight(
+    const Eigen::Vector3f &color, const Eigen::Vector3f &pos,
+    const Eigen::Vector3f &dir, const Eigen::Vector3f &up, GLsizei sm_width,
+    GLsizei sm_height)
+    : color_(color), pos_(pos), dir_(dir.normalized()), sm_width_(sm_width),
+      sm_height_(sm_height) {
+  makeOrthographicProjection(/*aspect_ratio=*/1.0f, /*z_near=*/0.1f,
+                             /*z_far=*/100.0f, /*matrix=*/proj_matrix_);
+  Eigen::Vector3f norm_dir = dir_;
+  Eigen::Vector3f norm_up = (up - norm_dir * up.dot(norm_dir)).normalized();
+  Eigen::Matrix3f inv_view_rot_matrix;
+  inv_view_rot_matrix << norm_up.cross(norm_dir),
+                         norm_up,
+                         norm_dir;
+  Eigen::Affine3f view_transform(
+      inv_view_rot_matrix.transpose() *
+      Eigen::Translation3f(-pos));
+  view_matrix_ = view_transform.matrix();
+
+  sm_depth_texture_ = std::make_shared<Texture2D>(
+      GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, sm_width, sm_height,
+      GL_DEPTH_COMPONENT, GL_FLOAT);
+  sm_framebuffer_ = std::make_shared<Framebuffer>(
+      nullptr, sm_depth_texture_.get());
+}
+
 GLFWRenderer::GLFWRenderer() : z_near_(0.1f), z_far_(100.0f), fov_(M_PI / 3),
                                camera_controller_() {
   if (!glfwInit()) {
@@ -275,10 +320,23 @@ GLFWRenderer::GLFWRenderer() : z_near_(0.1f), z_far_(100.0f), fov_(M_PI / 3),
   std::string default_fs_source = loadString("data/default.frag.glsl");
   default_program_ = std::make_shared<Program>(default_vs_source, default_fs_source);
 
+  // Create depth shader program
+  std::string depth_vs_source = loadString("data/depth.vert.glsl");
+  std::string depth_fs_source;  // Empty string (no fragment shader needed)
+  depth_program_ = std::make_shared<Program>(depth_vs_source, depth_fs_source);
+
   // Create meshes
   box_mesh_ = makeBoxMesh();
   capsule_end_mesh_ = makeCapsuleEndMesh(/*n_segments=*/32, /*n_rings=*/8);
   capsule_middle_mesh_ = makeCapsuleMiddleMesh(/*n_segments=*/32);
+
+  // Create directional light
+  dir_light_ = std::make_shared<DirectionalLight>(
+      /*color=*/Eigen::Vector3f{1.0f, 1.0f, 1.0f},
+      /*pos=*/Eigen::Vector3f{0.0f, 50.0f, 0.0f},
+      /*dir=*/Eigen::Vector3f{0.0f, 1.0f, 0.0f},
+      /*up=*/Eigen::Vector3f{0.0f, 0.0f, -1.0f},
+      /*sm_width=*/1024, /*sm_height=*/1024);
 
   // Set up callbacks
   // Allow accessing "this" from static callbacks
@@ -311,12 +369,22 @@ void GLFWRenderer::update(double dt) {
 }
 
 void GLFWRenderer::render(const Simulation &sim) {
+  // Render shadow map
+  dir_light_->sm_framebuffer_->bind();
+  glViewport(0, 0, dir_light_->sm_width_, dir_light_->sm_height_);
+  glClear(GL_DEPTH_BUFFER_BIT);
+  depth_program_->use();
+  depth_program_->setProjectionMatrix(dir_light_->proj_matrix_);
+  draw(sim, *depth_program_, dir_light_->view_matrix_);
 
+  // Render main window
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
   glViewport(0, 0, framebuffer_width_, framebuffer_height_);
   glClearColor(0.4f, 0.6f, 0.8f, 1.0f);  // Cornflower blue
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   default_program_->use();
   default_program_->setProjectionMatrix(proj_matrix_);
+  default_program_->setDirectionalLight(*dir_light_);
   Eigen::Matrix4f camera_view_matrix;
   camera_controller_.getViewMatrix(camera_view_matrix);
   draw(sim, *default_program_, camera_view_matrix);
@@ -360,7 +428,8 @@ void GLFWRenderer::drawBox(const Eigen::Matrix4f &transform,
   Eigen::Affine3f model_transform = Eigen::Affine3f(transform) *
       Eigen::DiagonalMatrix<float, 3>(half_extents);
   box_mesh_->bind();
-  program.setModelViewMatrices(model_transform.matrix(), view_matrix);
+  program.setModelViewMatrices(model_transform.matrix(), view_matrix,
+                               dir_light_->view_matrix_);
   box_mesh_->draw();
 }
 
@@ -372,20 +441,23 @@ void GLFWRenderer::drawCapsule(const Eigen::Matrix4f &transform,
       Eigen::Translation3f(half_length, 0, 0) *
       Eigen::DiagonalMatrix<float, 3>(radius, radius, radius);
   capsule_end_mesh_->bind();
-  program.setModelViewMatrices(right_end_model_transform.matrix(), view_matrix);
+  program.setModelViewMatrices(right_end_model_transform.matrix(), view_matrix,
+                               dir_light_->view_matrix_);
   capsule_end_mesh_->draw();
 
   Eigen::Affine3f left_end_model_transform = Eigen::Affine3f(transform) *
       Eigen::Translation3f(-half_length, 0, 0) *
       Eigen::DiagonalMatrix<float, 3>(-radius, radius, -radius);
   capsule_end_mesh_->bind();
-  program.setModelViewMatrices(left_end_model_transform.matrix(), view_matrix);
+  program.setModelViewMatrices(left_end_model_transform.matrix(), view_matrix,
+                               dir_light_->view_matrix_);
   capsule_end_mesh_->draw();
 
   Eigen::Affine3f middle_model_transform = Eigen::Affine3f(transform) *
       Eigen::DiagonalMatrix<float, 3>(half_length, radius, radius);
   capsule_middle_mesh_->bind();
-  program.setModelViewMatrices(middle_model_transform.matrix(), view_matrix);
+  program.setModelViewMatrices(middle_model_transform.matrix(), view_matrix,
+                               dir_light_->view_matrix_);
   capsule_middle_mesh_->draw();
 }
 
@@ -433,6 +505,15 @@ std::string GLFWRenderer::loadString(const std::string &path) {
   std::stringstream ss;
   ss << ifs.rdbuf();
   return ss.str();
+}
+
+void makeOrthographicProjection(float aspect_ratio, float z_near, float z_far,
+                                Eigen::Matrix4f &matrix) {
+  float z_range = z_far - z_near;
+  matrix << 1 / aspect_ratio, 0, 0, 0,
+            0, 1, 0, 0,
+            0, 0, -2 / z_range, -(z_far + z_near) / z_range,
+            0, 0, 0, 1;
 }
 
 void makePerspectiveProjection(float aspect_ratio, float z_near, float z_far,

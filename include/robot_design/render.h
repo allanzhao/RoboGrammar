@@ -17,6 +17,8 @@ struct VertexAttribute {
 extern const VertexAttribute ATTRIB_POSITION;
 extern const VertexAttribute ATTRIB_NORMAL;
 
+struct DirectionalLight;
+
 struct Program {
   Program(const std::string &vertex_shader_source,
           const std::string &fragment_shader_source);
@@ -26,8 +28,10 @@ struct Program {
   void use() const;
   void setProjectionMatrix(const Eigen::Matrix4f &proj_matrix) const;
   void setModelViewMatrices(const Eigen::Matrix4f &model_matrix,
-                            const Eigen::Matrix4f &view_matrix) const;
+                            const Eigen::Matrix4f &view_matrix,
+                            const Eigen::Matrix4f &light_view_matrix) const;
   void setObjectColor(const Eigen::Vector3f &object_color) const;
+  void setDirectionalLight(const DirectionalLight &dir_light) const;
 
   GLuint program_;
   GLuint vertex_shader_;
@@ -37,6 +41,11 @@ struct Program {
   GLint model_view_matrix_index_;
   GLint normal_matrix_index_;
   GLint object_color_index_;
+  GLint world_light_dir_index_;
+  GLint light_proj_matrix_index_;
+  GLint light_model_view_matrix_index_;
+  GLint light_color_index_;
+  GLint shadow_map_index_;
 };
 
 struct Mesh {
@@ -118,6 +127,24 @@ private:
   std::array<int, ACTION_COUNT> key_bindings_;
 };
 
+struct DirectionalLight {
+  DirectionalLight(
+      const Eigen::Vector3f &color, const Eigen::Vector3f &pos,
+      const Eigen::Vector3f &dir, const Eigen::Vector3f &up, GLsizei sm_width,
+      GLsizei sm_height);
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+
+  Eigen::Vector3f color_;
+  Eigen::Vector3f pos_;
+  Eigen::Vector3f dir_;
+  GLsizei sm_width_;
+  GLsizei sm_height_;
+  Eigen::Matrix4f proj_matrix_;
+  Eigen::Matrix4f view_matrix_;
+  std::shared_ptr<Texture2D> sm_depth_texture_;
+  std::shared_ptr<Framebuffer> sm_framebuffer_;
+};
+
 class GLFWRenderer {
 public:
   GLFWRenderer();
@@ -158,10 +185,15 @@ private:
   FPSCameraController camera_controller_;
   Eigen::Matrix4f proj_matrix_;
   std::shared_ptr<Program> default_program_;
+  std::shared_ptr<Program> depth_program_;
   std::shared_ptr<Mesh> box_mesh_;
   std::shared_ptr<Mesh> capsule_end_mesh_;
   std::shared_ptr<Mesh> capsule_middle_mesh_;
+  std::shared_ptr<DirectionalLight> dir_light_;
 };
+
+void makeOrthographicProjection(float aspect_ratio, float z_near, float z_far,
+                                Eigen::Matrix4f &matrix);
 
 void makePerspectiveProjection(float aspect_ratio, float z_near, float z_far,
                                float fov, Eigen::Matrix4f &matrix);
