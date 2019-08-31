@@ -78,39 +78,6 @@ Program::~Program() {
   glDeleteShader(vertex_shader_);
 }
 
-void Program::use() const {
-  glUseProgram(program_);
-}
-
-void Program::setProjectionMatrix(const Eigen::Matrix4f &proj_matrix) const {
-  glUniformMatrix4fv(proj_matrix_index_, 1, GL_FALSE, proj_matrix.data());
-}
-
-void Program::setModelViewMatrices(
-    const Eigen::Matrix4f &model_matrix, const Eigen::Matrix4f &view_matrix,
-    const Eigen::Matrix4f &light_view_matrix) const {
-  Eigen::Matrix4f model_view_matrix = view_matrix * model_matrix;
-  Eigen::Matrix3f normal_matrix = model_view_matrix.topLeftCorner<3, 3>().inverse().transpose();
-  Eigen::Matrix4f light_model_view_matrix = light_view_matrix * model_matrix;
-  glUniformMatrix4fv(view_matrix_index_, 1, GL_FALSE, view_matrix.data());
-  glUniformMatrix4fv(model_view_matrix_index_, 1, GL_FALSE, model_view_matrix.data());
-  glUniformMatrix3fv(normal_matrix_index_, 1, GL_FALSE, normal_matrix.data());
-  glUniformMatrix4fv(light_model_view_matrix_index_, 1, GL_FALSE, light_model_view_matrix.data());
-}
-
-void Program::setObjectColor(const Eigen::Vector3f &object_color) const {
-  glUniform3fv(object_color_index_, 1, object_color.data());
-}
-
-void Program::setDirectionalLight(const DirectionalLight &dir_light) const {
-  glUniform3fv(world_light_dir_index_, 1, dir_light.dir_.data());
-  glUniformMatrix4fv(light_proj_matrix_index_, 1, GL_FALSE, dir_light.proj_matrix_.data());
-  glUniform3fv(light_color_index_, 1, dir_light.color_.data());
-  glUniform1i(shadow_map_index_, 0);  // Use texture unit 0
-  glActiveTexture(GL_TEXTURE0);
-  dir_light.sm_depth_texture_->bind();
-}
-
 Mesh::Mesh(const std::vector<GLfloat> &positions,
            const std::vector<GLfloat> &normals,
            const std::vector<GLint> &indices)
@@ -150,14 +117,6 @@ Mesh::~Mesh() {
   glDeleteVertexArrays(1, &vertex_array_);
 }
 
-void Mesh::bind() const {
-  glBindVertexArray(vertex_array_);
-}
-
-void Mesh::draw() const {
-  glDrawElements(GL_TRIANGLES, index_count_, GL_UNSIGNED_INT, 0);
-}
-
 Texture2D::Texture2D(GLenum target, GLint level, GLint internal_format,
                      GLsizei width, GLsizei height, GLenum format, GLenum type,
                      const GLvoid *data) : target_(target), texture_(0) {
@@ -173,10 +132,6 @@ Texture2D::Texture2D(GLenum target, GLint level, GLint internal_format,
 
 Texture2D::~Texture2D() {
   glDeleteTextures(1, &texture_);
-}
-
-void Texture2D::bind() const {
-  glBindTexture(target_, texture_);
 }
 
 Framebuffer::Framebuffer(const Texture2D *color_texture,
@@ -202,10 +157,6 @@ Framebuffer::Framebuffer(const Texture2D *color_texture,
 
 Framebuffer::~Framebuffer() {
   glDeleteFramebuffers(1, &framebuffer_);
-}
-
-void Framebuffer::bind() const {
-  glBindFramebuffer(GL_FRAMEBUFFER, framebuffer_);
 }
 
 const std::array<int, FPSCameraController::ACTION_COUNT> FPSCameraController::DEFAULT_KEY_BINDINGS = {
@@ -283,15 +234,56 @@ DirectionalLight::DirectionalLight(
   inv_view_rot_matrix << norm_up.cross(norm_dir),
                          norm_up,
                          norm_dir;
-  Eigen::Affine3f view_transform(
-      inv_view_rot_matrix.transpose());
-  view_matrix_ = view_transform.matrix();
+  view_rot_matrix_ = inv_view_rot_matrix.transpose();
 
   sm_depth_texture_ = std::make_shared<Texture2D>(
       GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, sm_width, sm_height,
       GL_DEPTH_COMPONENT, GL_FLOAT);
   sm_framebuffer_ = std::make_shared<Framebuffer>(
       nullptr, sm_depth_texture_.get());
+}
+
+void DirectionalLight::updateViewMatrix(
+    const Eigen::Matrix4f &camera_proj_matrix,
+    const Eigen::Matrix4f &camera_view_matrix) {
+  //Eigen::Matrix4f inv_camera_vp_matrix = (
+  //    camera_view_matrix * camera_proj_matrix).inverse();
+  view_matrix_ = Eigen::Affine3f(view_rot_matrix_).matrix();
+}
+
+void ProgramState::updateUniforms(const Program &program) {
+  if (proj_matrix_.dirty_) { program.setProjectionMatrix(proj_matrix_.value_); }
+  if (view_matrix_.dirty_) { program.setViewMatrix(view_matrix_.value_); }
+  if (view_matrix_.dirty_ || model_matrix_.dirty_) {
+    Eigen::Matrix4f model_view_matrix =
+        view_matrix_.value_ * model_matrix_.value_;
+    program.setModelViewMatrix(model_view_matrix);
+    program.setNormalMatrix(
+        model_view_matrix.topLeftCorner<3, 3>().inverse().transpose());
+  }
+  if (object_color_.dirty_) { program.setObjectColor(object_color_.value_); }
+  if (dir_light_dir_.dirty_) {
+    program.setLightDir(dir_light_dir_.value_);
+  }
+  if (dir_light_proj_matrix_.dirty_) {
+    program.setLightProjMatrix(dir_light_proj_matrix_.value_);
+  }
+  if (dir_light_color_.dirty_) {
+    program.setLightColor(dir_light_color_.value_);
+  }
+  if (dir_light_view_matrix_.dirty_ || model_matrix_.dirty_) {
+    program.setLightModelViewMatrix(
+        dir_light_view_matrix_.value_ * model_matrix_.value_);
+  }
+
+  proj_matrix_.dirty_ = false;
+  view_matrix_.dirty_ = false;
+  model_matrix_.dirty_ = false;
+  object_color_.dirty_ = false;
+  dir_light_color_.dirty_ = false;
+  dir_light_dir_.dirty_ = false;
+  dir_light_proj_matrix_.dirty_ = false;
+  dir_light_view_matrix_.dirty_ = false;
 }
 
 GLFWRenderer::GLFWRenderer() : z_near_(0.1f), z_far_(100.0f), fov_(M_PI / 3),
@@ -368,13 +360,19 @@ void GLFWRenderer::update(double dt) {
 }
 
 void GLFWRenderer::render(const Simulation &sim) {
+  Eigen::Matrix4f camera_view_matrix;
+  camera_controller_.getViewMatrix(camera_view_matrix);
+  dir_light_->updateViewMatrix(proj_matrix_, camera_view_matrix);
+
   // Render shadow map
   dir_light_->sm_framebuffer_->bind();
   glViewport(0, 0, dir_light_->sm_width_, dir_light_->sm_height_);
   glClear(GL_DEPTH_BUFFER_BIT);
   depth_program_->use();
-  depth_program_->setProjectionMatrix(dir_light_->proj_matrix_);
-  draw(sim, *depth_program_, dir_light_->view_matrix_);
+  ProgramState depth_program_state;
+  depth_program_state.setProjectionMatrix(dir_light_->proj_matrix_);
+  depth_program_state.setViewMatrix(dir_light_->view_matrix_);
+  draw(sim, *depth_program_, depth_program_state);
 
   // Render main window
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -382,11 +380,11 @@ void GLFWRenderer::render(const Simulation &sim) {
   glClearColor(0.4f, 0.6f, 0.8f, 1.0f);  // Cornflower blue
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   default_program_->use();
-  default_program_->setProjectionMatrix(proj_matrix_);
-  default_program_->setDirectionalLight(*dir_light_);
-  Eigen::Matrix4f camera_view_matrix;
-  camera_controller_.getViewMatrix(camera_view_matrix);
-  draw(sim, *default_program_, camera_view_matrix);
+  ProgramState default_program_state;
+  default_program_state.setProjectionMatrix(proj_matrix_);
+  default_program_state.setViewMatrix(camera_view_matrix);
+  default_program_state.setDirectionalLight(*dir_light_);
+  draw(sim, *default_program_, default_program_state);
 
   glfwSwapBuffers(window_);
   glfwPollEvents();
@@ -397,8 +395,8 @@ bool GLFWRenderer::shouldClose() const {
 }
 
 void GLFWRenderer::draw(const Simulation &sim, const Program &program,
-                        const Eigen::Matrix4f &view_matrix) const {
-  program.setObjectColor({0.45f, 0.5f, 0.55f});  // Slate gray
+                        ProgramState &program_state) const {
+  program_state.setObjectColor({0.45f, 0.5f, 0.55f});  // Slate gray
   for (Index robot_idx = 0; robot_idx < sim.getRobotCount(); ++robot_idx) {
     const Robot &robot = *sim.getRobot(robot_idx);
     for (Index link_idx = 0; link_idx < robot.links_.size(); ++link_idx) {
@@ -406,57 +404,57 @@ void GLFWRenderer::draw(const Simulation &sim, const Program &program,
       Matrix4 link_transform;
       sim.getLinkTransform(robot_idx, link_idx, link_transform);
       drawCapsule(link_transform.cast<float>(), link.length_ / 2,
-                  robot.link_radius_, program, view_matrix);
+                  robot.link_radius_, program, program_state);
     }
   }
 
-  program.setObjectColor({0.8f, 0.7f, 0.6f});  // Tan
+  program_state.setObjectColor({0.8f, 0.7f, 0.6f});  // Tan
   for (Index prop_idx = 0; prop_idx < sim.getPropCount(); ++prop_idx) {
     const Prop &prop = *sim.getProp(prop_idx);
     Matrix4 prop_transform;
     sim.getPropTransform(prop_idx, prop_transform);
     drawBox(prop_transform.cast<float>(), prop.half_extents_.cast<float>(),
-            program, view_matrix);
+            program, program_state);
   }
 }
 
 void GLFWRenderer::drawBox(const Eigen::Matrix4f &transform,
                            const Eigen::Vector3f &half_extents,
                            const Program &program,
-                           const Eigen::Matrix4f &view_matrix) const {
+                           ProgramState &program_state) const {
   Eigen::Affine3f model_transform = Eigen::Affine3f(transform) *
       Eigen::DiagonalMatrix<float, 3>(half_extents);
   box_mesh_->bind();
-  program.setModelViewMatrices(model_transform.matrix(), view_matrix,
-                               dir_light_->view_matrix_);
+  program_state.setModelMatrix(model_transform.matrix());
+  program_state.updateUniforms(program);
   box_mesh_->draw();
 }
 
 void GLFWRenderer::drawCapsule(const Eigen::Matrix4f &transform,
                                float half_length, float radius,
                                const Program &program,
-                               const Eigen::Matrix4f &view_matrix) const {
+                               ProgramState &program_state) const {
   Eigen::Affine3f right_end_model_transform = Eigen::Affine3f(transform) *
       Eigen::Translation3f(half_length, 0, 0) *
       Eigen::DiagonalMatrix<float, 3>(radius, radius, radius);
   capsule_end_mesh_->bind();
-  program.setModelViewMatrices(right_end_model_transform.matrix(), view_matrix,
-                               dir_light_->view_matrix_);
+  program_state.setModelMatrix(right_end_model_transform.matrix());
+  program_state.updateUniforms(program);
   capsule_end_mesh_->draw();
 
   Eigen::Affine3f left_end_model_transform = Eigen::Affine3f(transform) *
       Eigen::Translation3f(-half_length, 0, 0) *
       Eigen::DiagonalMatrix<float, 3>(-radius, radius, -radius);
   capsule_end_mesh_->bind();
-  program.setModelViewMatrices(left_end_model_transform.matrix(), view_matrix,
-                               dir_light_->view_matrix_);
+  program_state.setModelMatrix(left_end_model_transform.matrix());
+  program_state.updateUniforms(program);
   capsule_end_mesh_->draw();
 
   Eigen::Affine3f middle_model_transform = Eigen::Affine3f(transform) *
       Eigen::DiagonalMatrix<float, 3>(half_length, radius, radius);
   capsule_middle_mesh_->bind();
-  program.setModelViewMatrices(middle_model_transform.matrix(), view_matrix,
-                               dir_light_->view_matrix_);
+  program_state.setModelMatrix(middle_model_transform.matrix());
+  program_state.updateUniforms(program);
   capsule_middle_mesh_->draw();
 }
 

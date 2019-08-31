@@ -25,13 +25,37 @@ struct Program {
   virtual ~Program();
   Program(const Program &other) = delete;
   Program &operator=(const Program &other) = delete;
-  void use() const;
-  void setProjectionMatrix(const Eigen::Matrix4f &proj_matrix) const;
-  void setModelViewMatrices(const Eigen::Matrix4f &model_matrix,
-                            const Eigen::Matrix4f &view_matrix,
-                            const Eigen::Matrix4f &light_view_matrix) const;
-  void setObjectColor(const Eigen::Vector3f &object_color) const;
-  void setDirectionalLight(const DirectionalLight &dir_light) const;
+  void use() const { glUseProgram(program_); }
+  void setProjectionMatrix(const Eigen::Matrix4f &proj_matrix) const {
+    glUniformMatrix4fv(proj_matrix_index_, 1, GL_FALSE, proj_matrix.data());
+  }
+  void setViewMatrix(const Eigen::Matrix4f &view_matrix) const {
+    glUniformMatrix4fv(view_matrix_index_, 1, GL_FALSE, view_matrix.data());
+  }
+  void setModelViewMatrix(const Eigen::Matrix4f &model_view_matrix) const {
+    glUniformMatrix4fv(model_view_matrix_index_, 1, GL_FALSE, model_view_matrix.data());
+  }
+  void setNormalMatrix(const Eigen::Matrix3f &normal_matrix) const {
+    glUniformMatrix3fv(normal_matrix_index_, 1, GL_FALSE, normal_matrix.data());
+  }
+  void setObjectColor(const Eigen::Vector3f &object_color) const {
+    glUniform3fv(object_color_index_, 1, object_color.data());
+  }
+  void setLightDir(const Eigen::Vector3f &light_dir) const {
+    glUniform3fv(world_light_dir_index_, 1, light_dir.data());
+  }
+  void setLightProjMatrix(const Eigen::Matrix4f &light_proj_matrix) const {
+    glUniformMatrix4fv(light_proj_matrix_index_, 1, GL_FALSE, light_proj_matrix.data());
+  }
+  void setLightModelViewMatrix(const Eigen::Matrix4f &light_mv_matrix) const {
+    glUniformMatrix4fv(light_model_view_matrix_index_, 1, GL_FALSE, light_mv_matrix.data());
+  }
+  void setLightColor(const Eigen::Vector3f &light_color) const {
+    glUniform3fv(light_color_index_, 1, light_color.data());
+  }
+  void setShadowMapTextureUnit(GLint unit) const {
+    glUniform1i(shadow_map_index_, unit);
+  }
 
   GLuint program_;
   GLuint vertex_shader_;
@@ -55,8 +79,12 @@ struct Mesh {
   virtual ~Mesh();
   Mesh(const Mesh &other) = delete;
   Mesh &operator=(const Mesh &other) = delete;
-  void bind() const;
-  void draw() const;
+  void bind() const {
+    glBindVertexArray(vertex_array_);
+  }
+  void draw() const {
+    glDrawElements(GL_TRIANGLES, index_count_, GL_UNSIGNED_INT, 0);
+  }
 
   GLuint vertex_array_;
   GLuint position_buffer_;
@@ -72,7 +100,9 @@ struct Texture2D {
   virtual ~Texture2D();
   Texture2D(const Texture2D &other) = delete;
   Texture2D &operator=(const Texture2D &other) = delete;
-  void bind() const;
+  void bind() const {
+    glBindTexture(target_, texture_);
+  }
 
   GLenum target_;
   GLuint texture_;
@@ -83,7 +113,9 @@ struct Framebuffer {
   virtual ~Framebuffer();
   Framebuffer(const Framebuffer &other) = delete;
   Framebuffer &operator=(const Framebuffer &other) = delete;
-  void bind() const;
+  void bind() const {
+    glBindFramebuffer(GL_FRAMEBUFFER, framebuffer_);
+  }
 
   GLuint framebuffer_;
 };
@@ -128,19 +160,72 @@ private:
 };
 
 struct DirectionalLight {
+  DirectionalLight() {}
   DirectionalLight(
       const Eigen::Vector3f &color, const Eigen::Vector3f &dir,
       const Eigen::Vector3f &up, GLsizei sm_width, GLsizei sm_height);
+  void updateViewMatrix(
+      const Eigen::Matrix4f &camera_proj_matrix,
+      const Eigen::Matrix4f &camera_view_matrix);
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
   Eigen::Vector3f color_;
   Eigen::Vector3f dir_;
   GLsizei sm_width_;
   GLsizei sm_height_;
+  Eigen::Matrix3f view_rot_matrix_;
   Eigen::Matrix4f proj_matrix_;
   Eigen::Matrix4f view_matrix_;
   std::shared_ptr<Texture2D> sm_depth_texture_;
   std::shared_ptr<Framebuffer> sm_framebuffer_;
+};
+
+template <typename T>
+struct ProgramParameter {
+  ProgramParameter() : dirty_(false) {}
+  void setValue(const T &value) {
+    value_ = value;
+    dirty_ = true;
+  }
+
+  T value_;
+  bool dirty_;
+};
+
+struct ProgramState {
+  ProgramState() {}
+  void setProjectionMatrix(const Eigen::Matrix4f &proj_matrix) {
+    proj_matrix_.setValue(proj_matrix);
+  }
+  void setViewMatrix(const Eigen::Matrix4f &view_matrix) {
+    view_matrix_.setValue(view_matrix);
+  }
+  void setModelMatrix(const Eigen::Matrix4f &model_matrix) {
+    model_matrix_.setValue(model_matrix);
+  }
+  void setObjectColor(const Eigen::Vector3f &object_color) {
+    object_color_.setValue(object_color);
+  }
+  void setDirectionalLight(const DirectionalLight &dir_light) {
+    dir_light_color_.setValue(dir_light.color_);
+    dir_light_dir_.setValue(dir_light.dir_);
+    dir_light_proj_matrix_.setValue(dir_light.proj_matrix_);
+    dir_light_view_matrix_.setValue(dir_light.view_matrix_);
+  }
+  void setDirectionalLightViewMatrix(const Eigen::Matrix4f &view_matrix) {
+    dir_light_view_matrix_.setValue(view_matrix);
+  }
+  void updateUniforms(const Program &program);
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+
+  ProgramParameter<Eigen::Matrix4f> proj_matrix_;
+  ProgramParameter<Eigen::Matrix4f> view_matrix_;
+  ProgramParameter<Eigen::Matrix4f> model_matrix_;
+  ProgramParameter<Eigen::Vector3f> object_color_;
+  ProgramParameter<Eigen::Vector3f> dir_light_color_;
+  ProgramParameter<Eigen::Vector3f> dir_light_dir_;
+  ProgramParameter<Eigen::Matrix4f> dir_light_proj_matrix_;
+  ProgramParameter<Eigen::Matrix4f> dir_light_view_matrix_;
 };
 
 class GLFWRenderer {
@@ -164,14 +249,13 @@ public:
 
 private:
   void draw(const Simulation &sim, const Program &program,
-            const Eigen::Matrix4f &view_matrix) const;
+            ProgramState &program_state) const;
   void drawBox(const Eigen::Matrix4f &transform,
                const Eigen::Vector3f &half_extents,
-               const Program &program,
-               const Eigen::Matrix4f &view_matrix) const;
+               const Program &program, ProgramState &program_state) const;
   void drawCapsule(const Eigen::Matrix4f &transform, float half_length,
                    float radius, const Program &program,
-                   const Eigen::Matrix4f &view_matrix) const;
+                   ProgramState &program_state) const;
   void updateProjectionMatrix();
   static std::string loadString(const std::string &path);
   GLFWwindow *window_;
