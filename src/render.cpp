@@ -226,7 +226,7 @@ DirectionalLight::DirectionalLight(
     const Eigen::Vector3f &up, GLsizei sm_width, GLsizei sm_height)
     : color_(color), dir_(dir.normalized()), sm_width_(sm_width),
       sm_height_(sm_height) {
-  makeOrthographicProjection(/*aspect_ratio=*/1.0f, /*z_near=*/0.1f,
+  makeOrthographicProjection(/*aspect_ratio=*/1.0f, /*z_near=*/-100.0f,
                              /*z_far=*/100.0f, /*matrix=*/proj_matrix_);
   Eigen::Vector3f norm_dir = dir_;
   Eigen::Vector3f norm_up = (up - norm_dir * up.dot(norm_dir)).normalized();
