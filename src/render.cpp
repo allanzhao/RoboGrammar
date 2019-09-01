@@ -565,7 +565,7 @@ std::shared_ptr<Mesh> makeBoxMesh() {
       16, 17, 18, 19, 16, 18,                      // +Y face
       20, 21, 22, 23, 20, 22};                     // +Z face
 
-  return std::move(std::make_shared<Mesh>(positions, normals, indices));
+  return std::make_shared<Mesh>(positions, normals, indices);
 }
 
 std::shared_ptr<Mesh> makeCapsuleEndMesh(int n_segments, int n_rings) {
@@ -607,7 +607,7 @@ std::shared_ptr<Mesh> makeCapsuleEndMesh(int n_segments, int n_rings) {
   }
 
   // The positions and normals of points on a unit sphere are equal
-  return std::move(std::make_shared<Mesh>(positions, positions, indices));
+  return std::make_shared<Mesh>(positions, positions, indices);
 }
 
 std::shared_ptr<Mesh> makeCapsuleMiddleMesh(int n_segments) {
@@ -636,7 +636,7 @@ std::shared_ptr<Mesh> makeCapsuleMiddleMesh(int n_segments) {
     indices.insert(indices.end(), std::begin(idx), std::end(idx));
   }
 
-  return std::move(std::make_shared<Mesh>(positions, normals, indices));
+  return std::make_shared<Mesh>(positions, normals, indices);
 }
 
 }  // namespace robot_design
