@@ -246,9 +246,28 @@ DirectionalLight::DirectionalLight(
 void DirectionalLight::updateViewMatrix(
     const Eigen::Matrix4f &camera_proj_matrix,
     const Eigen::Matrix4f &camera_view_matrix) {
-  //Eigen::Matrix4f inv_camera_vp_matrix = (
-  //    camera_view_matrix * camera_proj_matrix).inverse();
-  view_matrix_ = Eigen::Affine3f(view_rot_matrix_).matrix();
+  // Find corners of camera view frustum in world space
+  Eigen::Matrix4f inv_camera_vp_matrix = (
+      camera_proj_matrix * camera_view_matrix).inverse();
+  Eigen::Matrix<float, 4, 8> clip_frustum_corners;
+  clip_frustum_corners << -1, -1, -1, -1, 1, 1, 1, 1,
+                          -1, -1, 1, 1, -1, -1, 1, 1,
+                          -1, 1, -1, 1, -1, 1, -1, 1,
+                          1, 1, 1, 1, 1, 1, 1, 1;
+  Eigen::Matrix<float, 4, 8> world_frustum_corners =
+      inv_camera_vp_matrix * clip_frustum_corners;
+  world_frustum_corners = world_frustum_corners.array().rowwise() /
+                          world_frustum_corners.array().row(3);
+
+  // Fit light view to frustum
+  Eigen::Vector3f lower =
+      world_frustum_corners.topRows<3>().rowwise().minCoeff();
+  Eigen::Vector3f upper =
+      world_frustum_corners.topRows<3>().rowwise().maxCoeff();
+  view_matrix_ = Eigen::Affine3f(
+      view_rot_matrix_ *
+      Eigen::Scaling((2.0 / (upper - lower).array()).matrix()) *
+      Eigen::Translation3f(-0.5 * (upper + lower))).matrix();
 }
 
 void ProgramState::updateUniforms(const Program &program) {
