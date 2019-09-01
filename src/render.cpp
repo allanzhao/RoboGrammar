@@ -442,7 +442,7 @@ void GLFWRenderer::drawBox(const Eigen::Matrix4f &transform,
                            const Program &program,
                            ProgramState &program_state) const {
   Eigen::Affine3f model_transform = Eigen::Affine3f(transform) *
-      Eigen::DiagonalMatrix<float, 3>(half_extents);
+      Eigen::Scaling(half_extents);
   box_mesh_->bind();
   program_state.setModelMatrix(model_transform.matrix());
   program_state.updateUniforms(program);
@@ -455,7 +455,7 @@ void GLFWRenderer::drawCapsule(const Eigen::Matrix4f &transform,
                                ProgramState &program_state) const {
   Eigen::Affine3f right_end_model_transform = Eigen::Affine3f(transform) *
       Eigen::Translation3f(half_length, 0, 0) *
-      Eigen::DiagonalMatrix<float, 3>(radius, radius, radius);
+      Eigen::Scaling(radius, radius, radius);
   capsule_end_mesh_->bind();
   program_state.setModelMatrix(right_end_model_transform.matrix());
   program_state.updateUniforms(program);
@@ -463,14 +463,14 @@ void GLFWRenderer::drawCapsule(const Eigen::Matrix4f &transform,
 
   Eigen::Affine3f left_end_model_transform = Eigen::Affine3f(transform) *
       Eigen::Translation3f(-half_length, 0, 0) *
-      Eigen::DiagonalMatrix<float, 3>(-radius, radius, -radius);
+      Eigen::Scaling(-radius, radius, -radius);
   capsule_end_mesh_->bind();
   program_state.setModelMatrix(left_end_model_transform.matrix());
   program_state.updateUniforms(program);
   capsule_end_mesh_->draw();
 
   Eigen::Affine3f middle_model_transform = Eigen::Affine3f(transform) *
-      Eigen::DiagonalMatrix<float, 3>(half_length, radius, radius);
+      Eigen::Scaling(half_length, radius, radius);
   capsule_middle_mesh_->bind();
   program_state.setModelMatrix(middle_model_transform.matrix());
   program_state.updateUniforms(program);
