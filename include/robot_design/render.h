@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <Eigen/Dense>
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <robot_design/sim.h>
@@ -47,14 +48,21 @@ struct Program {
   void setLightProjMatrix(const Eigen::Matrix4f &light_proj_matrix) const {
     glUniformMatrix4fv(light_proj_matrix_index_, 1, GL_FALSE, light_proj_matrix.data());
   }
-  void setLightModelViewMatrix(const Eigen::Matrix4f &light_mv_matrix) const {
-    glUniformMatrix4fv(light_model_view_matrix_index_, 1, GL_FALSE, light_mv_matrix.data());
+  void setLightModelViewMatrices(
+      const Eigen::Matrix<float, 4, Eigen::Dynamic> &light_mv_matrices) const {
+    GLsizei count = light_mv_matrices.cols() / 4;
+    glUniformMatrix4fv(
+        light_model_view_matrices_index_, count, GL_FALSE,
+        light_mv_matrices.data());
   }
   void setLightColor(const Eigen::Vector3f &light_color) const {
     glUniform3fv(light_color_index_, 1, light_color.data());
   }
   void setShadowMapTextureUnit(GLint unit) const {
     glUniform1i(shadow_map_index_, unit);
+  }
+  void setCascadeFarSplits(const Eigen::Vector4f &far_splits) const {
+    glUniform4fv(cascade_far_splits_index_, 1, far_splits.data());
   }
 
   GLuint program_;
@@ -67,9 +75,10 @@ struct Program {
   GLint object_color_index_;
   GLint world_light_dir_index_;
   GLint light_proj_matrix_index_;
-  GLint light_model_view_matrix_index_;
+  GLint light_model_view_matrices_index_;
   GLint light_color_index_;
   GLint shadow_map_index_;
+  GLint cascade_far_splits_index_;
 };
 
 struct Mesh {
@@ -108,14 +117,33 @@ struct Texture2D {
   GLuint texture_;
 };
 
+struct Texture3D {
+  Texture3D(GLenum target, GLint level, GLint internal_format, GLsizei width,
+            GLsizei height, GLsizei depth, GLenum format, GLenum type,
+            const GLvoid *data = NULL);
+  virtual ~Texture3D();
+  Texture3D(const Texture3D &other) = delete;
+  Texture3D &operator=(const Texture3D &other) = delete;
+  void bind() const {
+    glBindTexture(target_, texture_);
+  }
+
+  GLenum target_;
+  GLuint texture_;
+};
+
 struct Framebuffer {
-  Framebuffer(const Texture2D *color_texture, const Texture2D *depth_texture);
+  Framebuffer();
   virtual ~Framebuffer();
   Framebuffer(const Framebuffer &other) = delete;
   Framebuffer &operator=(const Framebuffer &other) = delete;
   void bind() const {
     glBindFramebuffer(GL_FRAMEBUFFER, framebuffer_);
   }
+  void attachColorTexture(const Texture2D &color_texture) const;
+  void attachColorTextureLayer(const Texture3D &color_texture, GLint layer) const;
+  void attachDepthTexture(const Texture2D &depth_texture) const;
+  void attachDepthTextureLayer(const Texture3D &depth_texture, GLint layer) const;
 
   GLuint framebuffer_;
 };
@@ -163,20 +191,23 @@ struct DirectionalLight {
   DirectionalLight() {}
   DirectionalLight(
       const Eigen::Vector3f &color, const Eigen::Vector3f &dir,
-      const Eigen::Vector3f &up, GLsizei sm_width, GLsizei sm_height);
-  void updateViewMatrix(
+      const Eigen::Vector3f &up, GLsizei sm_width, GLsizei sm_height,
+      int sm_cascade_count);
+  void updateViewMatricesAndSplits(
       const Eigen::Matrix4f &camera_proj_matrix,
-      const Eigen::Matrix4f &camera_view_matrix);
+      const Eigen::Matrix4f &camera_view_matrix, float z_near, float z_far);
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
   Eigen::Vector3f color_;
   Eigen::Vector3f dir_;
   GLsizei sm_width_;
   GLsizei sm_height_;
+  int sm_cascade_count_;
   Eigen::Matrix3f view_rot_matrix_;
   Eigen::Matrix4f proj_matrix_;
-  Eigen::Matrix4f view_matrix_;
-  std::shared_ptr<Texture2D> sm_depth_texture_;
+  Eigen::Matrix<float, 4, Eigen::Dynamic> view_matrices_;
+  Eigen::VectorXf sm_cascade_splits_;
+  std::shared_ptr<Texture3D> sm_depth_array_texture_;
   std::shared_ptr<Framebuffer> sm_framebuffer_;
 };
 
@@ -210,10 +241,12 @@ struct ProgramState {
     dir_light_color_.setValue(dir_light.color_);
     dir_light_dir_.setValue(dir_light.dir_);
     dir_light_proj_matrix_.setValue(dir_light.proj_matrix_);
-    dir_light_view_matrix_.setValue(dir_light.view_matrix_);
+    dir_light_view_matrices_.setValue(dir_light.view_matrices_);
+    dir_light_sm_cascade_splits_.setValue(dir_light.sm_cascade_splits_);
   }
-  void setDirectionalLightViewMatrix(const Eigen::Matrix4f &view_matrix) {
-    dir_light_view_matrix_.setValue(view_matrix);
+  void setDirectionalLightViewMatrices(
+      const Eigen::Matrix<float, 4, Eigen::Dynamic> &view_matrices) {
+    dir_light_view_matrices_.setValue(view_matrices);
   }
   void updateUniforms(const Program &program);
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
@@ -225,7 +258,8 @@ struct ProgramState {
   ProgramParameter<Eigen::Vector3f> dir_light_color_;
   ProgramParameter<Eigen::Vector3f> dir_light_dir_;
   ProgramParameter<Eigen::Matrix4f> dir_light_proj_matrix_;
-  ProgramParameter<Eigen::Matrix4f> dir_light_view_matrix_;
+  ProgramParameter<Eigen::Matrix<float, 4, Eigen::Dynamic>> dir_light_view_matrices_;
+  ProgramParameter<Eigen::VectorXf> dir_light_sm_cascade_splits_;
 };
 
 class GLFWRenderer {

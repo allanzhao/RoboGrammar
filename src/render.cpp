@@ -65,9 +65,10 @@ Program::Program(const std::string &vertex_shader_source,
   object_color_index_ = glGetUniformLocation(program_, "object_color");
   world_light_dir_index_ = glGetUniformLocation(program_, "world_light_dir");
   light_proj_matrix_index_ = glGetUniformLocation(program_, "light_proj_matrix");
-  light_model_view_matrix_index_ = glGetUniformLocation(program_, "light_model_view_matrix");
+  light_model_view_matrices_index_ = glGetUniformLocation(program_, "light_model_view_matrices");
   light_color_index_ = glGetUniformLocation(program_, "light_color");
   shadow_map_index_ = glGetUniformLocation(program_, "shadow_map");
+  cascade_far_splits_index_ = glGetUniformLocation(program_, "cascade_far_splits");
 }
 
 Program::~Program() {
@@ -122,8 +123,8 @@ Texture2D::Texture2D(GLenum target, GLint level, GLint internal_format,
                      const GLvoid *data) : target_(target), texture_(0) {
   glGenTextures(1, &texture_);
   glBindTexture(target, texture_);
-  glTexImage2D(target, level, internal_format, width, height, 0, format,
-               type, data);
+  glTexImage2D(target, level, internal_format, width, height, 0, format, type,
+               data);
   glTexParameteri(target, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
   glTexParameteri(target, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
   glTexParameteri(target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
@@ -134,29 +135,64 @@ Texture2D::~Texture2D() {
   glDeleteTextures(1, &texture_);
 }
 
-Framebuffer::Framebuffer(const Texture2D *color_texture,
-                         const Texture2D *depth_texture) : framebuffer_(0) {
+Texture3D::Texture3D(GLenum target, GLint level, GLint internal_format,
+                     GLsizei width, GLsizei height, GLsizei depth,
+                     GLenum format, GLenum type, const GLvoid *data)
+    : target_(target), texture_(0) {
+  glGenTextures(1, &texture_);
+  glBindTexture(target, texture_);
+  glTexImage3D(target, level, internal_format, width, height, depth, 0, format,
+               type, data);
+  glTexParameteri(target, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(target, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glTexParameteri(target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+  glTexParameteri(target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+  glTexParameteri(target, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_BORDER);
+}
+
+Texture3D::~Texture3D() {
+  glDeleteTextures(1, &texture_);
+}
+
+Framebuffer::Framebuffer() : framebuffer_(0) {
   glGenFramebuffers(1, &framebuffer_);
   glBindFramebuffer(GL_FRAMEBUFFER, framebuffer_);
-  if (color_texture) {
-    glFramebufferTexture2D(
-        GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, color_texture->target_,
-        color_texture->texture_, 0);
-  } else {
-    // Necessary to make framebuffer complete without a color attachment
-    glDrawBuffer(GL_NONE);
-    glReadBuffer(GL_NONE);
-  }
-  if (depth_texture) {
-    glFramebufferTexture2D(
-        GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, depth_texture->target_,
-        depth_texture->texture_, 0);
-  }
+  // Necessary to make framebuffer complete without a color attachment
+  glDrawBuffer(GL_NONE);
+  glReadBuffer(GL_NONE);
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 Framebuffer::~Framebuffer() {
   glDeleteFramebuffers(1, &framebuffer_);
+}
+
+void Framebuffer::attachColorTexture(const Texture2D &color_texture) const {
+  glFramebufferTexture2D(
+      GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, color_texture.target_,
+      color_texture.texture_, 0);
+  glDrawBuffer(GL_COLOR_ATTACHMENT0);
+  glReadBuffer(GL_COLOR_ATTACHMENT0);
+}
+
+void Framebuffer::attachColorTextureLayer(
+    const Texture3D &color_texture, GLint layer) const {
+  glFramebufferTextureLayer(
+      GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, color_texture.texture_, 0, layer);
+  glDrawBuffer(GL_COLOR_ATTACHMENT0);
+  glReadBuffer(GL_COLOR_ATTACHMENT0);
+}
+
+void Framebuffer::attachDepthTexture(const Texture2D &depth_texture) const {
+  glFramebufferTexture2D(
+      GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, depth_texture.target_,
+      depth_texture.texture_, 0);
+}
+
+void Framebuffer::attachDepthTextureLayer(
+    const Texture3D &depth_texture, GLint layer) const {
+  glFramebufferTextureLayer(
+      GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, depth_texture.texture_, 0, layer);
 }
 
 const std::array<int, FPSCameraController::ACTION_COUNT> FPSCameraController::DEFAULT_KEY_BINDINGS = {
@@ -223,11 +259,14 @@ void FPSCameraController::getViewMatrix(Eigen::Matrix4f &view_matrix) const {
 
 DirectionalLight::DirectionalLight(
     const Eigen::Vector3f &color, const Eigen::Vector3f &dir,
-    const Eigen::Vector3f &up, GLsizei sm_width, GLsizei sm_height)
+    const Eigen::Vector3f &up, GLsizei sm_width, GLsizei sm_height,
+    int sm_cascade_count)
     : color_(color), dir_(dir.normalized()), sm_width_(sm_width),
-      sm_height_(sm_height) {
+      sm_height_(sm_height), sm_cascade_count_(sm_cascade_count) {
   makeOrthographicProjection(/*aspect_ratio=*/1.0f, /*z_near=*/-100.0f,
                              /*z_far=*/100.0f, /*matrix=*/proj_matrix_);
+  view_matrices_.resize(4, 4 * sm_cascade_count);
+  sm_cascade_splits_.resize(sm_cascade_count + 1);
   Eigen::Vector3f norm_dir = dir_;
   Eigen::Vector3f norm_up = (up - norm_dir * up.dot(norm_dir)).normalized();
   Eigen::Matrix3f inv_view_rot_matrix;
@@ -236,38 +275,49 @@ DirectionalLight::DirectionalLight(
                          norm_dir;
   view_rot_matrix_ = inv_view_rot_matrix.transpose();
 
-  sm_depth_texture_ = std::make_shared<Texture2D>(
-      GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, sm_width, sm_height,
-      GL_DEPTH_COMPONENT, GL_FLOAT);
-  sm_framebuffer_ = std::make_shared<Framebuffer>(
-      nullptr, sm_depth_texture_.get());
+  sm_depth_array_texture_ = std::make_shared<Texture3D>(
+      GL_TEXTURE_2D_ARRAY, 0, GL_DEPTH_COMPONENT, sm_width, sm_height,
+      sm_cascade_count, GL_DEPTH_COMPONENT, GL_FLOAT);
+  sm_framebuffer_ = std::make_shared<Framebuffer>();
 }
 
-void DirectionalLight::updateViewMatrix(
+void DirectionalLight::updateViewMatricesAndSplits(
     const Eigen::Matrix4f &camera_proj_matrix,
-    const Eigen::Matrix4f &camera_view_matrix) {
+    const Eigen::Matrix4f &camera_view_matrix, float z_near, float z_far) {
+  // Calculate cascade splits in clip space
+  float split_scale = 2.0f / std::log(z_far / z_near);
+  for (int i = 0; i < sm_cascade_count_ + 1; ++i) {
+    float t = static_cast<float>(i) / sm_cascade_count_;
+    sm_cascade_splits_(i) = std::log1p(t * (z_far / z_near - 1.0f)) *
+                           split_scale - 1.0f;
+  }
+
   // Find corners of camera view frustum in world space
   Eigen::Matrix4f inv_camera_vp_matrix = (
       camera_proj_matrix * camera_view_matrix).inverse();
   Eigen::Matrix<float, 4, 8> clip_frustum_corners;
-  clip_frustum_corners << -1, -1, -1, -1, 1, 1, 1, 1,
-                          -1, -1, 1, 1, -1, -1, 1, 1,
-                          -1, 1, -1, 1, -1, 1, -1, 1,
-                          1, 1, 1, 1, 1, 1, 1, 1;
-  Eigen::Matrix<float, 4, 8> world_frustum_corners =
-      inv_camera_vp_matrix * clip_frustum_corners;
-  world_frustum_corners = world_frustum_corners.array().rowwise() /
-                          world_frustum_corners.array().row(3);
+  for (int i = 0; i < sm_cascade_count_; ++i) {
+    float sn = sm_cascade_splits_(i);      // Near split
+    float sf = sm_cascade_splits_(i + 1);  // Far split
+    clip_frustum_corners << -1, -1, -1, -1, 1, 1, 1, 1,
+                            -1, -1, 1, 1, -1, -1, 1, 1,
+                            sn, sf, sn, sf, sn, sf, sn, sf,
+                            1, 1, 1, 1, 1, 1, 1, 1;
+    Eigen::Matrix<float, 4, 8> world_frustum_corners =
+        inv_camera_vp_matrix * clip_frustum_corners;
+    world_frustum_corners = world_frustum_corners.array().rowwise() /
+                            world_frustum_corners.array().row(3);
 
-  // Fit light view to frustum
-  Eigen::Vector3f lower =
-      world_frustum_corners.topRows<3>().rowwise().minCoeff();
-  Eigen::Vector3f upper =
-      world_frustum_corners.topRows<3>().rowwise().maxCoeff();
-  view_matrix_ = Eigen::Affine3f(
-      view_rot_matrix_ *
-      Eigen::Scaling((2.0 / (upper - lower).array()).matrix()) *
-      Eigen::Translation3f(-0.5 * (upper + lower))).matrix();
+    // Fit light view to frustum
+    Eigen::Vector3f lower =
+        world_frustum_corners.topRows<3>().rowwise().minCoeff();
+    Eigen::Vector3f upper =
+        world_frustum_corners.topRows<3>().rowwise().maxCoeff();
+    view_matrices_.block<4, 4>(0, 4 * i) = Eigen::Affine3f(
+        view_rot_matrix_ *
+        Eigen::Scaling((2.0 / (upper - lower).array()).matrix()) *
+        Eigen::Translation3f(-0.5 * (upper + lower))).matrix();
+  }
 }
 
 void ProgramState::updateUniforms(const Program &program) {
@@ -290,9 +340,23 @@ void ProgramState::updateUniforms(const Program &program) {
   if (dir_light_color_.dirty_) {
     program.setLightColor(dir_light_color_.value_);
   }
-  if (dir_light_view_matrix_.dirty_ || model_matrix_.dirty_) {
-    program.setLightModelViewMatrix(
-        dir_light_view_matrix_.value_ * model_matrix_.value_);
+  if (dir_light_view_matrices_.dirty_ || model_matrix_.dirty_) {
+    Eigen::Matrix<float, 4, Eigen::Dynamic> light_mv_matrices(
+        4, dir_light_view_matrices_.value_.cols());
+    for (int j = 0; j < light_mv_matrices.cols(); j += 4) {
+      light_mv_matrices.block<4, 4>(0, j) =
+          dir_light_view_matrices_.value_.block<4, 4>(0, j) *
+          model_matrix_.value_;
+    }
+    program.setLightModelViewMatrices(light_mv_matrices);
+  }
+  if (dir_light_sm_cascade_splits_.dirty_) {
+    // Shader only supports up to 5 shadow map cascades at the moment
+    // Only 4 splits are needed to describe 5 cascades, starting from index 1
+    // We also need to remap clip Z coords [-1, 1] to fragment Z coords [0, 1]
+    program.setCascadeFarSplits(
+        dir_light_sm_cascade_splits_.value_.segment<4>(1) * 0.5f +
+        Eigen::Vector4f::Constant(0.5f));
   }
 
   proj_matrix_.dirty_ = false;
@@ -302,10 +366,11 @@ void ProgramState::updateUniforms(const Program &program) {
   dir_light_color_.dirty_ = false;
   dir_light_dir_.dirty_ = false;
   dir_light_proj_matrix_.dirty_ = false;
-  dir_light_view_matrix_.dirty_ = false;
+  dir_light_view_matrices_.dirty_ = false;
+  dir_light_sm_cascade_splits_.dirty_ = false;
 }
 
-GLFWRenderer::GLFWRenderer() : z_near_(0.1f), z_far_(100.0f), fov_(M_PI / 3),
+GLFWRenderer::GLFWRenderer() : z_near_(0.1f), z_far_(10.0f), fov_(M_PI / 3),
                                camera_controller_() {
   if (!glfwInit()) {
     return;
@@ -346,7 +411,7 @@ GLFWRenderer::GLFWRenderer() : z_near_(0.1f), z_far_(100.0f), fov_(M_PI / 3),
       /*color=*/Eigen::Vector3f{1.0f, 1.0f, 1.0f},
       /*dir=*/Eigen::Vector3f{0.0f, 1.0f, 0.0f},
       /*up=*/Eigen::Vector3f{0.0f, 0.0f, -1.0f},
-      /*sm_width=*/1024, /*sm_height=*/1024);
+      /*sm_width=*/1024, /*sm_height=*/1024, /*sm_cascade_count=*/5);
 
   // Set up callbacks
   // Allow accessing "this" from static callbacks
@@ -381,17 +446,23 @@ void GLFWRenderer::update(double dt) {
 void GLFWRenderer::render(const Simulation &sim) {
   Eigen::Matrix4f camera_view_matrix;
   camera_controller_.getViewMatrix(camera_view_matrix);
-  dir_light_->updateViewMatrix(proj_matrix_, camera_view_matrix);
+  dir_light_->updateViewMatricesAndSplits(
+      proj_matrix_, camera_view_matrix, z_near_, z_far_);
 
   // Render shadow map
   dir_light_->sm_framebuffer_->bind();
   glViewport(0, 0, dir_light_->sm_width_, dir_light_->sm_height_);
-  glClear(GL_DEPTH_BUFFER_BIT);
   depth_program_->use();
   ProgramState depth_program_state;
-  depth_program_state.setProjectionMatrix(dir_light_->proj_matrix_);
-  depth_program_state.setViewMatrix(dir_light_->view_matrix_);
-  draw(sim, *depth_program_, depth_program_state);
+  for (int i = 0; i < dir_light_->sm_cascade_count_; ++i) {
+    dir_light_->sm_framebuffer_->attachDepthTextureLayer(
+        *dir_light_->sm_depth_array_texture_, i);
+    glClear(GL_DEPTH_BUFFER_BIT);
+    depth_program_state.setProjectionMatrix(dir_light_->proj_matrix_);
+    depth_program_state.setViewMatrix(
+        dir_light_->view_matrices_.block<4, 4>(0, 4 * i));
+    draw(sim, *depth_program_, depth_program_state);
+  }
 
   // Render main window
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -403,6 +474,7 @@ void GLFWRenderer::render(const Simulation &sim) {
   default_program_state.setProjectionMatrix(proj_matrix_);
   default_program_state.setViewMatrix(camera_view_matrix);
   default_program_state.setDirectionalLight(*dir_light_);
+  dir_light_->sm_depth_array_texture_->bind();
   draw(sim, *default_program_, default_program_state);
 
   glfwSwapBuffers(window_);
