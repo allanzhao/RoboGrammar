@@ -1,3 +1,4 @@
+#include <cstddef>
 #include <robot_design/sim.h>
 #include <robot_design/utils.h>
 #include <Serialize/BulletWorldImporter/btMultiBodyWorldImporter.h>
@@ -31,7 +32,7 @@ Index BulletSimulation::addRobot(std::shared_ptr<const Robot> robot,
   BulletRobotWrapper &wrapper = robot_wrappers_.back();
   wrapper.col_shapes_.resize(robot->links_.size());
 
-  for (int i = 0; i < robot->links_.size(); ++i) {
+  for (std::size_t i = 0; i < robot->links_.size(); ++i) {
     const Link &link = robot->links_[i];
 
     auto col_shape = std::make_shared<btCapsuleShapeX>(robot->link_radius_,
@@ -100,7 +101,7 @@ Index BulletSimulation::addRobot(std::shared_ptr<const Robot> robot,
 
   // Add collision objects to world
   wrapper.colliders_.resize(wrapper.col_shapes_.size());
-  for (int i = 0; i < wrapper.col_shapes_.size(); ++i) {
+  for (std::size_t i = 0; i < wrapper.col_shapes_.size(); ++i) {
     auto collider = std::make_shared<btMultiBodyLinkCollider>(
         wrapper.multi_body_.get(), i - 1);
     collider->setCollisionShape(wrapper.col_shapes_[i].get());

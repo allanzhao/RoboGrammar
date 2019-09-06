@@ -58,4 +58,13 @@ target_link_libraries(RobotDesign PRIVATE
     ${TORCH_LIBRARIES}
 )
 
+if(MSVC)
+  target_compile_options(RobotDesign PRIVATE /W4 /WX)
+else()
+  target_compile_options(RobotDesign PRIVATE -Wall -Werror)
+  set_source_files_properties(
+      ${BULLET_SOURCES} PROPERTIES COMPILE_FLAGS "-Wno-all -Wno-error"
+  )
+endif()
+
 file(COPY data DESTINATION ${CMAKE_BINARY_DIR})

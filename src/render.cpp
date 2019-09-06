@@ -1,4 +1,5 @@
 #include <cmath>
+#include <cstddef>
 #include <exception>
 #include <fstream>
 #include <robot_design/render.h>
@@ -490,7 +491,7 @@ void GLFWRenderer::draw(const Simulation &sim, const Program &program,
   program_state.setObjectColor({0.45f, 0.5f, 0.55f});  // Slate gray
   for (Index robot_idx = 0; robot_idx < sim.getRobotCount(); ++robot_idx) {
     const Robot &robot = *sim.getRobot(robot_idx);
-    for (Index link_idx = 0; link_idx < robot.links_.size(); ++link_idx) {
+    for (std::size_t link_idx = 0; link_idx < robot.links_.size(); ++link_idx) {
       const Link &link = robot.links_[link_idx];
       Matrix4 link_transform;
       sim.getLinkTransform(robot_idx, link_idx, link_transform);

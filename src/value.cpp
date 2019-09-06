@@ -1,3 +1,4 @@
+#include <cstddef>
 #include <robot_design/value.h>
 #include <sstream>
 
@@ -20,7 +21,7 @@ FCValueNet::FCValueNet(int obs_size, int hidden_layer_count,
 }
 
 torch::Tensor FCValueNet::forward(torch::Tensor x) {
-  for (int i = 0; i < layers_.size() - 1; ++i) {
+  for (std::size_t i = 0; i < layers_.size() - 1; ++i) {
     x = torch::tanh(layers_[i]->forward(x));
   }
   return layers_.back()->forward(x);  // No activation after last layer
@@ -64,7 +65,7 @@ void FCValueEstimator::estimateValue(const MatrixX &obs,
   torch::Tensor obs_tensor = torchTensorFromEigenMatrix(obs);
   std::vector<torch::Tensor> ensemble_outputs;
   ensemble_outputs.reserve(nets_.size());
-  for (int k = 0; k < nets_.size(); ++k) {
+  for (std::size_t k = 0; k < nets_.size(); ++k) {
     ensemble_outputs.push_back(nets_[k]->forward(obs_tensor));
   }
   torch::Tensor ensemble_outputs_tensor = torch::stack(ensemble_outputs);
@@ -87,7 +88,7 @@ void FCValueEstimator::train(const MatrixX &obs,
       VectorX value_batch = value(*index_batch);
       torch::Tensor obs_tensor = torchTensorFromEigenMatrix(obs_batch);
       torch::Tensor value_tensor = torchTensorFromEigenVector(value_batch);
-      for (int k = 0; k < nets_.size(); ++k) {
+      for (std::size_t k = 0; k < nets_.size(); ++k) {
         nets_[k]->zero_grad();
         torch::Tensor value_est_tensor = nets_[k]->forward(obs_tensor).flatten();
         torch::Tensor loss = torch::mse_loss(value_est_tensor, value_tensor);
