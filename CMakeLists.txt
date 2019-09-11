@@ -43,6 +43,7 @@ include_directories(
 
 add_executable(RobotDesign
     src/articulated_robot.cpp
+    src/design.cpp
     src/grammar.cpp
     src/main.cpp
     src/optim.cpp

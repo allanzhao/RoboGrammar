@@ -3,6 +3,9 @@
 #include <GLFW/glfw3.h>
 #include <iostream>
 #include <random>
+#include <robot_design/articulated_robot.h>
+#include <robot_design/design.h>
+#include <robot_design/grammar.h>
 #include <robot_design/optim.h>
 #include <robot_design/render.h>
 #include <robot_design/sim.h>
@@ -55,47 +58,16 @@ int main(int argc, char **argv) {
   // Set Torch random seed
   torch::manual_seed(generator());
 
-  // Create a quadruped robot
-  std::shared_ptr<Robot> robot = std::make_shared<Robot>(
-      /*link_density=*/1.0,
-      /*link_radius=*/0.05,
-      /*friction=*/0.9,
-      /*motor_kp=*/2.0,
-      /*motor_kd=*/0.1);
-  robot->links_.emplace_back(
-      /*parent=*/-1,
-      /*joint_type=*/JointType::FREE,
-      /*joint_pos=*/1.0,
-      /*joint_rot=*/Quaternion::Identity(),
-      /*joint_axis=*/Vector3{0.0, 0.0, 1.0},
-      /*length=*/0.4);
-  for (Index i = 0; i < 4; ++i) {
-    Quaternion leg_rot(Eigen::AngleAxis<Scalar>((i - 0.5) * M_PI / 2, Vector3::UnitY()));
-    Quaternion thigh_rot(Eigen::AngleAxis<Scalar>(M_PI / 2, Vector3::UnitZ()) *
-        Eigen::AngleAxis<Scalar>((i - 0.5) * -M_PI / 2, Vector3::UnitY()));
-    Quaternion shin_rot(Eigen::AngleAxis<Scalar>(0.0, Vector3::UnitZ()));
-    robot->links_.emplace_back(
-        /*parent=*/0,
-        /*joint_type=*/JointType::FIXED,
-        /*joint_pos=*/(i < 2) ? 1.0 : 0.0,
-        /*joint_rot=*/leg_rot,
-        /*joint_axis=*/Vector3{0.0, 1.0, 0.0},
-        /*length=*/0.2);
-    robot->links_.emplace_back(
-        /*parent=*/i * 3 + 1,
-        /*joint_type=*/JointType::HINGE,
-        /*joint_pos=*/1.0,
-        /*joint_rot=*/thigh_rot,
-        /*joint_axis=*/Vector3{0.0, 0.0, 1.0},
-        /*length=*/0.2);
-    robot->links_.emplace_back(
-        /*parent=*/i * 3 + 2,
-        /*joint_type=*/JointType::HINGE,
-        /*joint_pos=*/1.0,
-        /*joint_rot=*/shin_rot,
-        /*joint_axis=*/Vector3{0.0, 0.0, 1.0},
-        /*length=*/0.2);
+  // Sample a robot design
+  auto ar_grammar = std::make_shared<ArticulatedRobotGrammar>();
+  DesignSampler sampler(ar_grammar, generator());
+  Design design = sampler.sampleDesign(ar_grammar->robot_);
+  for (Rule rule : design.derivation_) {
+    for (Symbol symbol : ar_grammar->rule_defs_[rule].rhs_) {
+      std::cout << ar_grammar->symbol_defs_[symbol].name_ << std::endl;
+    }
   }
+  std::shared_ptr<Robot> robot = buildArticulatedRobot(design, *ar_grammar);
 
   // Create a floor
   std::shared_ptr<Prop> floor = std::make_shared<Prop>(

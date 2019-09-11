@@ -1,7 +1,5 @@
 #pragma once
 
-#include <memory>
-#include <random>
 #include <robot_design/types.h>
 #include <string>
 #include <vector>
@@ -41,7 +39,8 @@ struct Grammar {
   Grammar(std::vector<SymbolDef> symbol_defs, std::vector<RuleDef> rule_defs)
       : symbol_defs_(std::move(symbol_defs)),
         rule_defs_(std::move(rule_defs)) {}
-  Symbol addSymbol(std::string &&name, std::vector<AttributeDef> &&attr_defs) {
+  Symbol addSymbol(std::string &&name,
+                   std::vector<AttributeDef> &&attr_defs = {}) {
     symbol_defs_.emplace_back(
         std::forward<std::string>(name),
         std::forward<std::vector<AttributeDef>>(attr_defs));
@@ -51,28 +50,14 @@ struct Grammar {
     rule_defs_.emplace_back(lhs, std::forward<std::vector<Symbol>>(rhs));
     return rule_defs_.size() - 1;
   }
+  Symbol getStartSymbol() const {
+    // The start symbol was added first
+    return 0;
+  }
   bool isTerminalSymbol(Symbol symbol) const;
 
   std::vector<SymbolDef> symbol_defs_;
   std::vector<RuleDef> rule_defs_;
-};
-
-struct Design {
-  Design(std::vector<Rule> derivation, VectorX attr_vals)
-      : derivation_(std::move(derivation)), attr_vals_(std::move(attr_vals)) {}
-
-  std::vector<Rule> derivation_;
-  VectorX attr_vals_;
-};
-
-class DesignSampler {
-public:
-  DesignSampler(std::shared_ptr<const Grammar> grammar, unsigned int seed)
-      : grammar_(grammar), generator_(seed) {}
-  Design sampleDesign(Symbol start_symbol);
-
-  std::shared_ptr<const Grammar> grammar_;
-  std::mt19937 generator_;
 };
 
 }  // namespace robot_design
