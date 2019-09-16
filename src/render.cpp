@@ -290,7 +290,7 @@ void DirectionalLight::updateViewMatricesAndSplits(
   for (int i = 0; i < sm_cascade_count_ + 1; ++i) {
     float t = static_cast<float>(i) / sm_cascade_count_;
     sm_cascade_splits_(i) = std::log1p(t * (z_far / z_near - 1.0f)) *
-                           split_scale - 1.0f;
+                            split_scale - 1.0f;
   }
 
   // Find corners of camera view frustum in world space
@@ -371,7 +371,7 @@ void ProgramState::updateUniforms(const Program &program) {
   dir_light_sm_cascade_splits_.dirty_ = false;
 }
 
-GLFWRenderer::GLFWRenderer() : z_near_(0.1f), z_far_(10.0f), fov_(M_PI / 3),
+GLFWRenderer::GLFWRenderer() : z_near_(0.2f), z_far_(20.0f), fov_(M_PI / 3),
                                camera_controller_() {
   if (!glfwInit()) {
     return;
