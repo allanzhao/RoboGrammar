@@ -316,8 +316,8 @@ void DirectionalLight::updateViewMatricesAndSplits(
         world_frustum_corners.topRows<3>().rowwise().maxCoeff();
     view_matrices_.block<4, 4>(0, 4 * i) = Eigen::Affine3f(
         view_rot_matrix_ *
-        Eigen::Scaling((2.0 / (upper - lower).array()).matrix()) *
-        Eigen::Translation3f(-0.5 * (upper + lower))).matrix();
+        Eigen::Scaling((2.0f / (upper - lower).array()).matrix()) *
+        Eigen::Translation3f(-0.5f * (upper + lower))).matrix();
   }
 }
 
