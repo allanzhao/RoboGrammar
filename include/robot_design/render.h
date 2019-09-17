@@ -290,6 +290,12 @@ private:
   void drawCapsule(const Eigen::Matrix4f &transform, float half_length,
                    float radius, const Program &program,
                    ProgramState &program_state) const;
+  void drawCylinder(const Eigen::Matrix4f &transform, float half_length,
+                    float radius, const Program &program,
+                    ProgramState &program_state) const;
+  void drawTubeBasedShape(const Eigen::Matrix4f &transform, float half_length,
+                          float radius, const Program &program,
+                          ProgramState &program_state, const Mesh &end_mesh) const;
   void updateProjectionMatrix();
   static std::string loadString(const std::string &path);
   GLFWwindow *window_;
@@ -303,8 +309,9 @@ private:
   std::shared_ptr<Program> default_program_;
   std::shared_ptr<Program> depth_program_;
   std::shared_ptr<Mesh> box_mesh_;
+  std::shared_ptr<Mesh> tube_mesh_;
   std::shared_ptr<Mesh> capsule_end_mesh_;
-  std::shared_ptr<Mesh> capsule_middle_mesh_;
+  std::shared_ptr<Mesh> cylinder_end_mesh_;
   std::shared_ptr<DirectionalLight> dir_light_;
 };
 
@@ -316,8 +323,10 @@ void makePerspectiveProjection(float aspect_ratio, float z_near, float z_far,
 
 std::shared_ptr<Mesh> makeBoxMesh();
 
+std::shared_ptr<Mesh> makeTubeMesh(int n_segments);
+
 std::shared_ptr<Mesh> makeCapsuleEndMesh(int n_segments, int n_rings);
 
-std::shared_ptr<Mesh> makeCapsuleMiddleMesh(int n_segments);
+std::shared_ptr<Mesh> makeCylinderEndMesh(int n_segments);
 
 }  // namespace robot_design

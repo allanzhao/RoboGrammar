@@ -2,6 +2,7 @@
 #include <robot_design/sim.h>
 #include <robot_design/utils.h>
 #include <Serialize/BulletWorldImporter/btMultiBodyWorldImporter.h>
+#include <stdexcept>
 
 namespace robot_design {
 
@@ -35,8 +36,19 @@ Index BulletSimulation::addRobot(std::shared_ptr<const Robot> robot,
   for (std::size_t i = 0; i < robot->links_.size(); ++i) {
     const Link &link = robot->links_[i];
 
-    auto col_shape = std::make_shared<btCapsuleShapeX>(robot->link_radius_,
-        link.length_);
+    std::shared_ptr<btCollisionShape> col_shape;
+    switch (link.shape_) {
+    case LinkShape::CAPSULE:
+      col_shape = std::make_shared<btCapsuleShapeX>(
+          robot->link_radius_, link.length_);
+      break;
+    case LinkShape::CYLINDER:
+      col_shape = std::make_shared<btCylinderShapeX>(btVector3{
+          0.5 * link.length_, robot->link_radius_, robot->link_radius_});
+      break;
+    default:
+      throw std::runtime_error("Unexpected link shape");
+    }
     Scalar link_mass = link.length_ * robot->link_density_;
     btVector3 link_inertia;
     col_shape->calculateLocalInertia(link_mass, link_inertia);
@@ -81,7 +93,7 @@ Index BulletSimulation::addRobot(std::shared_ptr<const Robot> robot,
           /*thisPivotToThisComOffset=*/com_offset);
         break;
       default:
-        assert(false && "Robot contains unexpected joint type");
+        throw std::runtime_error("Unexpected joint type");
         break;
       }
     }

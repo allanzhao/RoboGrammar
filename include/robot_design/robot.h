@@ -7,13 +7,17 @@
 
 namespace robot_design {
 
+enum class LinkShape : Index { CAPSULE, CYLINDER };
+
 enum class JointType : Index { FREE, HINGE, FIXED };
 
 struct Link {
   Link(Index parent, JointType joint_type, Scalar joint_pos,
-       const Quaternion &joint_rot, const Vector3 &joint_axis, Scalar length)
+       const Quaternion &joint_rot, const Vector3 &joint_axis, LinkShape shape,
+       Scalar length)
       : parent_(parent), joint_type_(joint_type), joint_pos_(joint_pos),
-        joint_rot_(joint_rot), joint_axis_(joint_axis), length_(length) {}
+        joint_rot_(joint_rot), joint_axis_(joint_axis), shape_(shape),
+        length_(length) {}
 
   // Parent link index (-1 for base link)
   Index parent_;
@@ -25,6 +29,8 @@ struct Link {
   Quaternion joint_rot_;
   // Joint axis relative to the joint frame (defined by previous 3 parameters)
   Vector3 joint_axis_;
+  // Link shape
+  LinkShape shape_;
   // Link length
   Scalar length_;
 

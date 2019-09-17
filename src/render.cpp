@@ -1,10 +1,10 @@
 #include <cmath>
 #include <cstddef>
-#include <exception>
 #include <fstream>
 #include <robot_design/render.h>
 #include <robot_design/utils.h>
 #include <sstream>
+#include <stdexcept>
 #include <string>
 
 namespace robot_design {
@@ -404,8 +404,9 @@ GLFWRenderer::GLFWRenderer() : z_near_(0.2f), z_far_(20.0f), fov_(M_PI / 3),
 
   // Create meshes
   box_mesh_ = makeBoxMesh();
+  tube_mesh_ = makeTubeMesh(/*n_segments=*/32);
   capsule_end_mesh_ = makeCapsuleEndMesh(/*n_segments=*/32, /*n_rings=*/8);
-  capsule_middle_mesh_ = makeCapsuleMiddleMesh(/*n_segments=*/32);
+  cylinder_end_mesh_ = makeCylinderEndMesh(/*n_segments=*/32);
 
   // Create directional light
   dir_light_ = std::make_shared<DirectionalLight>(
@@ -495,8 +496,18 @@ void GLFWRenderer::draw(const Simulation &sim, const Program &program,
       const Link &link = robot.links_[link_idx];
       Matrix4 link_transform;
       sim.getLinkTransform(robot_idx, link_idx, link_transform);
-      drawCapsule(link_transform.cast<float>(), link.length_ / 2,
-                  robot.link_radius_, program, program_state);
+      switch (link.shape_) {
+      case LinkShape::CAPSULE:
+        drawCapsule(link_transform.cast<float>(), link.length_ / 2,
+                    robot.link_radius_, program, program_state);
+        break;
+      case LinkShape::CYLINDER:
+        drawCylinder(link_transform.cast<float>(), link.length_ / 2,
+                     robot.link_radius_, program, program_state);
+        break;
+      default:
+        throw std::runtime_error("Unexpected link shape");
+      }
     }
   }
 
@@ -510,10 +521,9 @@ void GLFWRenderer::draw(const Simulation &sim, const Program &program,
   }
 }
 
-void GLFWRenderer::drawBox(const Eigen::Matrix4f &transform,
-                           const Eigen::Vector3f &half_extents,
-                           const Program &program,
-                           ProgramState &program_state) const {
+void GLFWRenderer::drawBox(
+    const Eigen::Matrix4f &transform, const Eigen::Vector3f &half_extents,
+    const Program &program, ProgramState &program_state) const {
   Eigen::Affine3f model_transform = Eigen::Affine3f(transform) *
       Eigen::Scaling(half_extents);
   box_mesh_->bind();
@@ -522,32 +532,46 @@ void GLFWRenderer::drawBox(const Eigen::Matrix4f &transform,
   box_mesh_->draw();
 }
 
-void GLFWRenderer::drawCapsule(const Eigen::Matrix4f &transform,
-                               float half_length, float radius,
-                               const Program &program,
-                               ProgramState &program_state) const {
+void GLFWRenderer::drawCapsule(
+    const Eigen::Matrix4f &transform, float half_length, float radius,
+    const Program &program, ProgramState &program_state) const {
+  drawTubeBasedShape(transform, half_length, radius, program, program_state,
+                     *capsule_end_mesh_);
+}
+
+void GLFWRenderer::drawCylinder(
+    const Eigen::Matrix4f &transform, float half_length, float radius,
+    const Program &program, ProgramState &program_state) const {
+  drawTubeBasedShape(transform, half_length, radius, program, program_state,
+                     *cylinder_end_mesh_);
+}
+
+void GLFWRenderer::drawTubeBasedShape(
+    const Eigen::Matrix4f &transform, float half_length, float radius,
+    const Program &program, ProgramState &program_state, const Mesh &end_mesh
+    ) const {
   Eigen::Affine3f right_end_model_transform = Eigen::Affine3f(transform) *
       Eigen::Translation3f(half_length, 0, 0) *
       Eigen::Scaling(radius, radius, radius);
-  capsule_end_mesh_->bind();
+  end_mesh.bind();
   program_state.setModelMatrix(right_end_model_transform.matrix());
   program_state.updateUniforms(program);
-  capsule_end_mesh_->draw();
+  end_mesh.draw();
 
   Eigen::Affine3f left_end_model_transform = Eigen::Affine3f(transform) *
       Eigen::Translation3f(-half_length, 0, 0) *
       Eigen::Scaling(-radius, radius, -radius);
-  capsule_end_mesh_->bind();
+  end_mesh.bind();
   program_state.setModelMatrix(left_end_model_transform.matrix());
   program_state.updateUniforms(program);
-  capsule_end_mesh_->draw();
+  end_mesh.draw();
 
   Eigen::Affine3f middle_model_transform = Eigen::Affine3f(transform) *
       Eigen::Scaling(half_length, radius, radius);
-  capsule_middle_mesh_->bind();
+  tube_mesh_->bind();
   program_state.setModelMatrix(middle_model_transform.matrix());
   program_state.updateUniforms(program);
-  capsule_middle_mesh_->draw();
+  tube_mesh_->draw();
 }
 
 void GLFWRenderer::framebufferSizeCallback(GLFWwindow *window, int width, int height) {
@@ -641,6 +665,35 @@ std::shared_ptr<Mesh> makeBoxMesh() {
   return std::make_shared<Mesh>(positions, normals, indices);
 }
 
+std::shared_ptr<Mesh> makeTubeMesh(int n_segments) {
+  std::vector<float> positions;
+  std::vector<float> normals;
+  std::vector<int> indices;
+
+  // Define two rings of vertices
+  for (int i = 0; i < 2; ++i) {
+    for (int j = 0; j < n_segments; ++j) {
+      float theta = (2 * M_PI) * j / n_segments;
+      float pos[3] = {(i == 0) ? -1.0f : 1.0f, std::cos(theta), std::sin(theta)};
+      float normal[3] = {0, std::cos(theta), std::sin(theta)};
+      positions.insert(positions.end(), std::begin(pos), std::end(pos));
+      normals.insert(normals.end(), std::begin(normal), std::end(normal));
+    }
+  }
+
+  // Define triangles
+  for (int j = 0; j < n_segments; ++j) {
+    int idx_00 = j;
+    int idx_01 = (j + 1) % n_segments;
+    int idx_10 = n_segments + j;
+    int idx_11 = n_segments + (j + 1) % n_segments;
+    int idx[6] = {idx_00, idx_01, idx_10, idx_11, idx_10, idx_01};
+    indices.insert(indices.end(), std::begin(idx), std::end(idx));
+  }
+
+  return std::make_shared<Mesh>(positions, normals, indices);
+}
+
 std::shared_ptr<Mesh> makeCapsuleEndMesh(int n_segments, int n_rings) {
   std::vector<float> positions;
   std::vector<int> indices;
@@ -657,7 +710,7 @@ std::shared_ptr<Mesh> makeCapsuleEndMesh(int n_segments, int n_rings) {
     }
   }
   // Define zenith vertex
-  float pos[3] = {1, 0, 0};
+  float pos[3] = {1.0f, 0.0f, 0.0f};
   positions.insert(positions.end(), std::begin(pos), std::end(pos));
 
   // Define triangles for every ring except the last
@@ -683,29 +736,29 @@ std::shared_ptr<Mesh> makeCapsuleEndMesh(int n_segments, int n_rings) {
   return std::make_shared<Mesh>(positions, positions, indices);
 }
 
-std::shared_ptr<Mesh> makeCapsuleMiddleMesh(int n_segments) {
+std::shared_ptr<Mesh> makeCylinderEndMesh(int n_segments) {
   std::vector<float> positions;
   std::vector<float> normals;
   std::vector<int> indices;
 
-  // Define two rings of vertices
-  for (int i = 0; i < 2; ++i) {
-    for (int j = 0; j < n_segments; ++j) {
-      float theta = (2 * M_PI) * j / n_segments;
-      float pos[3] = {(i == 0) ? -1.0f : 1.0f, std::cos(theta), std::sin(theta)};
-      float normal[3] = {0, std::cos(theta), std::sin(theta)};
-      positions.insert(positions.end(), std::begin(pos), std::end(pos));
-      normals.insert(normals.end(), std::begin(normal), std::end(normal));
-    }
+  // Define a ring of vertices
+  for (int j = 0; j < n_segments; ++j) {
+    float theta = (2 * M_PI) * j / n_segments;
+    float pos[3] = {0.0f, std::cos(theta), std::sin(theta)};
+    float normal[3] = {1.0f, 0.0f, 0.0f};
+    positions.insert(positions.end(), std::begin(pos), std::end(pos));
+    normals.insert(normals.end(), std::begin(normal), std::end(normal));
   }
+
+  // Define a center vertex
+  float pos[3] = {0.0f, 0.0f, 0.0f};
+  float normal[3] = {1.0f, 0.0f, 0.0f};
+  positions.insert(positions.end(), std::begin(pos), std::end(pos));
+  normals.insert(normals.end(), std::begin(normal), std::end(normal));
 
   // Define triangles
   for (int j = 0; j < n_segments; ++j) {
-    int idx_00 = j;
-    int idx_01 = (j + 1) % n_segments;
-    int idx_10 = n_segments + j;
-    int idx_11 = n_segments + (j + 1) % n_segments;
-    int idx[6] = {idx_00, idx_01, idx_10, idx_11, idx_10, idx_01};
+    int idx[3] = {j, (j + 1) % n_segments, n_segments};
     indices.insert(indices.end(), std::begin(idx), std::end(idx));
   }
 

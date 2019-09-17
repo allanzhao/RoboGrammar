@@ -71,7 +71,8 @@ std::shared_ptr<Robot> buildArticulatedRobot(
         robot->links_.emplace_back(
             /*parent=*/state.parent_link_, /*joint_type=*/state.joint_type_,
             /*joint_pos=*/state.joint_pos_, /*joint_rot=*/state.joint_rot_,
-            /*joint_axis=*/state.joint_axis_, /*length=*/0.2);
+            /*joint_axis=*/state.joint_axis_, /*shape=*/LinkShape::CAPSULE,
+            /*length=*/0.2);
         state.parent_link_ = robot->links_.size() - 1;
         state.joint_type_ = JointType::FIXED;
         state.joint_pos_ = 1.0;
