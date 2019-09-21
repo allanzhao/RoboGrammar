@@ -194,8 +194,8 @@ struct DirectionalLight {
       const Eigen::Vector3f &up, GLsizei sm_width, GLsizei sm_height,
       int sm_cascade_count);
   void updateViewMatricesAndSplits(
-      const Eigen::Matrix4f &camera_proj_matrix,
-      const Eigen::Matrix4f &camera_view_matrix, float z_near, float z_far);
+      const Eigen::Matrix4f &camera_view_matrix, float aspect_ratio,
+      float z_near, float z_far, float fov);
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
   Eigen::Vector3f color_;

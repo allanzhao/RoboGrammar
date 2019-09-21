@@ -283,41 +283,44 @@ DirectionalLight::DirectionalLight(
 }
 
 void DirectionalLight::updateViewMatricesAndSplits(
-    const Eigen::Matrix4f &camera_proj_matrix,
-    const Eigen::Matrix4f &camera_view_matrix, float z_near, float z_far) {
-  // Calculate cascade splits in clip space
-  float split_scale = 2.0f / std::log(z_far / z_near);
+    const Eigen::Matrix4f &camera_view_matrix, float aspect_ratio,
+    float z_near, float z_far, float fov) {
+  // Calculate cascade splits in view space
   for (int i = 0; i < sm_cascade_count_ + 1; ++i) {
     float t = static_cast<float>(i) / sm_cascade_count_;
-    sm_cascade_splits_(i) = std::log1p(t * (z_far / z_near - 1.0f)) *
-                            split_scale - 1.0f;
+    sm_cascade_splits_(i) = z_near * std::pow(z_far / z_near, t);
   }
 
-  // Find corners of camera view frustum in world space
-  Eigen::Matrix4f inv_camera_vp_matrix = (
-      camera_proj_matrix * camera_view_matrix).inverse();
-  Eigen::Matrix<float, 4, 8> clip_frustum_corners;
+  Eigen::Affine3f inv_camera_view_tf(camera_view_matrix.inverse());
+  // https://lxjk.github.io/2017/04/15/Calculate-Minimal-Bounding-Sphere-of-Frustum.html
+  float k = std::sqrt(1.0f + aspect_ratio * aspect_ratio) *
+            std::tan(0.5f * fov);
+  float k_sq = k * k;
   for (int i = 0; i < sm_cascade_count_; ++i) {
-    float sn = sm_cascade_splits_(i);      // Near split
-    float sf = sm_cascade_splits_(i + 1);  // Far split
-    clip_frustum_corners << -1, -1, -1, -1, 1, 1, 1, 1,
-                            -1, -1, 1, 1, -1, -1, 1, 1,
-                            sn, sf, sn, sf, sn, sf, sn, sf,
-                            1, 1, 1, 1, 1, 1, 1, 1;
-    Eigen::Matrix<float, 4, 8> world_frustum_corners =
-        inv_camera_vp_matrix * clip_frustum_corners;
-    world_frustum_corners = world_frustum_corners.array().rowwise() /
-                            world_frustum_corners.array().row(3);
-
-    // Fit light view to frustum
-    Eigen::Vector3f lower =
-        world_frustum_corners.topRows<3>().rowwise().minCoeff();
-    Eigen::Vector3f upper =
-        world_frustum_corners.topRows<3>().rowwise().maxCoeff();
+    float z_sn = sm_cascade_splits_(i);      // Near z of frustum segment
+    float z_sf = sm_cascade_splits_(i + 1);  // Far z of frustum segment
+    float z_range = z_sf - z_sn;
+    float z_sum = z_sf + z_sn;
+    // Find a bounding sphere in view space
+    Eigen::Vector3f center;
+    float radius;
+    if (k_sq >= z_range / z_sum) {
+      center = Eigen::Vector3f{0.0f, 0.0f, -z_sf};
+      radius = z_sf * k;
+    } else {
+      center = Eigen::Vector3f{
+          0.0f, 0.0f, -0.5f * z_sum * (1.0f + k_sq)};
+      radius = 0.5f * std::sqrt(
+          z_range * z_range +
+          2.0f * (z_sf * z_sf + z_sn * z_sn) * k_sq +
+          z_sum * z_sum * k_sq * k_sq);
+    }
+    // Transform center of sphere into world space
+    Eigen::Vector3f center_world = inv_camera_view_tf * center;
     view_matrices_.block<4, 4>(0, 4 * i) = Eigen::Affine3f(
+        Eigen::Scaling(1.0f / radius) *
         view_rot_matrix_ *
-        Eigen::Scaling((2.0f / (upper - lower).array()).matrix()) *
-        Eigen::Translation3f(-0.5f * (upper + lower))).matrix();
+        Eigen::Translation3f(-center_world)).matrix();
   }
 }
 
@@ -354,10 +357,8 @@ void ProgramState::updateUniforms(const Program &program) {
   if (dir_light_sm_cascade_splits_.dirty_) {
     // Shader only supports up to 5 shadow map cascades at the moment
     // Only 4 splits are needed to describe 5 cascades, starting from index 1
-    // We also need to remap clip Z coords [-1, 1] to fragment Z coords [0, 1]
     program.setCascadeFarSplits(
-        dir_light_sm_cascade_splits_.value_.segment<4>(1) * 0.5f +
-        Eigen::Vector4f::Constant(0.5f));
+        dir_light_sm_cascade_splits_.value_.segment<4>(1));
   }
 
   proj_matrix_.dirty_ = false;
@@ -371,7 +372,7 @@ void ProgramState::updateUniforms(const Program &program) {
   dir_light_sm_cascade_splits_.dirty_ = false;
 }
 
-GLFWRenderer::GLFWRenderer() : z_near_(0.2f), z_far_(20.0f), fov_(M_PI / 3),
+GLFWRenderer::GLFWRenderer() : z_near_(0.1f), z_far_(100.0f), fov_(M_PI / 3),
                                camera_controller_() {
   if (!glfwInit()) {
     return;
@@ -411,9 +412,9 @@ GLFWRenderer::GLFWRenderer() : z_near_(0.2f), z_far_(20.0f), fov_(M_PI / 3),
   // Create directional light
   dir_light_ = std::make_shared<DirectionalLight>(
       /*color=*/Eigen::Vector3f{1.0f, 1.0f, 1.0f},
-      /*dir=*/Eigen::Vector3f{0.0f, 1.0f, 0.0f},
-      /*up=*/Eigen::Vector3f{0.0f, 0.0f, -1.0f},
-      /*sm_width=*/1024, /*sm_height=*/1024, /*sm_cascade_count=*/5);
+      /*dir=*/Eigen::Vector3f{1.0f, 1.0f, 1.0f},
+      /*up=*/Eigen::Vector3f{0.0f, 1.0f, 0.0f},
+      /*sm_width=*/2048, /*sm_height=*/2048, /*sm_cascade_count=*/5);
 
   // Set up callbacks
   // Allow accessing "this" from static callbacks
@@ -448,12 +449,16 @@ void GLFWRenderer::update(double dt) {
 void GLFWRenderer::render(const Simulation &sim) {
   Eigen::Matrix4f camera_view_matrix;
   camera_controller_.getViewMatrix(camera_view_matrix);
+  float aspect_ratio =
+      static_cast<float>(framebuffer_width_) / framebuffer_height_;
   dir_light_->updateViewMatricesAndSplits(
-      proj_matrix_, camera_view_matrix, z_near_, z_far_);
+      camera_view_matrix, aspect_ratio, z_near_, z_far_, fov_);
 
   // Render shadow map
   dir_light_->sm_framebuffer_->bind();
   glViewport(0, 0, dir_light_->sm_width_, dir_light_->sm_height_);
+  glEnable(GL_POLYGON_OFFSET_FILL);
+  glPolygonOffset(2.0f, 1.0f);
   depth_program_->use();
   ProgramState depth_program_state;
   for (int i = 0; i < dir_light_->sm_cascade_count_; ++i) {
@@ -471,6 +476,7 @@ void GLFWRenderer::render(const Simulation &sim) {
   glViewport(0, 0, framebuffer_width_, framebuffer_height_);
   glClearColor(0.4f, 0.6f, 0.8f, 1.0f);  // Cornflower blue
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  glDisable(GL_POLYGON_OFFSET_FILL);
   default_program_->use();
   ProgramState default_program_state;
   default_program_state.setProjectionMatrix(proj_matrix_);
@@ -632,7 +638,7 @@ void makeOrthographicProjection(float aspect_ratio, float z_near, float z_far,
 void makePerspectiveProjection(float aspect_ratio, float z_near, float z_far,
                                float fov, Eigen::Matrix4f &matrix) {
   float z_range = z_far - z_near;
-  float tan_half_fov = std::tan(fov / 2);
+  float tan_half_fov = std::tan(0.5f * fov);
   matrix << 1 / (tan_half_fov * aspect_ratio), 0, 0, 0,
             0, 1 / tan_half_fov, 0, 0,
             0, 0, -(z_far + z_near) / z_range, -2 * z_far * z_near / z_range,

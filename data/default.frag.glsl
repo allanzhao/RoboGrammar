@@ -2,6 +2,7 @@
 
 const int SHADOW_MAP_CASCADE_COUNT = 5;
 
+in vec3 view_pos;
 in vec3 view_normal;
 in vec3 view_light_dir;
 in vec4 light_frag_pos[SHADOW_MAP_CASCADE_COUNT];
@@ -21,7 +22,7 @@ float computeShadowFactor(vec4 light_frag_pos, int cascade_idx) {
                                 cascade_idx);
   float frag_depth = 0.5 * proj_light_frag_pos.z + 0.5;
   float shadow_map_depth = texture(shadow_map, shadow_map_coords).r;
-  if (frag_depth <= shadow_map_depth + 0.0001) {
+  if (frag_depth <= shadow_map_depth) {
     // Fragment is closer to the light than the shadow map depth
     return 1.0;
   } else {
@@ -33,7 +34,7 @@ void main() {
   vec3 normal = normalize(view_normal);
   vec3 reflect_dir = reflect(-view_light_dir, normal);
   int cascade_idx = int(dot(
-      vec4(greaterThan(gl_FragCoord.zzzz, cascade_far_splits)), vec4(1.0)));
+      vec4(greaterThan(-view_pos.zzzz, cascade_far_splits)), vec4(1.0)));
   float shadow_factor = computeShadowFactor(
       light_frag_pos[cascade_idx], cascade_idx);
 
