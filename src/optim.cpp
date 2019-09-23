@@ -15,7 +15,7 @@ MPPIOptimizer::MPPIOptimizer(
   // Create a separate simulation instance for each sample
   sim_instances_.reserve(sample_count);
   for (int i = 0; i < sample_count; ++i) {
-    sim_instances_.push_back(std::move(make_sim_fn()));
+    sim_instances_.push_back(make_sim_fn());
   }
 
   input_sequence_ = MatrixX::Zero(dof_count, horizon);
