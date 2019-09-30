@@ -44,8 +44,8 @@ FCValueEstimator::FCValueEstimator(const Simulation &sim, Index robot_idx,
 }
 
 int FCValueEstimator::getObservationSize() const {
-  // Joint positions, joint velocities, base position, base rotation matrix
-  return 2 * dof_count_ + 3 + 9;
+  // Joint positions, joint velocities, base Y coordinate, base rotation matrix
+  return 2 * dof_count_ + 1 + 9;
 }
 
 void FCValueEstimator::getObservation(const Simulation &sim,
@@ -54,9 +54,9 @@ void FCValueEstimator::getObservation(const Simulation &sim,
   sim.getJointVelocities(robot_idx_, obs.segment(dof_count_, dof_count_));
   Matrix4 base_transform;
   sim.getLinkTransform(robot_idx_, 0, base_transform);
-  obs.segment(2 * dof_count_, 3) = base_transform.block<3, 1>(0, 3);
+  obs(2 * dof_count_) = base_transform(1, 3);
   Matrix3 base_rotation = base_transform.topLeftCorner<3, 3>();
-  obs.segment(2 * dof_count_ + 3, 9) = Eigen::Map<VectorX>(
+  obs.segment(2 * dof_count_ + 1, 9) = Eigen::Map<VectorX>(
       base_rotation.data(), base_rotation.size());
 }
 

@@ -412,7 +412,7 @@ GLFWRenderer::GLFWRenderer() : z_near_(0.1f), z_far_(100.0f), fov_(M_PI / 3),
   // Create directional light
   dir_light_ = std::make_shared<DirectionalLight>(
       /*color=*/Eigen::Vector3f{1.0f, 1.0f, 1.0f},
-      /*dir=*/Eigen::Vector3f{1.0f, 1.0f, 1.0f},
+      /*dir=*/Eigen::Vector3f{1.0f, 2.0f, 3.0f},
       /*up=*/Eigen::Vector3f{0.0f, 1.0f, 0.0f},
       /*sm_width=*/2048, /*sm_height=*/2048, /*sm_cascade_count=*/5);
 

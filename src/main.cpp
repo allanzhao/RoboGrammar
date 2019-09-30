@@ -101,12 +101,13 @@ int main(int argc, char **argv) {
       *main_sim, /*robot_idx=*/robot_idx, /*device=*/device, /*batch_size=*/64,
       /*epoch_count=*/3);
   int episode_len = 250;
+  int episode_count = 3;
   MatrixX input_sequence(dof_count, episode_len);
   MatrixX obs(value_estimator->getObservationSize(), episode_len + 1);
   VectorX rewards(episode_len);
   VectorX returns(episode_len + 1);
 
-  for (int episode_idx = 0; episode_idx < 3; ++episode_idx) {
+  for (int episode_idx = 0; episode_idx < episode_count; ++episode_idx) {
     std::cout << "Episode " << episode_idx << std::endl;
 
     unsigned int opt_seed = generator();
