@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <args.hxx>
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
@@ -16,12 +17,14 @@ using namespace robot_design;
 
 int main(int argc, char **argv) {
   args::ArgumentParser parser("Robot design search demo.");
-  args::HelpFlag help_flag(parser, "help", "Display this help message",
-                           {'h', "help"});
-  args::Flag verbose_flag(parser, "verbose", "Enable verbose mode",
-                          {'v', "verbose"});
-  args::ValueFlag<unsigned int> seed_flag(parser, "seed", "Random seed",
-                                          {'s', "seed"});
+  args::HelpFlag help_flag(
+      parser, "help", "Display this help message", {'h', "help"});
+  args::Flag verbose_flag(
+      parser, "verbose", "Enable verbose mode", {'v', "verbose"});
+  args::ValueFlag<unsigned int> seed_flag(
+      parser, "seed", "Random seed", {'s', "seed"});
+  args::ValueFlag<unsigned int> jobs_flag(
+      parser, "jobs", "Number of jobs/threads", {'j', "jobs"}, 0);
   args::MapFlag<std::string, torch::DeviceType> device_flag(
       parser, "device", "Torch device (cpu|cuda)", {'d', "device"},
       {{"cpu", torch::kCPU}, {"cuda", torch::kCUDA}}, torch::kCPU);
@@ -96,7 +99,11 @@ int main(int argc, char **argv) {
   std::shared_ptr<Simulation> main_sim = make_sim_fn();
   Index robot_idx = main_sim->findRobotIndex(*robot);
   int dof_count = main_sim->getRobotDofCount(robot_idx);
-  unsigned int thread_count = std::thread::hardware_concurrency();
+  unsigned int thread_count = args::get(jobs_flag);
+  if (thread_count == 0) {
+    // Use the number of hardware threads available, which should be at least 1
+    thread_count = std::max(std::thread::hardware_concurrency(), 1u);
+  }
   auto value_estimator = std::make_shared<FCValueEstimator>(
       *main_sim, /*robot_idx=*/robot_idx, /*device=*/device, /*batch_size=*/64,
       /*epoch_count=*/3);
