@@ -394,12 +394,12 @@ GLFWRenderer::GLFWRenderer() : z_near_(0.1f), z_far_(100.0f), fov_(M_PI / 3),
   glewInit();
 
   // Create default shader program
-  std::string default_vs_source = loadString("data/default.vert.glsl");
-  std::string default_fs_source = loadString("data/default.frag.glsl");
+  std::string default_vs_source = loadString("data/shaders/default.vert.glsl");
+  std::string default_fs_source = loadString("data/shaders/default.frag.glsl");
   default_program_ = std::make_shared<Program>(default_vs_source, default_fs_source);
 
   // Create depth shader program
-  std::string depth_vs_source = loadString("data/depth.vert.glsl");
+  std::string depth_vs_source = loadString("data/shaders/depth.vert.glsl");
   std::string depth_fs_source;  // Empty string (no fragment shader needed)
   depth_program_ = std::make_shared<Program>(depth_vs_source, depth_fs_source);
 
