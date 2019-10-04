@@ -444,15 +444,14 @@ GLFWRenderer::~GLFWRenderer() {
 
 void GLFWRenderer::update(double dt) {
   camera_controller_.update(dt);
+  camera_controller_.getViewMatrix(view_matrix_);
 }
 
 void GLFWRenderer::render(const Simulation &sim) {
-  Eigen::Matrix4f camera_view_matrix;
-  camera_controller_.getViewMatrix(camera_view_matrix);
   float aspect_ratio =
       static_cast<float>(framebuffer_width_) / framebuffer_height_;
   dir_light_->updateViewMatricesAndSplits(
-      camera_view_matrix, aspect_ratio, z_near_, z_far_, fov_);
+      view_matrix_, aspect_ratio, z_near_, z_far_, fov_);
 
   // Render shadow map
   dir_light_->sm_framebuffer_->bind();
@@ -480,7 +479,7 @@ void GLFWRenderer::render(const Simulation &sim) {
   default_program_->use();
   ProgramState default_program_state;
   default_program_state.setProjectionMatrix(proj_matrix_);
-  default_program_state.setViewMatrix(camera_view_matrix);
+  default_program_state.setViewMatrix(view_matrix_);
   default_program_state.setDirectionalLight(*dir_light_);
   dir_light_->sm_depth_array_texture_->bind();
   draw(sim, *default_program_, default_program_state);

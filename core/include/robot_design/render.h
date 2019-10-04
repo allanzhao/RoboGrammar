@@ -306,6 +306,7 @@ private:
   int framebuffer_height_;
   FPSCameraController camera_controller_;
   Eigen::Matrix4f proj_matrix_;
+  Eigen::Matrix4f view_matrix_;
   std::shared_ptr<Program> default_program_;
   std::shared_ptr<Program> depth_program_;
   std::shared_ptr<Mesh> box_mesh_;
