@@ -15,5 +15,7 @@ using Matrix3 = Eigen::Matrix<Scalar, 3, 3>;
 using Matrix4 = Eigen::Matrix<Scalar, 4, 4>;
 using MatrixX = Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>;
 using Quaternion = Eigen::Quaternion<Scalar>;
+using Affine3 = Eigen::Transform<Scalar, 3, Eigen::Affine>;
+using Translation3 = Eigen::Translation<Scalar, 3>;
 
 }  // namespace robot_design

@@ -495,13 +495,16 @@ bool GLFWRenderer::shouldClose() const {
 
 void GLFWRenderer::draw(const Simulation &sim, const Program &program,
                         ProgramState &program_state) const {
-  program_state.setObjectColor({0.45f, 0.5f, 0.55f});  // Slate gray
+  // Draw robots
   for (Index robot_idx = 0; robot_idx < sim.getRobotCount(); ++robot_idx) {
     const Robot &robot = *sim.getRobot(robot_idx);
     for (std::size_t link_idx = 0; link_idx < robot.links_.size(); ++link_idx) {
       const Link &link = robot.links_[link_idx];
       Matrix4 link_transform;
       sim.getLinkTransform(robot_idx, link_idx, link_transform);
+
+      // Draw the link's collision shape
+      program_state.setObjectColor({0.45f, 0.5f, 0.55f});  // Slate gray
       switch (link.shape_) {
       case LinkShape::CAPSULE:
         drawCapsule(link_transform.cast<float>(), link.length_ / 2,
@@ -514,9 +517,31 @@ void GLFWRenderer::draw(const Simulation &sim, const Program &program,
       default:
         throw std::runtime_error("Unexpected link shape");
       }
+
+      // Draw the link's joint
+      program_state.setObjectColor({1.0f, 0.5f, 0.3f});  // Coral
+      Matrix3 joint_axis_rotation =
+          makeVectorToVectorRotation(link.joint_axis_, Vector3::UnitX());
+      Matrix4 joint_transform = (
+          Affine3(link_transform) *
+          Translation3(-link.length_ / 2, 0, 0) *
+          Affine3(joint_axis_rotation)).matrix();
+      switch (link.joint_type_) {
+      case JointType::HINGE:
+        drawCylinder(joint_transform.cast<float>(), robot.link_radius_,
+                     robot.link_radius_, program, program_state);
+        break;
+      case JointType::FREE:
+      case JointType::FIXED:
+        // Nothing to draw
+        break;
+      default:
+        throw std::runtime_error("Unexpected joint type");
+      }
     }
   }
 
+  // Draw props
   program_state.setObjectColor({0.8f, 0.7f, 0.6f});  // Tan
   for (Index prop_idx = 0; prop_idx < sim.getPropCount(); ++prop_idx) {
     const Prop &prop = *sim.getProp(prop_idx);
@@ -769,6 +794,19 @@ std::shared_ptr<Mesh> makeCylinderEndMesh(int n_segments) {
   }
 
   return std::make_shared<Mesh>(positions, normals, indices);
+}
+
+Matrix3 makeVectorToVectorRotation(Vector3 from, Vector3 to) {
+  // https://math.stackexchange.com/questions/180418/calculate-rotation-matrix-to-align-vector-a-to-vector-b-in-3d
+  from.normalize();
+  to.normalize();
+  Vector3 v = from.cross(to);
+  Scalar c = from.dot(to);
+  Matrix3 v_cross;
+  v_cross << 0, -v(2), v(1),
+             v(2), 0, -v(0),
+             -v(1), v(0), 0;
+  return Matrix3::Identity() + v_cross + v_cross * v_cross / (1 + c);
 }
 
 }  // namespace robot_design

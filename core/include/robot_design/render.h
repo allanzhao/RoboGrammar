@@ -329,4 +329,6 @@ std::shared_ptr<Mesh> makeCapsuleEndMesh(int n_segments, int n_rings);
 
 std::shared_ptr<Mesh> makeCylinderEndMesh(int n_segments);
 
+Matrix3 makeVectorToVectorRotation(Vector3 from, Vector3 to);
+
 }  // namespace robot_design
