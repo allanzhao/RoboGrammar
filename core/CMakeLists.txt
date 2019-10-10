@@ -26,7 +26,6 @@ add_subdirectory(${GLFW_ROOT} ${CMAKE_BINARY_DIR}/glfw)
 set(THREADPOOL_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/extern/ThreadPool)
 
 add_library(${LIBRARY_NAME}
-    src/design.cpp
     src/grammar.cpp
     src/optim.cpp
     src/render.cpp
