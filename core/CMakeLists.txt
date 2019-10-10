@@ -23,6 +23,11 @@ find_package(OpenGL REQUIRED)
 set(GLFW_ROOT ${PROJECT_SOURCE_DIR}/extern/glfw)
 add_subdirectory(${GLFW_ROOT} ${CMAKE_BINARY_DIR}/glfw)
 
+set(PEGTL_ROOT ${PROJECT_SOURCE_DIR}/extern/PEGTL)
+set(PEGTL_BUILD_TESTS OFF CACHE BOOL "Build PEGTL test programs")
+set(PEGTL_BUILD_EXAMPLES OFF CACHE BOOL "Build PEGTL example programs")
+add_subdirectory(${PEGTL_ROOT} ${CMAKE_BINARY_DIR}/PEGTL)
+
 set(THREADPOOL_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/extern/ThreadPool)
 
 add_library(${LIBRARY_NAME}
@@ -50,6 +55,10 @@ target_link_libraries(${LIBRARY_NAME} PUBLIC
     ${GLFW_LIBRARIES}
     ${OPENGL_LIBRARIES}
     ${TORCH_LIBRARIES}
+)
+
+target_link_libraries(${LIBRARY_NAME} PRIVATE
+    pegtl
 )
 
 if(MSVC)
