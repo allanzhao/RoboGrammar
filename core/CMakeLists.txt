@@ -31,7 +31,6 @@ add_subdirectory(${PEGTL_ROOT} ${CMAKE_BINARY_DIR}/PEGTL)
 set(THREADPOOL_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/extern/ThreadPool)
 
 add_library(${LIBRARY_NAME}
-    src/grammar.cpp
     src/graph.cpp
     src/optim.cpp
     src/render.cpp
