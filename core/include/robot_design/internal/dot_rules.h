@@ -64,23 +64,36 @@ struct interleaved<Separator, Rule0>
 template <typename... Rules>
 using sseq = interleaved<seps, Rules...>;
 
+// Prevents running actions if backtracking would occur
+template <typename... Rules>
+using guarded = seq<at<Rules...>, Rules...>;
+
 // Core grammar
 struct stmt_list;
 struct attr_list;
+struct begin_subgraph : success {};
 struct subgraph
-    : sseq<opt<sseq<kw_subgraph, opt<id>>>, one<'{'>, stmt_list, one<'}'>> {};
+    : guarded<sseq<begin_subgraph, opt<sseq<kw_subgraph, opt<id>>>, one<'{'>,
+                   stmt_list, one<'}'>>> {};
 struct port
     : sseq<one<':'>, id, opt<sseq<one<':'>, id>>> {};
 struct node_id : sseq<id, opt<port>> {};
-struct node_stmt : sseq<node_id, opt<attr_list>> {};
+struct begin_node_stmt : success {};
+struct node_stmt : guarded<sseq<begin_node_stmt, node_id, opt<attr_list>>> {};
 struct edge_rhs : list<sseq<edge_op, sor<node_id, subgraph>>, seps> {};
-struct edge_stmt : sseq<sor<node_id, subgraph>, edge_rhs, opt<attr_list>> {};
+struct begin_edge_stmt : success {};
+struct edge_stmt
+    : guarded<sseq<begin_edge_stmt, sor<node_id, subgraph>, edge_rhs,
+                   opt<attr_list>>> {};
 struct a_list_key : seq<id> {};
 struct a_list_value : seq<id> {};
 struct a_list_item
     : sseq<a_list_key, one<'='>, a_list_value, opt<one<';', ','>>> {};
 struct a_list : list<a_list_item, seps> {};
-struct attr_list : list<sseq<one<'['>, opt<a_list>, one<']'>>, seps> {};
+struct begin_attr_list : success {};
+struct attr_list
+    : guarded<seq<begin_attr_list, list<sseq<one<'['>, opt<a_list>, one<']'>>,
+                                        seps>>> {};
 struct attr_stmt : sseq<sor<kw_graph, kw_node, kw_edge>, attr_list> {};
 struct graph_attr_stmt : sseq<id, one<'='>, id> {};
 struct stmt

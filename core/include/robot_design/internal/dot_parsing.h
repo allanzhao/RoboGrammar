@@ -23,6 +23,14 @@ template <typename Rule>
 struct dot_action : tao::pegtl::nothing<Rule> {};
 
 template <>
+struct dot_action<dot_rules::begin_attr_list> {
+  template <typename Input>
+  static void apply(const Input &input, State &state) {
+    std::cout << "begin_attr_list" << std::endl;
+  }
+};
+
+template <>
 struct dot_action<dot_rules::a_list_key> {
   template <typename Input>
   static void apply(const Input &input, State &state) {
@@ -42,7 +50,7 @@ template <>
 struct dot_action<dot_rules::a_list_item> {
   template <typename Input>
   static void apply(const Input &input, State &state) {
-    std::cout << "item" << std::endl;
+    std::cout << "a_list_item" << std::endl;
   }
 };
 
@@ -55,10 +63,58 @@ struct dot_action<dot_rules::attr_list> {
 };
 
 template <>
+struct dot_action<dot_rules::begin_edge_stmt> {
+  template <typename Input>
+  static void apply(const Input &input, State &state) {
+    std::cout << "begin_edge_stmt" << std::endl;
+  }
+};
+
+template <>
 struct dot_action<dot_rules::edge_stmt> {
   template <typename Input>
   static void apply(const Input &input, State &state) {
     std::cout << "edge_stmt" << std::endl;
+  }
+};
+
+template <>
+struct dot_action<dot_rules::begin_node_stmt> {
+  template <typename Input>
+  static void apply(const Input &input, State &state) {
+    std::cout << "begin_node_stmt" << std::endl;
+  }
+};
+
+template <>
+struct dot_action<dot_rules::node_stmt> {
+  template <typename Input>
+  static void apply(const Input &input, State &state) {
+    std::cout << "node_stmt" << std::endl;
+  }
+};
+
+template <>
+struct dot_action<dot_rules::begin_subgraph> {
+  template <typename Input>
+  static void apply(const Input &input, State &state) {
+    std::cout << "begin_subgraph" << std::endl;
+  }
+};
+
+template <>
+struct dot_action<dot_rules::subgraph> {
+  template <typename Input>
+  static void apply(const Input &input, State &state) {
+    std::cout << "subgraph" << std::endl;
+  }
+};
+
+template <>
+struct dot_action<dot_rules::graph> {
+  template <typename Input>
+  static void apply(const Input &input, State &state) {
+    std::cout << "graph" << std::endl;
   }
 };
 
