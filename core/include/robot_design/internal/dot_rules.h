@@ -75,8 +75,10 @@ struct node_id : sseq<id, opt<port>> {};
 struct node_stmt : sseq<node_id, opt<attr_list>> {};
 struct edge_rhs : list<sseq<edge_op, sor<node_id, subgraph>>, seps> {};
 struct edge_stmt : sseq<sor<node_id, subgraph>, edge_rhs, opt<attr_list>> {};
+struct a_list_key : seq<id> {};
+struct a_list_value : seq<id> {};
 struct a_list_item
-    : sseq<id, one<'='>, id, opt<one<';', ','>>> {};
+    : sseq<a_list_key, one<'='>, a_list_value, opt<one<';', ','>>> {};
 struct a_list : list<a_list_item, seps> {};
 struct attr_list : list<sseq<one<'['>, opt<a_list>, one<']'>>, seps> {};
 struct attr_stmt : sseq<sor<kw_graph, kw_node, kw_edge>, attr_list> {};
