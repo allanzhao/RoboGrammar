@@ -1,6 +1,6 @@
 #include <args.hxx>
 #include <iostream>
-#include <robot_design/grammar.h>
+#include <robot_design/graph.h>
 #include <robot_design/render.h>
 #include <robot_design/robot.h>
 #include <robot_design/sim.h>
@@ -8,11 +8,11 @@
 using namespace robot_design;
 
 int main(int argc, char **argv) {
-  args::ArgumentParser parser("Robot design rule viewer.");
+  args::ArgumentParser parser("Robot design graph viewer.");
   args::HelpFlag help_flag(
       parser, "help", "Display this help message", {'h', "help"});
-  args::Positional<std::string> rule_file_arg(
-      parser, "rule_file", "Rule file (.dot)", args::Options::Required);
+  args::Positional<std::string> graph_file_arg(
+      parser, "graph_file", "Graph file (.dot)", args::Options::Required);
 
   // Don't show the (overly verbose) message about the '--' flag
   parser.helpParams.showTerminator = false;
@@ -35,7 +35,7 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  std::shared_ptr<Rule> rule = loadRule(args::get(rule_file_arg));
+  std::shared_ptr<Graph> graph = loadGraph(args::get(graph_file_arg));
 
   //// Create a floor
   //std::shared_ptr<Prop> floor = std::make_shared<Prop>(

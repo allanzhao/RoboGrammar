@@ -2,6 +2,7 @@
 
 #include <iostream>  // TODO
 #include <map>
+#include <memory>
 #include <robot_design/internal/dot_rules.h>
 #include <string>
 #include <tao/pegtl.hpp>
@@ -13,7 +14,9 @@ namespace dot_parsing {
 template <typename Rule>
 using dot_selector = tao::pegtl::parse_tree::selector<Rule,
     tao::pegtl::parse_tree::store_content::on<
-        dot_rules::id>,
+        dot_rules::idstring,
+        dot_rules::numeral,
+        dot_rules::dqstring_content>,
     tao::pegtl::parse_tree::remove_content::on<
         dot_rules::a_list_item,
         dot_rules::attr_stmt,

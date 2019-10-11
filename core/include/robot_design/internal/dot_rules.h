@@ -82,7 +82,7 @@ struct attr_list : list<sseq<one<'['>, opt<a_list>, one<']'>>, seps> {};
 struct attr_stmt : sseq<sor<kw_graph, kw_node, kw_edge>, attr_list> {};
 struct graph_attr_stmt : sseq<id, one<'='>, id> {};
 struct stmt
-    : sor<subgraph, graph_attr_stmt, attr_stmt, edge_stmt, node_stmt> {};
+    : sor<edge_stmt, subgraph, graph_attr_stmt, attr_stmt, node_stmt> {};
 struct stmt_list : opt<list<sseq<stmt, opt<one<';'>>>, seps>> {};
 struct graph
     : sseq<opt<kw_strict>, sor<kw_graph, kw_digraph>, opt<id>, one<'{'>,
