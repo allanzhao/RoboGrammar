@@ -72,9 +72,10 @@ using guarded = seq<at<Rules...>, Rules...>;
 struct stmt_list;
 struct attr_list;
 struct begin_subgraph : success {};
+struct subgraph_id : seq<id> {};
 struct subgraph
-    : guarded<sseq<begin_subgraph, opt<sseq<kw_subgraph, opt<id>>>, one<'{'>,
-                   stmt_list, one<'}'>>> {};
+    : guarded<sseq<begin_subgraph, opt<sseq<kw_subgraph, opt<subgraph_id>>>,
+                   one<'{'>, stmt_list, one<'}'>>> {};
 struct port
     : sseq<one<':'>, id, opt<sseq<one<':'>, id>>> {};
 struct node_id : sseq<id, opt<port>> {};
@@ -95,12 +96,15 @@ struct attr_list
     : guarded<seq<begin_attr_list, list<sseq<one<'['>, opt<a_list>, one<']'>>,
                                         seps>>> {};
 struct attr_stmt : sseq<sor<kw_graph, kw_node, kw_edge>, attr_list> {};
-struct graph_attr_stmt : sseq<id, one<'='>, id> {};
+struct graph_attr_key : seq<id> {};
+struct graph_attr_value : seq<id> {};
+struct graph_attr_stmt : sseq<graph_attr_key, one<'='>, graph_attr_value> {};
 struct stmt
     : sor<edge_stmt, subgraph, graph_attr_stmt, attr_stmt, node_stmt> {};
 struct stmt_list : opt<list<sseq<stmt, opt<one<';'>>>, seps>> {};
+struct graph_id : seq<id> {};
 struct graph
-    : sseq<opt<kw_strict>, sor<kw_graph, kw_digraph>, opt<id>, one<'{'>,
+    : sseq<opt<kw_strict>, sor<kw_graph, kw_digraph>, opt<graph_id>, one<'{'>,
            stmt_list, one<'}'>> {};
 
 }  // namespace dot_rules
