@@ -31,4 +31,27 @@ std::shared_ptr<Graph> loadGraph(const std::string &filename) {
   return std::make_shared<Graph>();
 }
 
+std::ostream &operator<<(std::ostream &out, const Node &node) {
+  out << "Node{\"" << node.name_ << "\"}";
+  return out;
+}
+
+std::ostream &operator<<(std::ostream &out, const Edge &edge) {
+  out << "Edge{\"" << edge.head_ << "\", \"" << edge.tail_ << "\"}";
+  return out;
+}
+
+std::ostream &operator<<(std::ostream &out, const Graph &graph) {
+  out << "Graph{\"" << graph.name_ << "\", {" << std::endl;
+  for (const auto &node : graph.nodes_) {
+    out << "    " << node << "," << std::endl;
+  }
+  out << "}, {" << std::endl;
+  for (const auto &edge : graph.edges_) {
+    out << "    " << edge << "," << std::endl;
+  }
+  out << "}}";
+  return out;
+}
+
 }  // namespace robot_design

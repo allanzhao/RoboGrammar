@@ -2,6 +2,7 @@
 
 #include <Eigen/Dense>
 #include <memory>
+#include <ostream>
 #include <robot_design/robot.h>
 #include <string>
 #include <vector>
@@ -59,5 +60,11 @@ struct Graph {
 };
 
 std::shared_ptr<Graph> loadGraph(const std::string &filename);
+
+std::ostream &operator<<(std::ostream &out, const Node &node);
+
+std::ostream &operator<<(std::ostream &out, const Edge &edge);
+
+std::ostream &operator<<(std::ostream &out, const Graph &graph);
 
 }  // namespace robot_design
