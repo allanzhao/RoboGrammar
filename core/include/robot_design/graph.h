@@ -5,10 +5,12 @@
 #include <ostream>
 #include <robot_design/robot.h>
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 namespace robot_design {
 
+using SubgraphIndex = std::size_t;
 using NodeIndex = std::size_t;
 using EdgeIndex = std::size_t;
 
@@ -44,12 +46,14 @@ struct Edge {
   EdgeAttributes attrs_;
 };
 
-// Subgraphs are collections of nodes and edges
+// Subgraphs are collections of nodes and edges with default attributes
 // Nodes and edges may belong to multiple subgraphs
 struct Subgraph {
   std::string name_;
-  std::vector<NodeIndex> nodes_;
-  std::vector<EdgeIndex> edges_;
+  std::unordered_set<NodeIndex> nodes_;
+  std::unordered_set<EdgeIndex> edges_;
+  NodeAttributes node_attrs_;
+  EdgeAttributes edge_attrs_;
 };
 
 struct Graph {

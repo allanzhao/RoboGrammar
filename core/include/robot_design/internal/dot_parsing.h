@@ -1,162 +1,307 @@
 #pragma once
 
 #include <iostream>  // TODO
-#include <map>
+#include <iterator>
 #include <robot_design/graph.h>
 #include <robot_design/internal/dot_rules.h>
 #include <string>
 #include <tao/pegtl.hpp>
+#include <unordered_map>
 #include <vector>
 
 namespace robot_design {
 namespace dot_parsing {
 
-// Additional state is required, because subgraphs provide default attributes
-// for nodes and edges defined within them
 struct SubgraphState {
   Subgraph result_;
-  NodeAttributes node_attributes_;
-  EdgeAttributes edge_attributes_;
 };
 
 struct NodeState {
   Node result_;
 };
 
-// Edge statements may define multiple edges
 struct EdgeState {
-  std::vector<Edge> result_;
+  // Edge statements may define multiple edges
+  std::vector<Edge> results_;
+  // Indices of nodes in the most recent edge_arg
+  std::vector<NodeIndex> edge_arg_nodes_;
 };
 
 struct State {
   Graph result_;
+  // Contents of the latest id
+  std::string id_content_;
+  // Index of the most recently referenced subgraph
+  SubgraphIndex latest_subgraph_index_;
+  // Index of the most recently referenced node
+  NodeIndex latest_node_index_;
   std::vector<SubgraphState> subgraph_states_;
   std::vector<NodeState> node_states_;
   std::vector<EdgeState> edge_states_;
+  std::unordered_map<std::string, SubgraphIndex> subgraph_indices_;
+  std::unordered_map<std::string, NodeIndex> node_indices_;
 };
 
 template <typename Rule>
 struct dot_action : tao::pegtl::nothing<Rule> {};
 
 template <>
+struct dot_action<dot_rules::idstring> {
+  template <typename Input>
+  static void apply(const Input &input, State &state) {
+    state.id_content_ = input.string();
+  }
+};
+
+template <>
+struct dot_action<dot_rules::numeral> {
+  template <typename Input>
+  static void apply(const Input &input, State &state) {
+    state.id_content_ = input.string();
+  }
+};
+
+template <>
+struct dot_action<dot_rules::dqstring::content> {
+  template <typename Input>
+  static void apply(const Input &input, State &state) {
+    state.id_content_ = input.string();
+  }
+};
+
+template <>
 struct dot_action<dot_rules::begin_subgraph> {
   static void apply0(State &state) {
-    // Copy current attribute values to the new subgraph
     SubgraphState &parent_subgraph_state = state.subgraph_states_.back();
-    state.subgraph_states_.push_back({
-        /*result=*/{},
-        /*node_attributes=*/parent_subgraph_state.node_attributes_,
-        /*edge_attributes=*/parent_subgraph_state.edge_attributes_});
+    state.subgraph_states_.push_back({/*result=*/{}});
+    SubgraphState &subgraph_state = state.subgraph_states_.back();
+    // Copy the parent subgraph's attribute values into the new subgraph
+    subgraph_state.result_.node_attrs_ =
+        parent_subgraph_state.result_.node_attrs_;
+    subgraph_state.result_.edge_attrs_ =
+        parent_subgraph_state.result_.edge_attrs_;
   }
 };
 
 template <>
 struct dot_action<dot_rules::subgraph_id> {
-  template <typename Input>
-  static void apply(const Input &input, State &state) {
+  static void apply0(State &state) {
     SubgraphState &subgraph_state = state.subgraph_states_.back();
-    subgraph_state.result_.name_ = input.string();
+    std::string &subgraph_name = state.id_content_;
+    auto elem = state.subgraph_indices_.find(subgraph_name);
+    if (elem != state.subgraph_indices_.end()) {
+      // Subgraph with this name already exists, copy it
+      Subgraph &existing_subgraph = state.result_.subgraphs_[elem->second];
+      subgraph_state.result_ = existing_subgraph;
+    }
+    subgraph_state.result_.name_ = std::move(subgraph_name);
   }
 };
 
 template <>
 struct dot_action<dot_rules::subgraph> {
-  template <typename Input>
-  static void apply(const Input &input, State &state) {
+  static void apply0(State &state) {
     SubgraphState &subgraph_state = state.subgraph_states_.back();
-    state.result_.subgraphs_.push_back(std::move(subgraph_state.result_));
+    auto elem = state.subgraph_indices_.find(subgraph_state.result_.name_);
+    SubgraphIndex subgraph_index;
+    if (elem != state.subgraph_indices_.end()) {
+      // Subgraph with this name already exists, update it
+      subgraph_index = elem->second;
+      Subgraph &existing_subgraph = state.result_.subgraphs_[subgraph_index];
+      existing_subgraph = std::move(subgraph_state.result_);
+    } else {
+      // Add a new subgraph
+      subgraph_index = state.result_.subgraphs_.size();
+      if (!subgraph_state.result_.name_.empty()) {
+        // Store a mapping from this subgraph's name to its index
+        state.subgraph_indices_.insert({
+            subgraph_state.result_.name_, subgraph_index});
+      }
+      state.result_.subgraphs_.push_back(std::move(subgraph_state.result_));
+    }
     state.subgraph_states_.pop_back();
+    state.latest_subgraph_index_ = subgraph_index;
   }
 };
 
 template <>
 struct dot_action<dot_rules::begin_node_stmt> {
-  template <typename Input>
-  static void apply(const Input &input, State &state) {
-    // Copy current node attribute values into the new node
+  static void apply0(State &state) {
     SubgraphState &subgraph_state = state.subgraph_states_.back();
+    // Copy current node attribute values into the new node state
     state.node_states_.push_back({/*result=*/{
-        /*name=*/"", /*attrs=*/subgraph_state.node_attributes_}});
+        /*name=*/"", /*attrs=*/subgraph_state.result_.node_attrs_}});
+  }
+};
+
+template <>
+struct dot_action<dot_rules::node_id> {
+  static void apply0(State &state) {
+    NodeState &node_state = state.node_states_.back();
+    std::string &node_name = state.id_content_;
+    auto elem = state.node_indices_.find(node_name);
+    if (elem != state.node_indices_.end()) {
+      // Node with this name already exists, copy it
+      Node &existing_node = state.result_.nodes_[elem->second];
+      node_state.result_ = existing_node;
+    }
+    node_state.result_.name_ = std::move(node_name);
   }
 };
 
 template <>
 struct dot_action<dot_rules::node_stmt> {
-  template <typename Input>
-  static void apply(const Input &input, State &state) {
+  static void apply0(State &state) {
     NodeState &node_state = state.node_states_.back();
-    state.result_.nodes_.push_back(std::move(node_state.result_));
+    auto elem = state.node_indices_.find(node_state.result_.name_);
+    NodeIndex node_index;
+    if (elem != state.node_indices_.end()) {
+      // Node with this name already exists, update it
+      node_index = elem->second;
+      Node &existing_node = state.result_.nodes_[node_index];
+      existing_node = std::move(node_state.result_);
+    } else {
+      // Add a new node
+      node_index = state.result_.nodes_.size();
+      if (!node_state.result_.name_.empty()) {
+        // Store a mapping from this node's name to its index
+        state.node_indices_.insert({node_state.result_.name_, node_index});
+      }
+      state.result_.nodes_.push_back(std::move(node_state.result_));
+    }
     state.node_states_.pop_back();
+    state.latest_node_index_ = node_index;
 
-    // Add this node to every subgraph on the stack
-    NodeIndex node_index = state.result_.nodes_.size() - 1;
+    // Add this node to all of its containing subgraphs
     for (auto &subgraph_state : state.subgraph_states_) {
-      subgraph_state.result_.nodes_.push_back(
-    SubgraphState &subgraph_state = state.subgraph_states_.back();
-    // TODO
+      subgraph_state.result_.nodes_.insert(node_index);
+    }
+    std::cout << "node_stmt" << std::endl;
+  }
+};
+
+template <>
+struct dot_action<dot_rules::edge_node_stmt>
+    : dot_action<dot_rules::node_stmt> {};
+
+template <>
+struct dot_action<dot_rules::edge_node_arg> {
+  static void apply0(State &state) {
+    EdgeState &edge_state = state.edge_states_.back();
+    if (!edge_state.edge_arg_nodes_.empty()) {
+      // This is not the first argument
+      // Create an edge from every node in the previous argument to this node,
+      // using the current edge attribute values
+      SubgraphState &subgraph_state = state.subgraph_states_.back();
+      for (NodeIndex tail_index : edge_state.edge_arg_nodes_) {
+        edge_state.results_.push_back({
+            /*head=*/state.latest_node_index_,
+            /*tail=*/tail_index,
+            /*attrs=*/subgraph_state.result_.edge_attrs_});
+      }
+    }
+    // Store this argument
+    edge_state.edge_arg_nodes_.clear();
+    edge_state.edge_arg_nodes_.push_back(state.latest_node_index_);
+  }
+};
+
+template <>
+struct dot_action<dot_rules::edge_subgraph_arg> {
+  static void apply0(State &state) {
+    EdgeState &edge_state = state.edge_states_.back();
+    Subgraph &arg_subgraph =
+        state.result_.subgraphs_[state.latest_subgraph_index_];
+    if (!edge_state.edge_arg_nodes_.empty()) {
+      // This is not the first argument
+      // Create an edge from every node in the previous argument to every node
+      // in this argument, using the current edge attribute values
+      SubgraphState &subgraph_state = state.subgraph_states_.back();
+      for (NodeIndex tail_index : edge_state.edge_arg_nodes_) {
+        for (NodeIndex head_index : arg_subgraph.nodes_) {
+          edge_state.results_.push_back({
+              /*head=*/head_index,
+              /*tail=*/tail_index,
+              /*attrs=*/subgraph_state.result_.edge_attrs_});
+        }
+      }
+    }
+    // Store this argument
+    edge_state.edge_arg_nodes_.clear();
+    edge_state.edge_arg_nodes_.insert(
+        edge_state.edge_arg_nodes_.end(), arg_subgraph.nodes_.begin(),
+        arg_subgraph.nodes_.end());
   }
 };
 
 template <>
 struct dot_action<dot_rules::begin_edge_stmt> {
-  template <typename Input>
-  static void apply(const Input &input, State &state) {
-    std::cout << "begin_edge_stmt" << std::endl;
+  static void apply0(State &state) {
+    state.edge_states_.push_back({});
   }
 };
 
 template <>
 struct dot_action<dot_rules::edge_stmt> {
-  template <typename Input>
-  static void apply(const Input &input, State &state) {
-    std::cout << "edge_stmt" << std::endl;
+  static void apply0(State &state) {
+    EdgeState &edge_state = state.edge_states_.back();
+    EdgeIndex start_edge_index = state.result_.edges_.size();
+    // Add the new edges
+    state.result_.edges_.insert(
+        state.result_.edges_.end(),
+        std::make_move_iterator(edge_state.results_.begin()),
+        std::make_move_iterator(edge_state.results_.end()));
+    EdgeIndex end_edge_index = state.result_.edges_.size();
+    state.edge_states_.pop_back();
+
+    // Add these edges to all of their containing subgraphs
+    for (auto &subgraph_state : state.subgraph_states_) {
+      for (EdgeIndex edge_index = start_edge_index; edge_index < end_edge_index;
+           ++edge_index) {
+        subgraph_state.result_.edges_.insert(edge_index);
+      }
+    }
   }
 };
 
 template <>
 struct dot_action<dot_rules::begin_attr_list> {
-  template <typename Input>
-  static void apply(const Input &input, State &state) {
+  static void apply0(State &state) {
     std::cout << "begin_attr_list" << std::endl;
   }
 };
 
 template <>
 struct dot_action<dot_rules::a_list_key> {
-  template <typename Input>
-  static void apply(const Input &input, State &state) {
-    std::cout << "key: " << input.string() << std::endl;
+  static void apply0(State &state) {
+    std::cout << "key: " << state.id_content_ << std::endl;
   }
 };
 
 template <>
 struct dot_action<dot_rules::a_list_value> {
-  template <typename Input>
-  static void apply(const Input &input, State &state) {
-    std::cout << "value: " << input.string() << std::endl;
+  static void apply0(State &state) {
+    std::cout << "value: " << state.id_content_ << std::endl;
   }
 };
 
 template <>
 struct dot_action<dot_rules::a_list_item> {
-  template <typename Input>
-  static void apply(const Input &input, State &state) {
+  static void apply0(State &state) {
     std::cout << "a_list_item" << std::endl;
   }
 };
 
 template <>
 struct dot_action<dot_rules::attr_list> {
-  template <typename Input>
-  static void apply(const Input &input, State &state) {
+  static void apply0(State &state) {
     std::cout << "attr_list" << std::endl;
   }
 };
 
 template <>
 struct dot_action<dot_rules::graph> {
-  template <typename Input>
-  static void apply(const Input &input, State &state) {
+  static void apply0(State &state) {
     std::cout << "graph" << std::endl;
   }
 };

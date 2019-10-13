@@ -6,10 +6,7 @@ namespace robot_design {
 namespace dot_rules {
 
 // Based on https://www.graphviz.org/doc/info/lang.html
-// Changes:
-// 1) Rules modified to reduce backtracking
-// 2) No support for HTML strings
-// 3) No special handling for compass points (simply parsed as IDs)
+// Unsupported features: HTML strings, ports
 
 using namespace tao::pegtl;
 
@@ -76,15 +73,17 @@ struct subgraph_id : seq<id> {};
 struct subgraph
     : guarded<sseq<begin_subgraph, opt<sseq<kw_subgraph, opt<subgraph_id>>>,
                    one<'{'>, stmt_list, one<'}'>>> {};
-struct port
-    : sseq<one<':'>, id, opt<sseq<one<':'>, id>>> {};
-struct node_id : sseq<id, opt<port>> {};
+struct node_id : seq<id> {};
 struct begin_node_stmt : success {};
 struct node_stmt : guarded<sseq<begin_node_stmt, node_id, opt<attr_list>>> {};
-struct edge_rhs : list<sseq<edge_op, sor<node_id, subgraph>>, seps> {};
+struct edge_node_stmt : guarded<begin_node_stmt, node_id> {};
+struct edge_node_arg : seq<edge_node_stmt> {};
+struct edge_subgraph_arg : seq<subgraph> {};
+struct edge_arg : sor<edge_node_arg, edge_subgraph_arg> {};
+struct edge_rhs : list<sseq<edge_op, edge_arg>, seps> {};
 struct begin_edge_stmt : success {};
 struct edge_stmt
-    : guarded<sseq<begin_edge_stmt, sor<node_id, subgraph>, edge_rhs,
+    : guarded<sseq<begin_edge_stmt, edge_arg, edge_rhs,
                    opt<attr_list>>> {};
 struct a_list_key : seq<id> {};
 struct a_list_value : seq<id> {};
