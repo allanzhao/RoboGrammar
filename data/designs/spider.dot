@@ -1,0 +1,24 @@
+digraph spider {
+  subgraph L {
+    robot [label="robot"];
+  }
+
+  subgraph R {
+    body [link_shape="capsule", length=0.5];
+    leg [label="leg"];
+
+    robot -> body;
+
+    // Left legs
+    body -> leg [offset=0.0, axis_angle="0 1 0 120"];
+    body -> leg [offset=0.25, axis_angle="0 1 0 100"];
+    body -> leg [offset=0.75, axis_angle="0 1 0 80"];
+    body -> leg [offset=1.0, axis_angle="0 1 0 60"];
+
+    // Right legs
+    body -> leg [offset=0.0, axis_angle="0 1 0 -120", mirror=true];
+    body -> leg [offset=0.25, axis_angle="0 1 0 -100", mirror=true];
+    body -> leg [offset=0.75, axis_angle="0 1 0 -80", mirror=true];
+    body -> leg [offset=1.0, axis_angle="0 1 0 -60", mirror=true];
+  }
+}
