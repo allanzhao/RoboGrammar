@@ -1,14 +1,18 @@
 #pragma once
 
+#include <cmath>
 #include <Eigen/Dense>
 #include <memory>
 #include <ostream>
 #include <robot_design/robot.h>
 #include <string>
 #include <unordered_set>
+#include <utility>
 #include <vector>
 
 namespace robot_design {
+
+constexpr Scalar RAD_PER_DEG = M_PI / 180;
 
 using SubgraphIndex = std::size_t;
 using NodeIndex = std::size_t;
@@ -23,6 +27,8 @@ struct NodeAttributes {
   Scalar length_;
 
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+
+  void load(const std::vector<std::pair<std::string, std::string>> &attr_list);
 };
 
 struct Node {
@@ -38,6 +44,8 @@ struct EdgeAttributes {
   Scalar scale_;
 
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+
+  void load(const std::vector<std::pair<std::string, std::string>> &attr_list);
 };
 
 struct Edge {

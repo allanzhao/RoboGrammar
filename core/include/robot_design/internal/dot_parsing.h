@@ -7,6 +7,7 @@
 #include <string>
 #include <tao/pegtl.hpp>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 namespace robot_design {
@@ -29,12 +30,18 @@ struct EdgeState {
 
 struct State {
   Graph result_;
-  // Contents of the latest id
+  // Contents of the most recent id
   std::string id_content_;
   // Index of the most recently referenced subgraph
   SubgraphIndex latest_subgraph_index_;
   // Index of the most recently referenced node
   NodeIndex latest_node_index_;
+  // Most recent attribute list
+  std::vector<std::pair<std::string, std::string>> attr_list_;
+  // Most recent attribute key
+  std::string attr_key_;
+  // Most recent attribute value
+  std::string attr_value_;
   std::vector<SubgraphState> subgraph_states_;
   std::vector<NodeState> node_states_;
   std::vector<EdgeState> edge_states_;
@@ -176,7 +183,6 @@ struct dot_action<dot_rules::node_stmt> {
     for (auto &subgraph_state : state.subgraph_states_) {
       subgraph_state.result_.nodes_.insert(node_index);
     }
-    std::cout << "node_stmt" << std::endl;
   }
 };
 
@@ -267,42 +273,78 @@ struct dot_action<dot_rules::edge_stmt> {
 template <>
 struct dot_action<dot_rules::begin_attr_list> {
   static void apply0(State &state) {
-    std::cout << "begin_attr_list" << std::endl;
+    state.attr_list_.clear();
   }
 };
 
 template <>
 struct dot_action<dot_rules::a_list_key> {
   static void apply0(State &state) {
-    std::cout << "key: " << state.id_content_ << std::endl;
+    state.attr_key_ = std::move(state.id_content_);
   }
 };
 
 template <>
 struct dot_action<dot_rules::a_list_value> {
   static void apply0(State &state) {
-    std::cout << "value: " << state.id_content_ << std::endl;
+    state.attr_value_ = std::move(state.id_content_);
   }
 };
 
 template <>
 struct dot_action<dot_rules::a_list_item> {
   static void apply0(State &state) {
-    std::cout << "a_list_item" << std::endl;
+    state.attr_list_.emplace_back(std::move(state.attr_key_),
+                                  std::move(state.attr_value_));
   }
 };
 
 template <>
-struct dot_action<dot_rules::attr_list> {
+struct dot_action<dot_rules::node_attr_list> {
   static void apply0(State &state) {
-    std::cout << "attr_list" << std::endl;
+    std::cout << "=== node_attr_list ===" << std::endl;
+    NodeState &node_state = state.node_states_.back();
+    // Set attributes on the current node
+    node_state.result_.attrs_.load(state.attr_list_);
   }
 };
 
 template <>
-struct dot_action<dot_rules::graph> {
+struct dot_action<dot_rules::edge_attr_list> {
   static void apply0(State &state) {
-    std::cout << "graph" << std::endl;
+    std::cout << "=== edge_attr_list ===" << std::endl;
+    EdgeState &edge_state = state.edge_states_.back();
+    // Set attributes on all of the current edges
+    for (Edge &edge : edge_state.results_) {
+      edge.attrs_.load(state.attr_list_);
+    }
+  }
+};
+
+template <>
+struct dot_action<dot_rules::node_def_attr_list> {
+  static void apply0(State &state) {
+    std::cout << "=== node_def_attr_list ===" << std::endl;
+    SubgraphState &subgraph_state = state.subgraph_states_.back();
+    // Set default node attributes on the current subgraph
+    subgraph_state.result_.node_attrs_.load(state.attr_list_);
+  }
+};
+
+template <>
+struct dot_action<dot_rules::edge_def_attr_list> {
+  static void apply0(State &state) {
+    std::cout << "=== edge_def_attr_list ===" << std::endl;
+    SubgraphState &subgraph_state = state.subgraph_states_.back();
+    // Set default edge attributes on the current subgraph
+    subgraph_state.result_.edge_attrs_.load(state.attr_list_);
+  }
+};
+
+template <>
+struct dot_action<dot_rules::graph_id> {
+  static void apply0(State &state) {
+    state.result_.name_ = std::move(state.id_content_);
   }
 };
 

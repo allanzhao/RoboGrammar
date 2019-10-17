@@ -67,24 +67,6 @@ using guarded = seq<at<Rules...>, Rules...>;
 
 // Core grammar
 struct stmt_list;
-struct attr_list;
-struct begin_subgraph : success {};
-struct subgraph_id : seq<id> {};
-struct subgraph
-    : guarded<sseq<begin_subgraph, opt<sseq<kw_subgraph, opt<subgraph_id>>>,
-                   one<'{'>, stmt_list, one<'}'>>> {};
-struct node_id : seq<id> {};
-struct begin_node_stmt : success {};
-struct node_stmt : guarded<sseq<begin_node_stmt, node_id, opt<attr_list>>> {};
-struct edge_node_stmt : guarded<begin_node_stmt, node_id> {};
-struct edge_node_arg : seq<edge_node_stmt> {};
-struct edge_subgraph_arg : seq<subgraph> {};
-struct edge_arg : sor<edge_node_arg, edge_subgraph_arg> {};
-struct edge_rhs : list<sseq<edge_op, edge_arg>, seps> {};
-struct begin_edge_stmt : success {};
-struct edge_stmt
-    : guarded<sseq<begin_edge_stmt, edge_arg, edge_rhs,
-                   opt<attr_list>>> {};
 struct a_list_key : seq<id> {};
 struct a_list_value : seq<id> {};
 struct a_list_item
@@ -94,7 +76,31 @@ struct begin_attr_list : success {};
 struct attr_list
     : guarded<seq<begin_attr_list, list<sseq<one<'['>, opt<a_list>, one<']'>>,
                                         seps>>> {};
-struct attr_stmt : sseq<sor<kw_graph, kw_node, kw_edge>, attr_list> {};
+struct begin_subgraph : success {};
+struct subgraph_id : seq<id> {};
+struct subgraph
+    : guarded<sseq<begin_subgraph, opt<sseq<kw_subgraph, opt<subgraph_id>>>,
+                   one<'{'>, stmt_list, one<'}'>>> {};
+struct node_id : seq<id> {};
+struct begin_node_stmt : success {};
+struct node_attr_list : seq<attr_list> {};
+struct node_stmt
+    : guarded<sseq<begin_node_stmt, node_id, opt<node_attr_list>>> {};
+struct edge_node_stmt : guarded<begin_node_stmt, node_id> {};
+struct edge_node_arg : seq<edge_node_stmt> {};
+struct edge_subgraph_arg : seq<subgraph> {};
+struct edge_arg : sor<edge_node_arg, edge_subgraph_arg> {};
+struct edge_rhs : list<sseq<edge_op, edge_arg>, seps> {};
+struct begin_edge_stmt : success {};
+struct edge_attr_list : seq<attr_list> {};
+struct edge_stmt
+    : guarded<sseq<begin_edge_stmt, edge_arg, edge_rhs,
+                   opt<edge_attr_list>>> {};
+struct node_def_attr_list : seq<attr_list> {};
+struct edge_def_attr_list : seq<attr_list> {};
+struct attr_stmt
+    : sor<sseq<kw_graph, attr_list>, sseq<kw_node, node_def_attr_list>,
+          sseq<kw_edge, edge_def_attr_list>> {};
 struct graph_attr_key : seq<id> {};
 struct graph_attr_value : seq<id> {};
 struct graph_attr_stmt : sseq<graph_attr_key, one<'='>, graph_attr_value> {};
