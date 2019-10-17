@@ -5,8 +5,8 @@
 #include <memory>
 #include <ostream>
 #include <robot_design/robot.h>
+#include <set>
 #include <string>
-#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -58,8 +58,8 @@ struct Edge {
 // Nodes and edges may belong to multiple subgraphs
 struct Subgraph {
   std::string name_;
-  std::unordered_set<NodeIndex> nodes_;
-  std::unordered_set<EdgeIndex> edges_;
+  std::set<NodeIndex> nodes_;
+  std::set<EdgeIndex> edges_;
   NodeAttributes node_attrs_;
   EdgeAttributes edge_attrs_;
 };
