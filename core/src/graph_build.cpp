@@ -7,7 +7,7 @@ namespace robot_design {
 
 std::shared_ptr<Robot> buildRobot(const Graph &graph) {
   auto robot = std::make_shared<Robot>(
-      /*link_density=*/1.0, /*link_radius=*/0.025, /*friction=*/0.9,
+      /*link_density=*/1.0, /*link_radius=*/0.05, /*friction=*/0.9,
       /*motor_kp=*/2.0, /*motor_kd=*/0.1);
   struct NodeEntry {
     NodeIndex node_;
