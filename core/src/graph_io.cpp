@@ -16,7 +16,7 @@ std::shared_ptr<Graph> loadGraph(const std::string &filename) {
   tao::pegtl::file_input<> input(filename);
   dot_parsing::State state;
   // Create a root subgraph with default attribute values
-  state.subgraph_states_.push_back({/*result=*/{}});
+  state.subgraph_states_.emplace_back();
   dot_parsing::SubgraphState &root_subgraph_state =
       state.subgraph_states_.back();
   root_subgraph_state.result_.node_attrs_ = {

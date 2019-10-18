@@ -78,7 +78,7 @@ struct dot_action<dot_rules::dqstring::content> {
 template <>
 struct dot_action<dot_rules::begin_subgraph> {
   static void apply0(State &state) {
-    state.subgraph_states_.push_back({/*result=*/{}});
+    state.subgraph_states_.emplace_back();
     // Get the second to last element
     // Need to do this after emplace_back, since the vector can resize
     SubgraphState &parent_subgraph_state = state.subgraph_states_.end()[-2];
@@ -244,7 +244,7 @@ struct dot_action<dot_rules::edge_subgraph_arg> {
 template <>
 struct dot_action<dot_rules::begin_edge_stmt> {
   static void apply0(State &state) {
-    state.edge_states_.push_back({});
+    state.edge_states_.emplace_back();
   }
 };
 
