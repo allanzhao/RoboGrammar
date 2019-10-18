@@ -7,7 +7,7 @@
 
 namespace robot_design {
 
-enum class LinkShape : Index { CAPSULE, CYLINDER };
+enum class LinkShape : Index { NONE, CAPSULE, CYLINDER };
 
 enum class JointType : Index { FREE, HINGE, FIXED };
 

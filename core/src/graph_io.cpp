@@ -1,6 +1,5 @@
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
-#include <iostream>
 #include <memory>
 #include <robot_design/graph.h>
 #include <robot_design/internal/dot_parsing.h>
@@ -23,7 +22,7 @@ std::shared_ptr<Graph> loadGraph(const std::string &filename) {
   root_subgraph_state.result_.node_attrs_ = {
       /*joint_type=*/JointType::HINGE,
       /*joint_axis=*/Vector3::UnitZ(),
-      /*shape=*/LinkShape::CAPSULE,
+      /*shape=*/LinkShape::NONE,
       /*length=*/1.0};
   root_subgraph_state.result_.edge_attrs_ = {
       /*joint_pos=*/1.0,
@@ -32,9 +31,7 @@ std::shared_ptr<Graph> loadGraph(const std::string &filename) {
   tao::pegtl::parse<
       tao::pegtl::pad<dot_rules::graph, dot_rules::sep>,
       dot_parsing::dot_action>(input, state);
-  // TODO
-  std::cout << state.result_ << std::endl;
-  return std::make_shared<Graph>();
+  return std::make_shared<Graph>(std::move(state.result_));
 }
 
 void NodeAttributes::load(
@@ -77,7 +74,7 @@ void EdgeAttributes::load(
   for (const auto &attr : attr_list) {
     const std::string &key = attr.first;
     const std::string &value = attr.second;
-    if (key == "joint_pos") {
+    if (key == "offset") {
       std::istringstream in(value);
       in >> joint_pos_;
     } else if (key == "axis_angle") {

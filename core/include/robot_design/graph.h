@@ -73,6 +73,8 @@ struct Graph {
 
 std::shared_ptr<Graph> loadGraph(const std::string &filename);
 
+std::shared_ptr<Robot> buildRobot(const Graph &graph);
+
 std::ostream &operator<<(std::ostream &out, const Node &node);
 
 std::ostream &operator<<(std::ostream &out, const Edge &edge);
