@@ -27,8 +27,6 @@ struct NodeAttributes {
   Scalar length_;
 
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
-
-  void load(const std::vector<std::pair<std::string, std::string>> &attr_list);
 };
 
 struct Node {
@@ -44,8 +42,6 @@ struct EdgeAttributes {
   Scalar scale_;
 
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
-
-  void load(const std::vector<std::pair<std::string, std::string>> &attr_list);
 };
 
 struct Edge {
@@ -74,6 +70,14 @@ struct Graph {
 std::shared_ptr<Graph> loadGraph(const std::string &filename);
 
 std::shared_ptr<Robot> buildRobot(const Graph &graph);
+
+void loadNodeAttributes(
+    NodeAttributes &node_attrs,
+    const std::vector<std::pair<std::string, std::string>> &attr_list);
+
+void loadEdgeAttributes(
+    EdgeAttributes &edge_attrs,
+    const std::vector<std::pair<std::string, std::string>> &attr_list);
 
 std::ostream &operator<<(std::ostream &out, const Node &node);
 
