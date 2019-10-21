@@ -63,10 +63,11 @@ struct BulletPropWrapper {
 };
 
 struct BulletSavedState {
-  BulletSavedState() : serializer_(), bullet_file_() {}
+  BulletSavedState() {}
   BulletSavedState(std::shared_ptr<btSerializer> serializer,
                    std::shared_ptr<bParse::btBulletFile> bullet_file)
-      : serializer_(serializer), bullet_file_(bullet_file) {}
+      : serializer_(std::move(serializer)),
+        bullet_file_(std::move(bullet_file)) {}
   std::shared_ptr<btSerializer> serializer_;
   std::shared_ptr<bParse::btBulletFile> bullet_file_;
 };
