@@ -38,6 +38,7 @@ std::vector<Subgraph> findMatches(const Graph &source, const Graph &pattern) {
     }
 
     // Edges in pattern incident on i must also be present in source
+    bool edge_fail = false;
     for (const Edge &pattern_edge : pattern.edges_) {
       if (pattern_edge.head_ == i && pattern_edge.tail_ <= i) {
         // Pattern edge i_tail -> i requires source edge k_tail -> k
@@ -47,8 +48,8 @@ std::vector<Subgraph> findMatches(const Graph &source, const Graph &pattern) {
                 source_edge.head_ == k && source_edge_.tail_ == k_tail; }
         if (it == source.edges_.end()) {
           // No such source edge exists
-          ++k;
-          continue;
+          edge_fail = true;
+          break;
         }
       } else if (pattern_edge.tail_ == i && pattern_edge.head_ <= i) {
         // Pattern edge i -> i_head requires source edge k -> k_head
@@ -58,10 +59,14 @@ std::vector<Subgraph> findMatches(const Graph &source, const Graph &pattern) {
                 source_edge.tail_ == k && source_edge_.head_ == k_head; }
         if (it == source.edges_.end()) {
           // No such source edge exists
-          ++k;
-          continue;
+          edge_fail = true;
+          break;
         }
       }
+    }
+    if (edge_fail) {
+      ++k;
+      continue;
     }
 
     // Partial match is consistent with pattern
