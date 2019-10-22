@@ -1,10 +1,11 @@
 #include <algorithm>
+#include <iostream>  // TODO
 #include <robot_design/graph.h>
 #include <vector>
 
 namespace robot_design {
 
-std::vector<Subgraph> findMatches(const Graph &source, const Graph &pattern) {
+void findMatches(const Graph &source, const Graph &pattern) {
   // Assume there is at least one node in pattern
   struct PartialMatch {
     // Node i in pattern maps to node_mapping_[i] in source
@@ -31,7 +32,8 @@ std::vector<Subgraph> findMatches(const Graph &source, const Graph &pattern) {
       continue;
     }
 
-    if (std::find(pm.node_mapping_.begin(), pm.node_mapping_.end() - 1, k)) {
+    if (std::find(pm.node_mapping_.begin(), pm.node_mapping_.end() - 1, k) !=
+        pm.node_mapping_.end() - 1) {
       // Node k in source was already used
       ++k;
       continue;
@@ -45,7 +47,8 @@ std::vector<Subgraph> findMatches(const Graph &source, const Graph &pattern) {
         NodeIndex k_tail = pm.node_mapping_[pattern_edge.tail_];
         auto it = std::find_if(source.edges_.begin(), source.edges_.end(),
             [=] (const Edge &source_edge) {
-                source_edge.head_ == k && source_edge_.tail_ == k_tail; }
+                return source_edge.head_ == k &&
+                       source_edge.tail_ == k_tail; });
         if (it == source.edges_.end()) {
           // No such source edge exists
           edge_fail = true;
@@ -56,7 +59,8 @@ std::vector<Subgraph> findMatches(const Graph &source, const Graph &pattern) {
         NodeIndex k_head = pm.node_mapping_[pattern_edge.head_];
         auto it = std::find_if(source.edges_.begin(), source.edges_.end(),
             [=] (const Edge &source_edge) {
-                source_edge.tail_ == k && source_edge_.head_ == k_head; }
+                return source_edge.tail_ == k &&
+                       source_edge.head_ == k_head; });
         if (it == source.edges_.end()) {
           // No such source edge exists
           edge_fail = true;
@@ -74,6 +78,10 @@ std::vector<Subgraph> findMatches(const Graph &source, const Graph &pattern) {
     if (pm.node_mapping_.size() == pattern.nodes_.size()) {
       // Match is complete
       // TODO: output match
+      for (NodeIndex source_node : pm.node_mapping_) {
+        std::cout << source_node << " ";
+      }
+      std::cout << std::endl;
       ++k;
     } else {
       // Recurse
