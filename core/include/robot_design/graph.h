@@ -12,8 +12,6 @@
 
 namespace robot_design {
 
-constexpr Scalar RAD_PER_DEG = M_PI / 180;
-
 using SubgraphIndex = std::size_t;
 using NodeIndex = std::size_t;
 using EdgeIndex = std::size_t;

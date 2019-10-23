@@ -12,6 +12,8 @@
 
 namespace robot_design {
 
+constexpr Scalar RAD_PER_DEG = M_PI / 180;
+
 std::shared_ptr<Graph> loadGraph(const std::string &filename) {
   tao::pegtl::file_input<> input(filename);
   dot_parsing::State state;
