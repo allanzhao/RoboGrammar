@@ -59,8 +59,8 @@ int main(int argc, char **argv) {
   // Set Torch random seed
   torch::manual_seed(generator());
 
-  std::shared_ptr<Graph> graph = loadGraph(args::get(graph_file_arg));
-  std::shared_ptr<Robot> robot = buildRobot(*graph);
+  Graph graph = loadGraph(args::get(graph_file_arg));
+  std::shared_ptr<Robot> robot = std::make_shared<Robot>(buildRobot(graph));
 
   // Create a floor
   std::shared_ptr<Prop> floor = std::make_shared<Prop>(

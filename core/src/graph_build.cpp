@@ -5,10 +5,9 @@
 
 namespace robot_design {
 
-std::shared_ptr<Robot> buildRobot(const Graph &graph) {
-  auto robot = std::make_shared<Robot>(
-      /*link_density=*/1.0, /*link_radius=*/0.05, /*friction=*/0.9,
-      /*motor_kp=*/2.0, /*motor_kd=*/0.1);
+Robot buildRobot(const Graph &graph) {
+  Robot robot(/*link_density=*/1.0, /*link_radius=*/0.05, /*friction=*/0.9,
+              /*motor_kp=*/2.0, /*motor_kd=*/0.1);
   struct NodeEntry {
     NodeIndex node_;
     // Arguments for link construction
@@ -26,8 +25,8 @@ std::shared_ptr<Robot> buildRobot(const Graph &graph) {
     NodeEntry &entry = entries_to_expand.front();
     const Node &node = graph.nodes_[entry.node_];
     // Add a link corresponding to this node
-    Index link_index = robot->links_.size();
-    robot->links_.emplace_back(
+    Index link_index = robot.links_.size();
+    robot.links_.emplace_back(
         /*parent=*/entry.parent_link_, /*joint_type=*/node.attrs_.joint_type_,
         /*joint_pos=*/entry.joint_pos_, /*joint_rot=*/entry.joint_rot_,
         /*joint_axis=*/node.attrs_.joint_axis_, /*shape=*/node.attrs_.shape_,

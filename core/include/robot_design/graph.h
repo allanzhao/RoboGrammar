@@ -65,15 +65,13 @@ struct Graph {
   std::vector<Subgraph> subgraphs_;
 };
 
-std::shared_ptr<Graph> loadGraph(const std::string &filename);
+Graph loadGraph(const std::string &filename);
 
-std::shared_ptr<Robot> buildRobot(const Graph &graph);
-
-void loadNodeAttributes(
+void updateNodeAttributes(
     NodeAttributes &node_attrs,
     const std::vector<std::pair<std::string, std::string>> &attr_list);
 
-void loadEdgeAttributes(
+void updateEdgeAttributes(
     EdgeAttributes &edge_attrs,
     const std::vector<std::pair<std::string, std::string>> &attr_list);
 
@@ -82,5 +80,9 @@ std::ostream &operator<<(std::ostream &out, const Node &node);
 std::ostream &operator<<(std::ostream &out, const Edge &edge);
 
 std::ostream &operator<<(std::ostream &out, const Graph &graph);
+
+Robot buildRobot(const Graph &graph);
+
+void findMatches(const Graph &source, const Graph &pattern);
 
 }  // namespace robot_design

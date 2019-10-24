@@ -305,7 +305,7 @@ struct dot_action<dot_rules::node_attr_list> {
   static void apply0(State &state) {
     NodeState &node_state = state.node_states_.back();
     // Set attributes on the current node
-    loadNodeAttributes(node_state.result_.attrs_, state.attr_list_);
+    updateNodeAttributes(node_state.result_.attrs_, state.attr_list_);
   }
 };
 
@@ -315,7 +315,7 @@ struct dot_action<dot_rules::edge_attr_list> {
     EdgeState &edge_state = state.edge_states_.back();
     // Set attributes on all of the current edges
     for (Edge &edge : edge_state.results_) {
-      loadEdgeAttributes(edge.attrs_, state.attr_list_);
+      updateEdgeAttributes(edge.attrs_, state.attr_list_);
     }
   }
 };
@@ -325,7 +325,7 @@ struct dot_action<dot_rules::node_def_attr_list> {
   static void apply0(State &state) {
     SubgraphState &subgraph_state = state.subgraph_states_.back();
     // Set default node attributes on the current subgraph
-    loadNodeAttributes(subgraph_state.result_.node_attrs_, state.attr_list_);
+    updateNodeAttributes(subgraph_state.result_.node_attrs_, state.attr_list_);
   }
 };
 
@@ -334,7 +334,7 @@ struct dot_action<dot_rules::edge_def_attr_list> {
   static void apply0(State &state) {
     SubgraphState &subgraph_state = state.subgraph_states_.back();
     // Set default edge attributes on the current subgraph
-    loadEdgeAttributes(subgraph_state.result_.edge_attrs_, state.attr_list_);
+    updateEdgeAttributes(subgraph_state.result_.edge_attrs_, state.attr_list_);
   }
 };
 

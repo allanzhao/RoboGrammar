@@ -14,7 +14,7 @@ namespace robot_design {
 
 constexpr Scalar RAD_PER_DEG = M_PI / 180;
 
-std::shared_ptr<Graph> loadGraph(const std::string &filename) {
+Graph loadGraph(const std::string &filename) {
   tao::pegtl::file_input<> input(filename);
   dot_parsing::State state;
   // Create a root subgraph with default attribute values
@@ -33,10 +33,10 @@ std::shared_ptr<Graph> loadGraph(const std::string &filename) {
   tao::pegtl::parse<
       tao::pegtl::pad<dot_rules::graph, dot_rules::sep>,
       dot_parsing::dot_action>(input, state);
-  return std::make_shared<Graph>(std::move(state.result_));
+  return std::move(state.result_);
 }
 
-void loadNodeAttributes(
+void updateNodeAttributes(
     NodeAttributes &node_attrs,
     const std::vector<std::pair<std::string, std::string>> &attr_list) {
   for (const auto &attr : attr_list) {
@@ -73,7 +73,7 @@ void loadNodeAttributes(
   }
 }
 
-void loadEdgeAttributes(
+void updateEdgeAttributes(
     EdgeAttributes &edge_attrs,
     const std::vector<std::pair<std::string, std::string>> &attr_list) {
   for (const auto &attr : attr_list) {
