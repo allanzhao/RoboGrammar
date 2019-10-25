@@ -1,7 +1,6 @@
 #include <cmath>
 #include <cstddef>
 #include <fstream>
-#include <iostream>
 #include <robot_design/render.h>
 #include <robot_design/utils.h>
 #include <sstream>
@@ -12,12 +11,6 @@ namespace robot_design {
 
 const VertexAttribute ATTRIB_POSITION(0, "model_position");
 const VertexAttribute ATTRIB_NORMAL(1, "model_normal");
-
-static void GLAPIENTRY debugMessageCallback(
-    GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length,
-    const GLchar *message, const void *userParam) {
-  std::cerr << "GL debug message: " << message << std::endl;
-}
 
 Program::Program(const std::string &vertex_shader_source,
                  const std::string &fragment_shader_source)
@@ -399,10 +392,6 @@ GLFWRenderer::GLFWRenderer() : z_near_(0.1f), z_far_(100.0f), fov_(M_PI / 3),
   // Load all available extensions even if they are not in the extensions string
   glewExperimental = GL_TRUE;
   glewInit();
-
-  // Enable debug output
-  glEnable(GL_DEBUG_OUTPUT);
-  glDebugMessageCallback(debugMessageCallback, 0);
 
   // Create default shader program
   std::string default_vs_source = loadString("data/shaders/default.vert.glsl");
