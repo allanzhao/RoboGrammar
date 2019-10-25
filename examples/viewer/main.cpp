@@ -62,6 +62,19 @@ int main(int argc, char **argv) {
   Graph graph = loadGraph(args::get(graph_file_arg));
   std::shared_ptr<Robot> robot = std::make_shared<Robot>(buildRobot(graph));
 
+  Graph pattern = {
+      /*name=*/"pattern",
+      /*nodes=*/{Node{"a"}, Node{"b"}, Node{"c"}},
+      /*edges=*/{},
+      /*subgraphs=*/{}};
+  std::vector<GraphMatch> matches = findMatches(graph, pattern);
+  for (auto &match : matches) {
+    for (NodeIndex k : match.node_mapping_) {
+      std::cout << k << " ";
+    }
+    std::cout << std::endl;
+  }
+
   // Create a floor
   std::shared_ptr<Prop> floor = std::make_shared<Prop>(
       /*density=*/0.0,  // static

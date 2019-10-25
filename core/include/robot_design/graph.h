@@ -65,6 +65,11 @@ struct Graph {
   std::vector<Subgraph> subgraphs_;
 };
 
+struct GraphMatch {
+  // Node i in the pattern graph maps to node_mapping_[i] in the target graph
+  std::vector<NodeIndex> node_mapping_;
+};
+
 Graph loadGraph(const std::string &filename);
 
 void updateNodeAttributes(
@@ -83,6 +88,6 @@ std::ostream &operator<<(std::ostream &out, const Graph &graph);
 
 Robot buildRobot(const Graph &graph);
 
-void findMatches(const Graph &source, const Graph &pattern);
+std::vector<GraphMatch> findMatches(const Graph &target, const Graph &pattern);
 
 }  // namespace robot_design
