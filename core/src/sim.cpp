@@ -120,7 +120,7 @@ Index BulletSimulation::addRobot(std::shared_ptr<const Robot> robot,
     collider->setFriction(robot->friction_);
     world_->addCollisionObject(collider.get(),
                                /*collisionFilterGroup=*/1,
-                               /*collisionFilterMask=*/2);
+                               /*collisionFilterMask=*/3);
     if (i == 0) {
       wrapper.multi_body_->setBaseCollider(collider.get());
     } else {

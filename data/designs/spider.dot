@@ -1,9 +1,9 @@
 digraph spider {
   {
     node [link_shape="capsule"];
-    body [joint_type="free", length=0.2];
-    leg [joint_type="hinge", joint_axis="0 1 0", length=0.1];
-    femur [joint_type="fixed", length=0.2];
+    body [joint_type="free", length=0.4];
+    leg [joint_type="fixed", length=0.15];
+    femur [joint_type="hinge", joint_axis="0 1 0", length=0.2];
     tibia [joint_type="hinge", joint_axis="0 0 1", length=0.2];
     metatarsus [joint_type="hinge", joint_axis="0 0 1", length=0.2];
     tarsus [joint_type="fixed", length=0.05];
