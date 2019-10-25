@@ -29,13 +29,6 @@ std::vector<GraphMatch> findMatches(const Graph &target, const Graph &pattern) {
       continue;
     }
 
-    if (std::find(pm.node_mapping_.begin(), pm.node_mapping_.end() - 1, k) !=
-        pm.node_mapping_.end() - 1) {
-      // Node k in source was already used
-      ++k;
-      continue;
-    }
-
     // Edges in pattern incident on i must also be present in target
     bool edge_fail = false;
     for (const Edge &pattern_edge : pattern.edges_) {
