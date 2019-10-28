@@ -90,6 +90,6 @@ std::ostream &operator<<(std::ostream &out, const Graph &graph);
 
 Robot buildRobot(const Graph &graph);
 
-std::vector<GraphMatch> findMatches(const Graph &target, const Graph &pattern);
+std::vector<GraphMatch> findMatches(const Graph &pattern, const Graph &target);
 
 }  // namespace robot_design

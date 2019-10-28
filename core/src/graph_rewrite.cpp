@@ -4,7 +4,7 @@
 
 namespace robot_design {
 
-std::vector<GraphMatch> findMatches(const Graph &target, const Graph &pattern) {
+std::vector<GraphMatch> findMatches(const Graph &pattern, const Graph &target) {
   assert(pattern.nodes_.size() >= 1);
 
   // Stack for backtracking, initialized with the first partial match to try

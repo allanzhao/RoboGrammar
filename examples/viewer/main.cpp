@@ -67,7 +67,7 @@ int main(int argc, char **argv) {
       /*nodes=*/{Node{"a"}, Node{"b"}, Node{"c"}},
       /*edges=*/{{0, 1}},
       /*subgraphs=*/{}};
-  std::vector<GraphMatch> matches = findMatches(graph, pattern);
+  std::vector<GraphMatch> matches = findMatches(pattern, graph);
   for (auto &match : matches) {
     for (NodeIndex k : match.node_mapping_) {
       std::cout << k << " ";
