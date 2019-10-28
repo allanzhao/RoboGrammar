@@ -66,8 +66,21 @@ std::vector<GraphMatch> findMatches(const Graph &target, const Graph &pattern) {
     // Partial match is consistent with pattern
 
     if (pm.node_mapping_.size() == pattern.nodes_.size()) {
-      // Match is complete
+      // Node matching is complete, fill in edge matches
       matches.push_back(pm);
+      GraphMatch &new_match = matches.back();
+      new_match.edge_mapping_.resize(pattern.edges_.size());
+      for (EdgeIndex j = 0; j < pattern.edges_.size(); ++j) {
+        const Edge &pattern_edge = pattern.edges_[j];
+        NodeIndex k_head = new_match.node_mapping_[pattern_edge.head_];
+        NodeIndex k_tail = new_match.node_mapping_[pattern_edge.tail_];
+        for (EdgeIndex l = 0; l < target.edges_.size(); ++l) {
+          const Edge &target_edge = target.edges_[l];
+          if (target_edge.head_ == k_head && target_edge.tail_ == k_tail) {
+            new_match.edge_mapping_[j].push_back(l);
+          }
+        }
+      }
       ++k;
     } else {
       // Recurse

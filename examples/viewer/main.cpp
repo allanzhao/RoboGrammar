@@ -65,7 +65,7 @@ int main(int argc, char **argv) {
   Graph pattern = {
       /*name=*/"pattern",
       /*nodes=*/{Node{"a"}, Node{"b"}, Node{"c"}},
-      /*edges=*/{},
+      /*edges=*/{{0, 1}},
       /*subgraphs=*/{}};
   std::vector<GraphMatch> matches = findMatches(graph, pattern);
   for (auto &match : matches) {
@@ -73,6 +73,12 @@ int main(int argc, char **argv) {
       std::cout << k << " ";
     }
     std::cout << std::endl;
+    for (auto &target_edges : match.edge_mapping_) {
+      for (EdgeIndex l : target_edges) {
+        std::cout << graph.edges_[l].tail_ << " -> " << graph.edges_[l].head_ << ", ";
+      }
+      std::cout << std::endl;
+    }
   }
 
   // Create a floor

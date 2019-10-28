@@ -68,6 +68,8 @@ struct Graph {
 struct GraphMatch {
   // Node i in the pattern graph maps to node_mapping_[i] in the target graph
   std::vector<NodeIndex> node_mapping_;
+  // Edge j in the pattern graph maps to edge_mapping_[j] in the target graph
+  std::vector<std::vector<NodeIndex>> edge_mapping_;
 };
 
 Graph loadGraph(const std::string &filename);
