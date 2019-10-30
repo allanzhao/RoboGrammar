@@ -64,7 +64,7 @@ int main(int argc, char **argv) {
 
   Graph pattern = {
       /*name=*/"pattern",
-      /*nodes=*/{Node{"a"}, Node{"b"}, Node{"c"}},
+      /*nodes=*/{Node{"a"}, Node{"b"}},
       /*edges=*/{{0, 1}},
       /*subgraphs=*/{}};
   std::vector<GraphMapping> matches = findMatches(pattern, graph);
@@ -83,8 +83,16 @@ int main(int argc, char **argv) {
     }
   }
   */
+  Graph rhs = {
+      /*name=*/"rhs",
+      /*nodes=*/{Node{"a"}, Node{"b"}},
+      /*edges=*/{},
+      /*subgraphs=*/{}};
+  Rule rule = {pattern, rhs, rhs,
+      GraphMapping{{0, 1}, {}},
+      GraphMapping{{0, 1}, {}}};
   if (!matches.empty()) {
-    Graph result = applyRule(Rule(), graph, matches[0]);
+    Graph result = applyRule(rule, graph, matches[0]);
     std::cout << result << std::endl;
   }
 
