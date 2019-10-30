@@ -65,11 +65,19 @@ struct Graph {
   std::vector<Subgraph> subgraphs_;
 };
 
-struct GraphMatch {
-  // Node i in the pattern graph maps to node_mapping_[i] in the target graph
+struct GraphMapping {
+  // Node i in the domain graph maps to node_mapping_[i] in the codomain graph
   std::vector<NodeIndex> node_mapping_;
-  // Edge j in the pattern graph maps to edge_mapping_[j] in the target graph
+  // Edge l in the domain graph maps to edge_mapping_[l] in the codomain graph
   std::vector<std::vector<NodeIndex>> edge_mapping_;
+};
+
+struct Rule {
+  Graph lhs_;
+  Graph rhs_;
+  Graph common_;
+  GraphMapping common_to_lhs_;
+  GraphMapping common_to_rhs_;
 };
 
 Graph loadGraph(const std::string &filename);
@@ -90,6 +98,10 @@ std::ostream &operator<<(std::ostream &out, const Graph &graph);
 
 Robot buildRobot(const Graph &graph);
 
-std::vector<GraphMatch> findMatches(const Graph &pattern, const Graph &target);
+std::vector<GraphMapping> findMatches(
+    const Graph &pattern, const Graph &target);
+
+Graph applyRule(
+    const Rule &rule, const Graph &target, const GraphMapping &lhs_to_target);
 
 }  // namespace robot_design

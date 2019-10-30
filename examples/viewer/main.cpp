@@ -67,7 +67,9 @@ int main(int argc, char **argv) {
       /*nodes=*/{Node{"a"}, Node{"b"}, Node{"c"}},
       /*edges=*/{{0, 1}},
       /*subgraphs=*/{}};
-  std::vector<GraphMatch> matches = findMatches(pattern, graph);
+  std::vector<GraphMapping> matches = findMatches(pattern, graph);
+  std::cout << graph << std::endl;
+  /*
   for (auto &match : matches) {
     for (NodeIndex k : match.node_mapping_) {
       std::cout << k << " ";
@@ -79,6 +81,11 @@ int main(int argc, char **argv) {
       }
       std::cout << std::endl;
     }
+  }
+  */
+  if (!matches.empty()) {
+    Graph result = applyRule(Rule(), graph, matches[0]);
+    std::cout << result << std::endl;
   }
 
   // Create a floor
