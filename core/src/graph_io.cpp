@@ -27,11 +27,13 @@ std::vector<Graph> loadGraphs(const std::string &filename) {
     dot_parsing::SubgraphState &root_subgraph_state =
         state.subgraph_states_.back();
     root_subgraph_state.result_.node_attrs_ = {
+        /*label=*/"",
         /*joint_type=*/JointType::HINGE,
         /*joint_axis=*/Vector3::UnitZ(),
         /*shape=*/LinkShape::NONE,
         /*length=*/1.0};
     root_subgraph_state.result_.edge_attrs_ = {
+        /*label=*/"",
         /*joint_pos=*/1.0,
         /*joint_rot=*/Quaternion::Identity(),
         /*scale=*/1.0};
@@ -52,7 +54,9 @@ void updateNodeAttributes(
   for (const auto &attr : attr_list) {
     const std::string &key = attr.first;
     const std::string &value = attr.second;
-    if (key == "joint_type") {
+    if (key == "label") {
+      node_attrs.label_ = value;
+    } else if (key == "joint_type") {
       if (value == "free") {
         node_attrs.joint_type_ = JointType::FREE;
       } else if (value == "hinge") {
@@ -89,7 +93,9 @@ void updateEdgeAttributes(
   for (const auto &attr : attr_list) {
     const std::string &key = attr.first;
     const std::string &value = attr.second;
-    if (key == "offset") {
+    if (key == "label") {
+      edge_attrs.label_ = value;
+    } else if (key == "offset") {
       std::istringstream in(value);
       in >> edge_attrs.joint_pos_;
     } else if (key == "axis_angle") {

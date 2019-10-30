@@ -19,6 +19,7 @@ using EdgeIndex = std::size_t;
 // Nodes contain Link attributes which should be shared across all instances
 // See the definition of Link for more information about these attributes
 struct NodeAttributes {
+  std::string label_;
   JointType joint_type_;
   Vector3 joint_axis_;
   LinkShape shape_;
@@ -35,6 +36,7 @@ struct Node {
 // Edges contain Link attributes which are unique to each instance
 // E.g. the rigid transformation relative to the parent link, uniform scaling
 struct EdgeAttributes {
+  std::string label_;
   Scalar joint_pos_;
   Quaternion joint_rot_;
   Scalar scale_;
