@@ -8,6 +8,7 @@
 #include <robot_design/sim.h>
 #include <thread>
 #include <torch/torch.h>
+#include <vector>
 
 using namespace robot_design;
 
@@ -59,7 +60,13 @@ int main(int argc, char **argv) {
   // Set Torch random seed
   torch::manual_seed(generator());
 
-  Graph graph = loadGraph(args::get(graph_file_arg));
+  std::vector<Graph> graphs = loadGraphs(args::get(graph_file_arg));
+  if (graphs.empty()) {
+    std::cerr << "Graph file does not contain any graphs" << std::endl;
+    return 1;
+  }
+
+  Graph &graph = graphs[0];
   std::shared_ptr<Robot> robot = std::make_shared<Robot>(buildRobot(graph));
 
   Graph pattern = {

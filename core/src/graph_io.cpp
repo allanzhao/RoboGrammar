@@ -9,31 +9,41 @@
 #include <sstream>
 #include <stdexcept>
 #include <tao/pegtl.hpp>
+#include <vector>
 
 namespace robot_design {
 
 constexpr Scalar RAD_PER_DEG = M_PI / 180;
 
-Graph loadGraph(const std::string &filename) {
+std::vector<Graph> loadGraphs(const std::string &filename) {
   tao::pegtl::file_input<> input(filename);
-  dot_parsing::State state;
-  // Create a root subgraph with default attribute values
-  state.subgraph_states_.emplace_back();
-  dot_parsing::SubgraphState &root_subgraph_state =
-      state.subgraph_states_.back();
-  root_subgraph_state.result_.node_attrs_ = {
-      /*joint_type=*/JointType::HINGE,
-      /*joint_axis=*/Vector3::UnitZ(),
-      /*shape=*/LinkShape::NONE,
-      /*length=*/1.0};
-  root_subgraph_state.result_.edge_attrs_ = {
-      /*joint_pos=*/1.0,
-      /*joint_rot=*/Quaternion::Identity(),
-      /*scale=*/1.0};
-  tao::pegtl::parse<
-      tao::pegtl::pad<dot_rules::graph, dot_rules::sep>,
-      dot_parsing::dot_action>(input, state);
-  return std::move(state.result_);
+  std::vector<Graph> graphs;
+  bool success;
+
+  do {
+    dot_parsing::State state;
+    // Create a root subgraph with default attribute values
+    state.subgraph_states_.emplace_back();
+    dot_parsing::SubgraphState &root_subgraph_state =
+        state.subgraph_states_.back();
+    root_subgraph_state.result_.node_attrs_ = {
+        /*joint_type=*/JointType::HINGE,
+        /*joint_axis=*/Vector3::UnitZ(),
+        /*shape=*/LinkShape::NONE,
+        /*length=*/1.0};
+    root_subgraph_state.result_.edge_attrs_ = {
+        /*joint_pos=*/1.0,
+        /*joint_rot=*/Quaternion::Identity(),
+        /*scale=*/1.0};
+    success = tao::pegtl::parse<
+        tao::pegtl::pad<dot_rules::graph, dot_rules::sep>,
+        dot_parsing::dot_action>(input, state);
+    if (success) {
+      graphs.push_back(std::move(state.result_));
+    }
+  } while (success);
+
+  return graphs;
 }
 
 void updateNodeAttributes(
