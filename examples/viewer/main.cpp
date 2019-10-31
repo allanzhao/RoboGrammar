@@ -65,17 +65,19 @@ int main(int argc, char **argv) {
     std::cerr << "Graph file does not contain any graphs" << std::endl;
     return 1;
   }
+  std::cout << "Number of graphs: " << graphs.size() << std::endl;
+
+  for (Graph &graph : graphs) {
+    Rule rule = createRuleFromGraph(graph);
+    std::cout << "LHS: " << rule.lhs_ << std::endl;
+    std::cout << "RHS: " << rule.rhs_ << std::endl;
+    std::cout << "common: " << rule.common_ << std::endl;
+    std::cout << std::endl;
+  }
 
   Graph &graph = graphs[0];
   std::shared_ptr<Robot> robot = std::make_shared<Robot>(buildRobot(graph));
 
-  Graph pattern = {
-      /*name=*/"pattern",
-      /*nodes=*/{Node{"a"}, Node{"b"}},
-      /*edges=*/{{0, 1}},
-      /*subgraphs=*/{}};
-  std::vector<GraphMapping> matches = findMatches(pattern, graph);
-  std::cout << graph << std::endl;
   /*
   for (auto &match : matches) {
     for (NodeIndex k : match.node_mapping_) {
@@ -90,18 +92,6 @@ int main(int argc, char **argv) {
     }
   }
   */
-  Graph rhs = {
-      /*name=*/"rhs",
-      /*nodes=*/{Node{"a"}, Node{"b"}},
-      /*edges=*/{},
-      /*subgraphs=*/{}};
-  Rule rule = {pattern, rhs, rhs,
-      GraphMapping{{0, 1}, {}},
-      GraphMapping{{0, 1}, {}}};
-  if (!matches.empty()) {
-    Graph result = applyRule(rule, graph, matches[0]);
-    std::cout << result << std::endl;
-  }
 
   // Create a floor
   std::shared_ptr<Prop> floor = std::make_shared<Prop>(

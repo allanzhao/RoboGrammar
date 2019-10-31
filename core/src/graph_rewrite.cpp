@@ -1,9 +1,124 @@
 #include <algorithm>
 #include <robot_design/graph.h>
+#include <stdexcept>
+#include <unordered_map>
 #include <unordered_set>
 #include <vector>
 
 namespace robot_design {
+
+Rule createRuleFromGraph(const Graph &graph) {
+  Rule rule;
+
+  // Graph must have subgraphs named "L" and "R"
+  const auto lhs_subgraph = std::find_if(
+      graph.subgraphs_.begin(), graph.subgraphs_.end(),
+      [] (const Subgraph &subgraph) { return subgraph.name_ == "L"; });
+  const auto rhs_subgraph = std::find_if(
+      graph.subgraphs_.begin(), graph.subgraphs_.end(),
+      [] (const Subgraph &subgraph) { return subgraph.name_ == "R"; });
+  if (lhs_subgraph == graph.subgraphs_.end() ||
+      rhs_subgraph == graph.subgraphs_.end()) {
+    throw std::runtime_error(
+        "Graph must contain subgraphs named \"L\" and \"R\"");
+  }
+
+  // Mappings from graph node indices to LHS, RHS, and common node indices
+  std::vector<NodeIndex> graph_to_lhs_node(graph.nodes_.size(), -1);
+  std::vector<NodeIndex> graph_to_rhs_node(graph.nodes_.size(), -1);
+  std::vector<NodeIndex> graph_to_common_node(graph.nodes_.size(), -1);
+
+  // Copy nodes into the appropriate graphs in rule, and update the mappings
+  for (NodeIndex i = 0; i < graph.nodes_.size(); ++i) {
+    const Node &node = graph.nodes_[i];
+    bool node_in_lhs = lhs_subgraph->nodes_.count(i) != 0;
+    bool node_in_rhs = rhs_subgraph->nodes_.count(i) != 0;
+    if (node_in_lhs) {
+      rule.lhs_.nodes_.push_back(node);
+      graph_to_lhs_node[i] = rule.lhs_.nodes_.size() - 1;
+    }
+    if (node_in_rhs) {
+      rule.rhs_.nodes_.push_back(node);
+      graph_to_rhs_node[i] = rule.rhs_.nodes_.size() - 1;
+    }
+    if (node_in_lhs && node_in_rhs) {
+      rule.common_.nodes_.push_back(node);
+      rule.common_to_lhs_.node_mapping_.push_back(rule.lhs_.nodes_.size() - 1);
+      rule.common_to_rhs_.node_mapping_.push_back(rule.rhs_.nodes_.size() - 1);
+      graph_to_common_node[i] = rule.common_.nodes_.size() - 1;
+    }
+    if (!node_in_lhs && !node_in_rhs) {
+      throw std::runtime_error(
+          "Node \"" + node.name_ + "\" is in neither the LHS nor the RHS");
+    }
+  }
+
+  // Mappings from labels to edges on the LHS and RHS
+  std::unordered_map<std::string, EdgeIndex> lhs_label_to_edge;
+  std::unordered_map<std::string, EdgeIndex> rhs_label_to_edge;
+
+  // Copy edges into the appropriate graphs in rule, and update the mappings
+  for (EdgeIndex m = 0; m < graph.edges_.size(); ++m) {
+    const Edge &edge = graph.edges_[m];
+    bool edge_in_lhs = lhs_subgraph->edges_.count(m) != 0;
+    bool edge_in_rhs = rhs_subgraph->edges_.count(m) != 0;
+    const std::string &label = edge.attrs_.label_;
+    if (edge_in_lhs) {
+      rule.lhs_.edges_.push_back(edge);
+      Edge &lhs_edge = rule.lhs_.edges_.back();
+      lhs_edge.head_ = graph_to_lhs_node[lhs_edge.head_];
+      lhs_edge.tail_ = graph_to_lhs_node[lhs_edge.tail_];
+      if (!label.empty()) {
+        auto result = lhs_label_to_edge.emplace(label,
+                                                rule.lhs_.edges_.size() - 1);
+        if (!result.second) {
+          throw std::runtime_error(
+              "Edge label \"" + label + "\" is used more than once in the LHS");
+        }
+      }
+    }
+    if (edge_in_rhs) {
+      rule.rhs_.edges_.push_back(edge);
+      Edge &rhs_edge = rule.rhs_.edges_.back();
+      rhs_edge.head_ = graph_to_rhs_node[rhs_edge.head_];
+      rhs_edge.tail_ = graph_to_rhs_node[rhs_edge.tail_];
+      if (!label.empty()) {
+        auto result = rhs_label_to_edge.emplace(label,
+                                                rule.rhs_.edges_.size() - 1);
+        if (!result.second) {
+          throw std::runtime_error(
+              "Edge label \"" + label + "\" is used more than once in the RHS");
+        }
+      }
+    }
+    if (edge_in_lhs && edge_in_rhs) {
+      // Possible using nested subgraphs, but discouraged
+      throw std::runtime_error(
+          "Edge is in both the \"L\" and \"R\" subgraphs, use separate edges "
+          "with the same label instead");
+    }
+    if (!edge_in_lhs && !edge_in_rhs) {
+      throw std::runtime_error("Edge is in neither the LHS nor the RHS");
+    }
+  }
+
+  // Add a common edge for every label which appears on both the LHS and RHS
+  for (const auto &elem_lhs : lhs_label_to_edge) {
+    const std::string &label = elem_lhs.first;
+    EdgeIndex m_lhs = elem_lhs.second;
+    auto it_rhs = rhs_label_to_edge.find(label);
+    if (it_rhs != rhs_label_to_edge.end()) {
+      EdgeIndex m_rhs = it_rhs->second;
+      // Edges in common are not connected to any nodes, use bogus node indices
+      rule.common_.edges_.push_back({/*head=*/0, /*tail=*/0, /*attrs=*/{}});
+      rule.common_.edges_.back().attrs_.label_ = label;
+      rule.common_to_lhs_.edge_mapping_.push_back({m_lhs});
+      rule.common_to_rhs_.edge_mapping_.push_back({m_rhs});
+    }
+  }
+
+  return rule;
+}
 
 std::vector<GraphMapping> findMatches(
     const Graph &pattern, const Graph &target) {

@@ -100,6 +100,8 @@ std::ostream &operator<<(std::ostream &out, const Graph &graph);
 
 Robot buildRobot(const Graph &graph);
 
+Rule createRuleFromGraph(const Graph &graph);
+
 std::vector<GraphMapping> findMatches(
     const Graph &pattern, const Graph &target);
 
