@@ -1,4 +1,5 @@
 #include <args.hxx>
+#include <cstddef>
 #include <iostream>
 #include <random>
 #include <robot_design/graph.h>
@@ -60,23 +61,38 @@ int main(int argc, char **argv) {
   // Set Torch random seed
   torch::manual_seed(generator());
 
-  std::vector<Graph> graphs = loadGraphs(args::get(graph_file_arg));
-  if (graphs.empty()) {
+  // Load rule graphs
+  std::vector<Graph> rule_graphs = loadGraphs(args::get(graph_file_arg));
+  if (rule_graphs.empty()) {
     std::cerr << "Graph file does not contain any graphs" << std::endl;
     return 1;
   }
-  std::cout << "Number of graphs: " << graphs.size() << std::endl;
+  std::cout << "Number of graphs: " << rule_graphs.size() << std::endl;
 
-  for (Graph &graph : graphs) {
-    Rule rule = createRuleFromGraph(graph);
-    std::cout << "LHS: " << rule.lhs_ << std::endl;
-    std::cout << "RHS: " << rule.rhs_ << std::endl;
-    std::cout << "common: " << rule.common_ << std::endl;
-    std::cout << std::endl;
+  // Convert graphs to rules
+  std::vector<Rule> rules;
+  for (const Graph &rule_graph : rule_graphs) {
+    rules.push_back(createRuleFromGraph(rule_graph));
   }
 
-  Graph &graph = graphs[0];
-  std::shared_ptr<Robot> robot = std::make_shared<Robot>(buildRobot(graph));
+  // Generate a robot graph
+  Graph robot_graph = {
+      /*name=*/"robot",
+      /*nodes=*/{Node{"robot", {/*label=*/"robot"}}},
+      /*edges=*/{},
+      /*subgraphs=*/{}};
+  std::vector<std::size_t> rules_to_apply = {0, 1, 2, 1};
+  for (std::size_t rule_idx : rules_to_apply) {
+    const Rule &rule = rules[rule_idx];
+    std::vector<GraphMapping> matches = findMatches(rule.lhs_, robot_graph);
+    if (!matches.empty()) {
+      // Use the first match
+      robot_graph = applyRule(rule, robot_graph, matches[0]);
+    }
+  }
+  std::cout << robot_graph << std::endl;
+
+  auto robot = std::make_shared<Robot>(buildRobot(robot_graph));
 
   /*
   for (auto &match : matches) {
