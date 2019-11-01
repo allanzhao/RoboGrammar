@@ -240,9 +240,11 @@ Graph applyRule(
   // Copy target nodes in LHS to result if they are in common with the RHS
   for (NodeIndex i = 0; i < rule.common_.nodes_.size(); ++i) {
     NodeIndex lhs_node = rule.common_to_lhs_.node_mapping_[i];
+    NodeIndex rhs_node = rule.common_to_rhs_.node_mapping_[i];
     NodeIndex target_node = lhs_to_target.node_mapping_[lhs_node];
     result.nodes_.push_back(target.nodes_[target_node]);
     target_to_result_node[target_node] = result.nodes_.size() - 1;
+    rhs_to_result_node[rhs_node] = result.nodes_.size() - 1;
   }
 
   // Add RHS nodes which are not in common with the LHS
@@ -272,15 +274,16 @@ Graph applyRule(
 
   // Copy target edges in LHS to result if they are in common with the RHS
   for (EdgeIndex m = 0; m < rule.common_.edges_.size(); ++m) {
-    // A common edge maps to exactly one LHS edge, just get the first one
+    // A common edge maps to exactly one LHS and one RHS edge, get the first
     EdgeIndex lhs_edge = rule.common_to_lhs_.edge_mapping_[m][0];
+    EdgeIndex rhs_edge = rule.common_to_rhs_.edge_mapping_[m][0];
     // An LHS edge may map to multiple target edges
     const auto &target_edges = lhs_to_target.edge_mapping_[lhs_edge];
     for (EdgeIndex target_edge : target_edges) {
       result.edges_.push_back(target.edges_[target_edge]);
       Edge &edge = result.edges_.back();
-      edge.head_ = target_to_result_node[edge.head_];
-      edge.tail_ = target_to_result_node[edge.tail_];
+      edge.head_ = rhs_to_result_node[rule.rhs_.edges_[rhs_edge].head_];
+      edge.tail_ = rhs_to_result_node[rule.rhs_.edges_[rhs_edge].tail_];
     }
   }
 
