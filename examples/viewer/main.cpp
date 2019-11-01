@@ -168,6 +168,8 @@ int main(int argc, char **argv) {
   MatrixX obs(value_estimator->getObservationSize(), episode_len + 1);
   VectorX rewards(episode_len);
   VectorX returns(episode_len + 1);
+  MatrixX replay_obs(value_estimator->getObservationSize(), 0);
+  VectorX replay_returns;
 
   if (args::get(optim_flag)) {
     for (int episode_idx = 0; episode_idx < episode_count; ++episode_idx) {
@@ -207,8 +209,12 @@ int main(int argc, char **argv) {
       for (int j = episode_len - 1; j >= 0; --j) {
         returns(j) = rewards(j) + discount_factor * returns(j + 1);
       }
-      value_estimator->train(obs.leftCols(episode_len),
-                             returns.head(episode_len));
+      replay_obs.conservativeResize(
+          Eigen::NoChange, replay_obs.cols() + episode_len);
+      replay_obs.rightCols(episode_len) = obs.leftCols(episode_len);
+      replay_returns.conservativeResize(replay_returns.size() + episode_len);
+      replay_returns.tail(episode_len) = returns.head(episode_len);
+      value_estimator->train(replay_obs, replay_returns);
 
       std::cout << "Total reward: " << rewards.sum() << std::endl;
     }
