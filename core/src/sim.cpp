@@ -1,4 +1,5 @@
 #include <cstddef>
+#include <limits>
 #include <robot_design/sim.h>
 #include <robot_design/utils.h>
 #include <Serialize/BulletWorldImporter/btMultiBodyWorldImporter.h>
@@ -308,6 +309,29 @@ void BulletSimulation::addJointTorques(Index robot_idx, const Ref<const VectorX>
       multi_body.addJointTorqueMultiDof(link_idx, dof, torque(offset + dof));
     }
     offset += link.m_dofCount;
+  }
+}
+
+void BulletSimulation::getRobotWorldAABB(Index robot_idx, Vector3 &lower, Vector3 &upper) const {
+  lower = Vector3::Constant(std::numeric_limits<Scalar>::infinity());
+  upper = Vector3::Constant(-std::numeric_limits<Scalar>::infinity());
+  const btMultiBody &multi_body = *robot_wrappers_[robot_idx].multi_body_;
+  const btMultiBodyLinkCollider *base_collider = multi_body.getBaseCollider();
+  btVector3 link_lower, link_upper;
+  if (base_collider) {
+    base_collider->getCollisionShape()->getAabb(
+        multi_body.getBaseWorldTransform(), link_lower, link_upper);
+    lower = lower.cwiseMin(eigenVector3FromBullet(link_lower));
+    upper = upper.cwiseMax(eigenVector3FromBullet(link_upper));
+  }
+  for (int link_idx = 0; link_idx < multi_body.getNumLinks(); ++link_idx) {
+    const btMultibodyLink &link = multi_body.getLink(link_idx);
+    if (link.m_collider) {
+      link.m_collider->getCollisionShape()->getAabb(
+          link.m_cachedWorldTransform, link_lower, link_upper);
+      lower = lower.cwiseMin(eigenVector3FromBullet(link_lower));
+      upper = upper.cwiseMax(eigenVector3FromBullet(link_upper));
+    }
   }
 }
 

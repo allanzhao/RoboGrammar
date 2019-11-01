@@ -115,29 +115,21 @@ int main(int argc, char **argv) {
       /*friction=*/0.9,
       /*half_extents=*/Vector3{10.0, 1.0, 10.0});
 
-  //constexpr Scalar time_step = 1.0 / 240;
-  //auto sim = std::make_shared<BulletSimulation>(time_step);
-  //sim->addProp(floor, Vector3{0.0, -1.0, 0.0}, Quaternion::Identity());
-  //sim->addRobot(robot, Vector3{0.0, 0.45, 0.0}, Quaternion::Identity());
-  //Index robot_idx = sim->findRobotIndex(*robot);
-  //int dof_count = sim->getRobotDofCount(robot_idx);
-
-  //GLFWRenderer renderer;
-  //double last_time = glfwGetTime();
-  //while (!renderer.shouldClose()) {
-  //  sim->setJointTargetPositions(robot_idx, VectorX::Zero(dof_count));
-  //  sim->step();
-  //  double current_time = glfwGetTime();
-  //  renderer.update(current_time - last_time);
-  //  last_time = current_time;
-  //  renderer.render(*sim);
-  //}
+  // Find an initial y offset that will place the robot precisely on the ground
+  Scalar y_offset;
+  {
+    BulletSimulation temp_sim(time_step);
+    temp_sim.addRobot(robot, Vector3::Zero(), Quaternion::Identity());
+    Vector3 lower, upper;
+    temp_sim.getRobotWorldAABB(temp_sim.findRobotIndex(*robot), lower, upper);
+    y_offset = -lower(1);
+  }
 
   // Define a lambda function for making simulation instances
   auto make_sim_fn = [&]() -> std::shared_ptr<Simulation> {
     std::shared_ptr<BulletSimulation> sim = std::make_shared<BulletSimulation>(time_step);
     sim->addProp(floor, Vector3{0.0, -1.0, 0.0}, Quaternion::Identity());
-    sim->addRobot(robot, Vector3{0.0, 0.45, 0.0}, Quaternion::Identity());
+    sim->addRobot(robot, Vector3{0.0, y_offset, 0.0}, Quaternion::Identity());
     return sim;
   };
 

@@ -40,6 +40,7 @@ public:
   virtual void setJointTargetPositions(Index robot_idx, const Ref<const VectorX> &target_pos) = 0;
   virtual void setJointTargetVelocities(Index robot_idx, const Ref<const VectorX> &target_vel) = 0;
   virtual void addJointTorques(Index robot_idx, const Ref<const VectorX> &torque) = 0;
+  virtual void getRobotWorldAABB(Index robot_idx, Vector3 &lower, Vector3 &upper) const = 0;
   virtual void saveState() = 0;
   virtual void restoreState() = 0;
   virtual void step() = 0;
@@ -104,6 +105,7 @@ public:
   virtual void setJointTargetPositions(Index robot_idx, const Ref<const VectorX> &target_pos) override;
   virtual void setJointTargetVelocities(Index robot_idx, const Ref<const VectorX> &target_vel) override;
   virtual void addJointTorques(Index robot_idx, const Ref<const VectorX> &torque) override;
+  virtual void getRobotWorldAABB(Index robot_idx, Vector3 &lower, Vector3 &upper) const override;
   virtual void saveState() override;
   virtual void restoreState() override;
   virtual void step() override;
