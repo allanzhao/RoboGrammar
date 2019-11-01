@@ -146,6 +146,15 @@ std::vector<GraphMapping> findMatches(
       continue;
     }
 
+    // If pattern node i has a label, target node j must have the same label
+    const std::string &pattern_node_label = pattern.nodes_[i].attrs_.label_;
+    const std::string &target_node_label = target.nodes_[j].attrs_.label_;
+    if (!pattern_node_label.empty() &&
+        pattern_node_label != target_node_label) {
+      ++j;
+      continue;
+    }
+
     // Edges in pattern incident on i must also be present in target
     bool edge_fail = false;
     for (const Edge &pattern_edge : pattern.edges_) {
