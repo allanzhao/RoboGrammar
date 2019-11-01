@@ -35,6 +35,8 @@ public:
   virtual int getRobotDofCount(Index robot_idx) const = 0;
   virtual void getJointPositions(Index robot_idx, Ref<VectorX> pos) const = 0;
   virtual void getJointVelocities(Index robot_idx, Ref<VectorX> vel) const = 0;
+  virtual void getJointTargetPositions(Index robot_idx, Ref<VectorX> target_pos) const = 0;
+  virtual void getJointTargetVelocities(Index robot_idx, Ref<VectorX> target_vel) const = 0;
   virtual void setJointTargetPositions(Index robot_idx, const Ref<const VectorX> &target_pos) = 0;
   virtual void setJointTargetVelocities(Index robot_idx, const Ref<const VectorX> &target_vel) = 0;
   virtual void addJointTorques(Index robot_idx, const Ref<const VectorX> &torque) = 0;
@@ -97,6 +99,8 @@ public:
   virtual int getRobotDofCount(Index robot_idx) const override;
   virtual void getJointPositions(Index robot_idx, Ref<VectorX> pos) const override;
   virtual void getJointVelocities(Index robot_idx, Ref<VectorX> vel) const override;
+  virtual void getJointTargetPositions(Index robot_idx, Ref<VectorX> target_pos) const override;
+  virtual void getJointTargetVelocities(Index robot_idx, Ref<VectorX> target_vel) const override;
   virtual void setJointTargetPositions(Index robot_idx, const Ref<const VectorX> &target_pos) override;
   virtual void setJointTargetVelocities(Index robot_idx, const Ref<const VectorX> &target_vel) override;
   virtual void addJointTorques(Index robot_idx, const Ref<const VectorX> &torque) override;

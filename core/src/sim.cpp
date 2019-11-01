@@ -282,6 +282,14 @@ void BulletSimulation::getJointVelocities(Index robot_idx, Ref<VectorX> vel) con
   }
 }
 
+void BulletSimulation::getJointTargetPositions(Index robot_idx, Ref<VectorX> target_pos) const {
+  target_pos = robot_wrappers_[robot_idx].joint_target_pos_;
+}
+
+void BulletSimulation::getJointTargetVelocities(Index robot_idx, Ref<VectorX> target_vel) const {
+  target_vel = robot_wrappers_[robot_idx].joint_target_vel_;
+}
+
 void BulletSimulation::setJointTargetPositions(Index robot_idx, const Ref<const VectorX> &target_pos) {
   robot_wrappers_[robot_idx].joint_target_pos_ = target_pos;
 }
