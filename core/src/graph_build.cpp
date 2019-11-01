@@ -1,13 +1,14 @@
+#include <algorithm>
 #include <deque>
+#include <iterator>
 #include <memory>
 #include <robot_design/graph.h>
 #include <robot_design/robot.h>
+#include <stdexcept>
 
 namespace robot_design {
 
 Robot buildRobot(const Graph &graph) {
-  Robot robot(/*link_density=*/1.0, /*link_radius=*/0.05, /*friction=*/0.9,
-              /*motor_kp=*/2.0, /*motor_kd=*/0.1);
   struct NodeEntry {
     NodeIndex node_;
     // Arguments for link construction
@@ -17,8 +18,20 @@ Robot buildRobot(const Graph &graph) {
     // Cumulative scaling factor
     Scalar scale_;
   };
+  Robot robot(/*link_density=*/1.0, /*link_radius=*/0.05, /*friction=*/0.9,
+              /*motor_kp=*/2.0, /*motor_kd=*/0.1);
+  // The first node with JointType FREE is the starting node
+  const auto it = std::find_if(graph.nodes_.begin(), graph.nodes_.end(),
+      [] (const Node &node) {
+        return node.attrs_.joint_type_ == JointType::FREE;
+      });
+  if (it == graph.nodes_.end()) {
+    throw std::runtime_error(
+        "Graph has no suitable starting node (no node has a free joint)");
+  }
+  NodeIndex starting_node = std::distance(graph.nodes_.begin(), it);
   std::deque<NodeEntry> entries_to_expand = {NodeEntry{
-      /*node=*/0, /*parent_link=*/-1, /*joint_pos=*/0.0,
+      /*node=*/starting_node, /*parent_link=*/-1, /*joint_pos=*/0.0,
       /*joint_rot=*/Quaternion::Identity(), /*scale=*/1.0}};
 
   while (!entries_to_expand.empty()) {
