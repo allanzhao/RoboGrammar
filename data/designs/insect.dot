@@ -8,14 +8,16 @@ digraph hexapod {
 
   subgraph R {
     body [link_shape=capsule, joint_type=free, length=0.5];
-    leg_design1, leg_design2, leg_design3 [label="leg_design"];
+    leg_design1 [label="leg_design"];
+    leg_design2 [label="leg_design"];
+    leg_design3 [label="leg_design"];
 
-    body -> leg_design1 [offset=0.0, axis_angle="0 1 0 90"];
-    body -> leg_design1 [offset=0.0, axis_angle="0 1 0 -90", mirror=true];
+    body -> leg_design1 [offset=0.0, axis_angle="0 1 0 105"];
+    body -> leg_design1 [offset=0.0, axis_angle="0 1 0 -105", mirror=true];
     body -> leg_design2 [offset=0.5, axis_angle="0 1 0 90"];
     body -> leg_design2 [offset=0.5, axis_angle="0 1 0 -90", mirror=true];
-    body -> leg_design3 [offset=1.0, axis_angle="0 1 0 90"];
-    body -> leg_design3 [offset=1.0, axis_angle="0 1 0 -90", mirror=true];
+    body -> leg_design3 [offset=1.0, axis_angle="0 1 0 75"];
+    body -> leg_design3 [offset=1.0, axis_angle="0 1 0 -75", mirror=true];
   }
 }
 
@@ -25,16 +27,17 @@ digraph simple_leg_design {
   subgraph L {
     leg_design [label="leg_design"];
 
-    subgraph edges1 {
-      any_node1 -> leg_design;
-    }
+    any_node1 -> leg_design [label="edges1"];
   }
 
   subgraph R {
-    proximal, distal [link_shape=capsule, joint_type=hinge, joint_axis="0 1 0",
-                      length=0.2];
+    node [link_shape=capsule];
+    base [joint_type=fixed, length=0.15];
+    proximal [joint_type=hinge, joint_axis="0 1 0", length=0.15];
+    distal [joint_type=hinge, joint_axis="0 1 0", length=0.15];
 
-    any_node1 -> proximal [group="edges1"];
+    any_node1 -> base [label="edges1"];
+    base -> proximal [axis_angle="0 0 1 90"];
     proximal -> distal;
   }
 }
@@ -43,19 +46,19 @@ digraph spider_leg_design {
   subgraph L {
     leg_design [label="leg_design"];
 
-    subgraph edges1 {
-      any_node1 -> leg_design;
-    }
+    any_node1 -> leg_design [label="edges1"];
   }
 
   subgraph R {
     node [link_shape=capsule];
+    coxa [joint_type=fixed, length=0.15];
     femur [joint_type=hinge, joint_axis="0 1 0", length=0.2];
     tibia [joint_type=hinge, joint_axis="0 0 1", length=0.2];
     metatarsus [joint_type=hinge, joint_axis="0 0 1", length=0.2];
     tarsus [joint_type=fixed, length=0.05];
 
-    any_node1 -> femur [group="edges1"];
+    any_node1 -> coxa [label="edges1"];
+    coxa -> femur [axis_angle="0 0 1 -15"];
     femur -> tibia [axis_angle="0 0 1 60"];
     tibia -> metatarsus [axis_angle="0 0 1 60"];
     metatarsus -> tarsus [axis_angle="0 0 1 -45"];
