@@ -381,9 +381,9 @@ GLFWRenderer::GLFWRenderer() : z_near_(0.1f), z_far_(100.0f), fov_(M_PI / 3),
     throw std::runtime_error("Could not initialize GLFW");
   }
 
-  // Require OpenGL 3.2 or higher
+  // Require OpenGL 3.0 or higher
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
   // Enable 4x MSAA
   glfwWindowHint(GLFW_SAMPLES, 4);
   window_ = glfwCreateWindow(640, 480, "GLFW Renderer", NULL, NULL);

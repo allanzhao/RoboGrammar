@@ -1,4 +1,4 @@
-#version 150 core
+#version 130
 
 in vec3 model_position;
 
