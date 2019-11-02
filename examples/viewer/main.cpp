@@ -90,24 +90,8 @@ int main(int argc, char **argv) {
       robot_graph = applyRule(rule, robot_graph, matches[0]);
     }
   }
-  std::cout << robot_graph << std::endl;
 
   auto robot = std::make_shared<Robot>(buildRobot(robot_graph));
-
-  /*
-  for (auto &match : matches) {
-    for (NodeIndex k : match.node_mapping_) {
-      std::cout << k << " ";
-    }
-    std::cout << std::endl;
-    for (auto &target_edges : match.edge_mapping_) {
-      for (EdgeIndex l : target_edges) {
-        std::cout << graph.edges_[l].tail_ << " -> " << graph.edges_[l].head_ << ", ";
-      }
-      std::cout << std::endl;
-    }
-  }
-  */
 
   // Create a floor
   std::shared_ptr<Prop> floor = std::make_shared<Prop>(
