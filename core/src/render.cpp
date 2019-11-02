@@ -1,6 +1,7 @@
 #include <cmath>
 #include <cstddef>
 #include <fstream>
+#include <iostream>
 #include <robot_design/render.h>
 #include <robot_design/utils.h>
 #include <sstream>
@@ -374,18 +375,20 @@ void ProgramState::updateUniforms(const Program &program) {
 
 GLFWRenderer::GLFWRenderer() : z_near_(0.1f), z_far_(100.0f), fov_(M_PI / 3),
                                camera_controller_() {
+  glfwSetErrorCallback(errorCallback);
+
   if (!glfwInit()) {
-    return;
+    throw std::runtime_error("Could not initialize GLFW");
   }
 
-  // Require OpenGL 3.2 or higher
+  // Require OpenGL 3.0 or higher
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
   // Enable 4x MSAA
   glfwWindowHint(GLFW_SAMPLES, 4);
   window_ = glfwCreateWindow(640, 480, "GLFW Renderer", NULL, NULL);
   if (!window_) {
-    return;
+    throw std::runtime_error("Could not create GLFW window");
   }
 
   glfwMakeContextCurrent(window_);
@@ -602,6 +605,10 @@ void GLFWRenderer::drawTubeBasedShape(
   program_state.setModelMatrix(middle_model_transform.matrix());
   program_state.updateUniforms(program);
   tube_mesh_->draw();
+}
+
+void GLFWRenderer::errorCallback(int error, const char *description) {
+  std::cerr << "GLFW error: " << description << std::endl;
 }
 
 void GLFWRenderer::framebufferSizeCallback(GLFWwindow *window, int width, int height) {
