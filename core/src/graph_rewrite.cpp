@@ -53,27 +53,27 @@ Rule createRuleFromGraph(const Graph &graph) {
     }
   }
 
-  // Mappings from labels to edges on the LHS and RHS
-  std::unordered_map<std::string, EdgeIndex> lhs_label_to_edge;
-  std::unordered_map<std::string, EdgeIndex> rhs_label_to_edge;
+  // Mappings from IDs to edges on the LHS and RHS
+  std::unordered_map<std::string, EdgeIndex> lhs_id_to_edge;
+  std::unordered_map<std::string, EdgeIndex> rhs_id_to_edge;
 
   // Copy edges into the appropriate graphs in rule, and update the mappings
   for (EdgeIndex m = 0; m < graph.edges_.size(); ++m) {
     const Edge &edge = graph.edges_[m];
     bool edge_in_lhs = lhs_subgraph->edges_.count(m) != 0;
     bool edge_in_rhs = rhs_subgraph->edges_.count(m) != 0;
-    const std::string &label = edge.attrs_.label_;
+    const std::string &id = edge.attrs_.id_;
     if (edge_in_lhs) {
       rule.lhs_.edges_.push_back(edge);
       Edge &lhs_edge = rule.lhs_.edges_.back();
       lhs_edge.head_ = graph_to_lhs_node[lhs_edge.head_];
       lhs_edge.tail_ = graph_to_lhs_node[lhs_edge.tail_];
-      if (!label.empty()) {
-        auto result = lhs_label_to_edge.emplace(label,
-                                                rule.lhs_.edges_.size() - 1);
+      if (!id.empty()) {
+        auto result = lhs_id_to_edge.emplace(id,
+                                             rule.lhs_.edges_.size() - 1);
         if (!result.second) {
           throw std::runtime_error(
-              "Edge label \"" + label + "\" is used more than once in the LHS");
+              "Edge ID \"" + id + "\" is used more than once in the LHS");
         }
       }
     }
@@ -82,12 +82,12 @@ Rule createRuleFromGraph(const Graph &graph) {
       Edge &rhs_edge = rule.rhs_.edges_.back();
       rhs_edge.head_ = graph_to_rhs_node[rhs_edge.head_];
       rhs_edge.tail_ = graph_to_rhs_node[rhs_edge.tail_];
-      if (!label.empty()) {
-        auto result = rhs_label_to_edge.emplace(label,
-                                                rule.rhs_.edges_.size() - 1);
+      if (!id.empty()) {
+        auto result = rhs_id_to_edge.emplace(id,
+                                             rule.rhs_.edges_.size() - 1);
         if (!result.second) {
           throw std::runtime_error(
-              "Edge label \"" + label + "\" is used more than once in the RHS");
+              "Edge ID \"" + id + "\" is used more than once in the RHS");
         }
       }
     }
@@ -95,23 +95,23 @@ Rule createRuleFromGraph(const Graph &graph) {
       // Possible using nested subgraphs, but discouraged
       throw std::runtime_error(
           "Edge is in both the \"L\" and \"R\" subgraphs, use separate edges "
-          "with the same label instead");
+          "with the same ID instead");
     }
     if (!edge_in_lhs && !edge_in_rhs) {
       throw std::runtime_error("Edge is in neither the LHS nor the RHS");
     }
   }
 
-  // Add a common edge for every label which appears on both the LHS and RHS
-  for (const auto &elem_lhs : lhs_label_to_edge) {
-    const std::string &label = elem_lhs.first;
+  // Add a common edge for every ID which appears on both the LHS and RHS
+  for (const auto &elem_lhs : lhs_id_to_edge) {
+    const std::string &id = elem_lhs.first;
     EdgeIndex m_lhs = elem_lhs.second;
-    auto it_rhs = rhs_label_to_edge.find(label);
-    if (it_rhs != rhs_label_to_edge.end()) {
+    auto it_rhs = rhs_id_to_edge.find(id);
+    if (it_rhs != rhs_id_to_edge.end()) {
       EdgeIndex m_rhs = it_rhs->second;
       // Edges in common are not connected to any nodes, use bogus node indices
       rule.common_.edges_.push_back({/*head=*/0, /*tail=*/0, /*attrs=*/{}});
-      rule.common_.edges_.back().attrs_.label_ = label;
+      rule.common_.edges_.back().attrs_.id_ = id;
       rule.common_to_lhs_.edge_mapping_.push_back({m_lhs});
       rule.common_to_rhs_.edge_mapping_.push_back({m_rhs});
     }

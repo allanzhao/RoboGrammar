@@ -36,6 +36,7 @@ struct Node {
 // Edges contain Link attributes which are unique to each instance
 // E.g. the rigid transformation relative to the parent link, uniform scaling
 struct EdgeAttributes {
+  std::string id_;
   std::string label_;
   Scalar joint_pos_;
   Quaternion joint_rot_;

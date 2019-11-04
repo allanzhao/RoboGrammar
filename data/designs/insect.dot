@@ -27,7 +27,7 @@ digraph simple_leg_design {
   subgraph L {
     leg_design [label="leg_design"];
 
-    any_node1 -> leg_design [label="edges1"];
+    any_node1 -> leg_design [id="edges1"];
   }
 
   subgraph R {
@@ -36,7 +36,7 @@ digraph simple_leg_design {
     proximal [joint_type=hinge, joint_axis="0 1 0", length=0.15];
     distal [joint_type=hinge, joint_axis="0 1 0", length=0.15];
 
-    any_node1 -> base [label="edges1"];
+    any_node1 -> base [id="edges1"];
     base -> proximal [axis_angle="0 0 1 90"];
     proximal -> distal;
   }
@@ -46,7 +46,7 @@ digraph spider_leg_design {
   subgraph L {
     leg_design [label="leg_design"];
 
-    any_node1 -> leg_design [label="edges1"];
+    any_node1 -> leg_design [id="edges1"];
   }
 
   subgraph R {
@@ -57,7 +57,7 @@ digraph spider_leg_design {
     metatarsus [joint_type=hinge, joint_axis="0 0 1", length=0.2];
     tarsus [joint_type=fixed, length=0.05];
 
-    any_node1 -> coxa [label="edges1"];
+    any_node1 -> coxa [id="edges1"];
     coxa -> femur [axis_angle="0 0 1 -15"];
     femur -> tibia [axis_angle="0 0 1 60"];
     tibia -> metatarsus [axis_angle="0 0 1 60"];

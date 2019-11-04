@@ -33,6 +33,7 @@ std::vector<Graph> loadGraphs(const std::string &filename) {
         /*shape=*/LinkShape::NONE,
         /*length=*/1.0};
     root_subgraph_state.result_.edge_attrs_ = {
+        /*id=*/"",
         /*label=*/"",
         /*joint_pos=*/1.0,
         /*joint_rot=*/Quaternion::Identity(),
@@ -93,7 +94,9 @@ void updateEdgeAttributes(
   for (const auto &attr : attr_list) {
     const std::string &key = attr.first;
     const std::string &value = attr.second;
-    if (key == "label") {
+    if (key == "id") {
+      edge_attrs.id_ = value;
+    } else if (key == "label") {
       edge_attrs.label_ = value;
     } else if (key == "offset") {
       std::istringstream in(value);
