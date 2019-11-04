@@ -137,6 +137,11 @@ Texture2D::~Texture2D() {
   glDeleteTextures(1, &texture_);
 }
 
+void Texture2D::getImage(unsigned char *pixels) const {
+  bind();
+  glGetTexImage(target_, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+}
+
 Texture3D::Texture3D(GLenum target, GLint level, GLint internal_format,
                      GLsizei width, GLsizei height, GLsizei depth,
                      GLenum format, GLenum type, const GLvoid *data)
@@ -156,6 +161,11 @@ Texture3D::~Texture3D() {
   glDeleteTextures(1, &texture_);
 }
 
+void Texture3D::getImage(unsigned char *pixels) const {
+  bind();
+  glGetTexImage(target_, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+}
+
 Framebuffer::Framebuffer() : framebuffer_(0) {
   glGenFramebuffers(1, &framebuffer_);
   glBindFramebuffer(GL_FRAMEBUFFER, framebuffer_);
@@ -170,6 +180,7 @@ Framebuffer::~Framebuffer() {
 }
 
 void Framebuffer::attachColorTexture(const Texture2D &color_texture) const {
+  bind();
   glFramebufferTexture2D(
       GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, color_texture.target_,
       color_texture.texture_, 0);
@@ -179,6 +190,7 @@ void Framebuffer::attachColorTexture(const Texture2D &color_texture) const {
 
 void Framebuffer::attachColorTextureLayer(
     const Texture3D &color_texture, GLint layer) const {
+  bind();
   glFramebufferTextureLayer(
       GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, color_texture.texture_, 0, layer);
   glDrawBuffer(GL_COLOR_ATTACHMENT0);
@@ -186,6 +198,7 @@ void Framebuffer::attachColorTextureLayer(
 }
 
 void Framebuffer::attachDepthTexture(const Texture2D &depth_texture) const {
+  bind();
   glFramebufferTexture2D(
       GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, depth_texture.target_,
       depth_texture.texture_, 0);
@@ -193,6 +206,7 @@ void Framebuffer::attachDepthTexture(const Texture2D &depth_texture) const {
 
 void Framebuffer::attachDepthTextureLayer(
     const Texture3D &depth_texture, GLint layer) const {
+  bind();
   glFramebufferTextureLayer(
       GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, depth_texture.texture_, 0, layer);
 }
@@ -373,8 +387,8 @@ void ProgramState::updateUniforms(const Program &program) {
   dir_light_sm_cascade_splits_.dirty_ = false;
 }
 
-GLFWRenderer::GLFWRenderer() : z_near_(0.1f), z_far_(100.0f), fov_(M_PI / 3),
-                               camera_controller_() {
+GLFWRenderer::GLFWRenderer(bool hidden)
+    : z_near_(0.1f), z_far_(100.0f), fov_(M_PI / 3), camera_controller_() {
   glfwSetErrorCallback(errorCallback);
 
   if (!glfwInit()) {
@@ -386,6 +400,9 @@ GLFWRenderer::GLFWRenderer() : z_near_(0.1f), z_far_(100.0f), fov_(M_PI / 3),
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
   // Enable 4x MSAA
   glfwWindowHint(GLFW_SAMPLES, 4);
+  if (hidden) {
+    glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+  }
   window_ = glfwCreateWindow(640, 480, "GLFW Renderer", NULL, NULL);
   if (!window_) {
     throw std::runtime_error("Could not create GLFW window");
@@ -450,9 +467,15 @@ void GLFWRenderer::update(double dt) {
   camera_controller_.getViewMatrix(view_matrix_);
 }
 
-void GLFWRenderer::render(const Simulation &sim) {
+void GLFWRenderer::render(const Simulation &sim, int width, int height,
+                          const Framebuffer *target_framebuffer) {
+  if (width < 0 || height < 0) {
+    // Use default framebuffer size
+    width = framebuffer_width_;
+    height = framebuffer_height_;
+  }
   float aspect_ratio =
-      static_cast<float>(framebuffer_width_) / framebuffer_height_;
+      static_cast<float>(width) / height;
   dir_light_->updateViewMatricesAndSplits(
       view_matrix_, aspect_ratio, z_near_, z_far_, fov_);
 
@@ -474,8 +497,12 @@ void GLFWRenderer::render(const Simulation &sim) {
   }
 
   // Render main window
-  glBindFramebuffer(GL_FRAMEBUFFER, 0);
-  glViewport(0, 0, framebuffer_width_, framebuffer_height_);
+  if (target_framebuffer) {
+    target_framebuffer->bind();
+  } else {
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+  }
+  glViewport(0, 0, width, height);
   glClearColor(0.4f, 0.6f, 0.8f, 1.0f);  // Cornflower blue
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   glDisable(GL_POLYGON_OFFSET_FILL);
@@ -489,6 +516,16 @@ void GLFWRenderer::render(const Simulation &sim) {
 
   glfwSwapBuffers(window_);
   glfwPollEvents();
+}
+
+void GLFWRenderer::readPixels(
+    int x, int y, int width, int height, unsigned char *data) const {
+  glReadPixels(x, y, width, height, GL_RGBA, GL_UNSIGNED_BYTE, data);
+}
+
+void GLFWRenderer::getFramebufferSize(int &width, int &height) const {
+  width = framebuffer_width_;
+  height = framebuffer_height_;
 }
 
 bool GLFWRenderer::shouldClose() const {

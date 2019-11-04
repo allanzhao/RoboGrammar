@@ -1,6 +1,9 @@
 #include <args.hxx>
 #include <cstddef>
+#include <cstring>
 #include <iostream>
+#include <lodepng.h>
+#include <memory>
 #include <random>
 #include <robot_design/graph.h>
 #include <robot_design/optim.h>
@@ -28,6 +31,8 @@ int main(int argc, char **argv) {
       {{"cpu", torch::kCPU}, {"cuda", torch::kCUDA}}, torch::kCPU);
   args::Flag optim_flag(
       parser, "optim", "Optimize a trajectory", {'o', "optim"});
+  args::ValueFlag<std::string> save_image_flag(
+      parser, "save_image", "Save PNG image to file", {"save_image"});
 
   // Don't show the (overly verbose) message about the '--' flag
   parser.helpParams.showTerminator = false;
@@ -197,27 +202,64 @@ int main(int argc, char **argv) {
   }
 
   main_sim->saveState();
-  GLFWRenderer renderer;
-  double sim_time = glfwGetTime();
-  int i = 0, j = 0;
-  while (!renderer.shouldClose()) {
-    double current_time = glfwGetTime();
-    while (sim_time < current_time) {
-      main_sim->setJointTargetPositions(robot_idx, input_sequence.col(j));
-      main_sim->step();
-      renderer.update(time_step);
-      sim_time += time_step;
-      ++i;
-      if (i >= interval) {
-        i = 0;
-        ++j;
-      }
-      if (j >= input_sequence.cols()) {
-        i = 0;
-        j = 0;
-        main_sim->restoreState();
-      }
+
+  std::string save_image_filename = args::get(save_image_flag);
+  if (!save_image_filename.empty()) {
+    GLFWRenderer renderer(/*hidden=*/true);
+    int fb_width, fb_height;
+    renderer.getFramebufferSize(fb_width, fb_height);
+    Texture2D color_texture(
+        /*target=*/GL_TEXTURE_2D, /*level=*/0, /*internal_format=*/GL_RGBA,
+        /*width=*/fb_width, /*height=*/fb_height, /*format=*/GL_RGBA,
+        /*type=*/GL_UNSIGNED_BYTE, /*data=*/nullptr);
+    Texture2D depth_texture(
+        /*target=*/GL_TEXTURE_2D, /*level=*/0,
+        /*internal_format=*/GL_DEPTH_COMPONENT, /*width=*/fb_width,
+        /*height=*/fb_height, /*format=*/GL_DEPTH_COMPONENT, /*type=*/GL_FLOAT,
+        /*data=*/nullptr);
+    Framebuffer offscreen_fb;
+    offscreen_fb.attachColorTexture(color_texture);
+    offscreen_fb.attachDepthTexture(depth_texture);
+    renderer.update(time_step);
+    renderer.render(*main_sim, fb_width, fb_height, &offscreen_fb);
+    std::unique_ptr<unsigned char[]> rgba(
+        new unsigned char[4 * fb_width * fb_height]);
+    color_texture.getImage(rgba.get());
+    std::unique_ptr<unsigned char[]> rgba_flipped(
+        new unsigned char[4 * fb_width * fb_height]);
+    for (int i = 0; i < fb_height; ++i) {
+      std::memcpy(&rgba_flipped[i * fb_width * 4],
+                  &rgba[(fb_height - i - 1) * fb_width * 4], fb_width * 4);
     }
-    renderer.render(*main_sim);
+    unsigned int error = lodepng::encode(
+        save_image_filename, rgba_flipped.get(), fb_width, fb_height);
+    if (error) {
+      std::cerr << "Failed to save image: " << lodepng_error_text(error)
+                << std::endl;
+    }
+  } else {
+    GLFWRenderer renderer;
+    double sim_time = glfwGetTime();
+    int i = 0, j = 0;
+    while (!renderer.shouldClose()) {
+      double current_time = glfwGetTime();
+      while (sim_time < current_time) {
+        main_sim->setJointTargetPositions(robot_idx, input_sequence.col(j));
+        main_sim->step();
+        renderer.update(time_step);
+        sim_time += time_step;
+        ++i;
+        if (i >= interval) {
+          i = 0;
+          ++j;
+        }
+        if (j >= input_sequence.cols()) {
+          i = 0;
+          j = 0;
+          main_sim->restoreState();
+        }
+      }
+      renderer.render(*main_sim);
+    }
   }
 }

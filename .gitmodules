@@ -7,3 +7,6 @@
 [submodule "extern/PEGTL"]
 	path = extern/PEGTL
 	url = https://github.com/taocpp/PEGTL.git
+[submodule "extern/lodepng"]
+	path = extern/lodepng
+	url = https://github.com/lvandeve/lodepng.git

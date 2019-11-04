@@ -112,6 +112,7 @@ struct Texture2D {
   void bind() const {
     glBindTexture(target_, texture_);
   }
+  void getImage(unsigned char *pixels) const;
 
   GLenum target_;
   GLuint texture_;
@@ -127,6 +128,7 @@ struct Texture3D {
   void bind() const {
     glBindTexture(target_, texture_);
   }
+  void getImage(unsigned char *pixels) const;
 
   GLenum target_;
   GLuint texture_;
@@ -264,12 +266,16 @@ struct ProgramState {
 
 class GLFWRenderer {
 public:
-  GLFWRenderer();
+  GLFWRenderer(bool hidden = false);
   virtual ~GLFWRenderer();
   GLFWRenderer(const GLFWRenderer &other) = delete;
   GLFWRenderer &operator=(const GLFWRenderer &other) = delete;
   void update(double dt);
-  void render(const Simulation &sim);
+  void render(const Simulation &sim, int width = -1, int height = -1,
+              const Framebuffer *target_framebuffer = nullptr);
+  void readPixels(int x, int y, int width, int height,
+                  unsigned char *data) const;
+  void getFramebufferSize(int &width, int &height) const;
   bool shouldClose() const;
   static void errorCallback(int error, const char *description);
   static void framebufferSizeCallback(GLFWwindow *window, int width, int height);
