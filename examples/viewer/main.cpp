@@ -22,6 +22,8 @@ int main(int argc, char **argv) {
       parser, "help", "Display this help message", {'h', "help"});
   args::Positional<std::string> graph_file_arg(
       parser, "graph_file", "Graph file (.dot)", args::Options::Required);
+  args::PositionalList<unsigned int> rule_sequence_arg(
+      parser, "rule_sequence", "Rule sequence to apply");
   args::ValueFlag<unsigned int> seed_flag(
       parser, "seed", "Random seed", {'s', "seed"});
   args::ValueFlag<unsigned int> jobs_flag(
@@ -86,13 +88,14 @@ int main(int argc, char **argv) {
       /*nodes=*/{Node{"robot", {/*label=*/"robot"}}},
       /*edges=*/{},
       /*subgraphs=*/{}};
-  std::vector<std::size_t> rules_to_apply = {0, 1, 2, 1};
-  for (std::size_t rule_idx : rules_to_apply) {
-    const Rule &rule = rules[rule_idx];
-    std::vector<GraphMapping> matches = findMatches(rule.lhs_, robot_graph);
-    if (!matches.empty()) {
-      // Use the first match
-      robot_graph = applyRule(rule, robot_graph, matches[0]);
+  for (unsigned int rule_idx : args::get(rule_sequence_arg)) {
+    if (rule_idx < rules.size()) {
+      const Rule &rule = rules[rule_idx];
+      std::vector<GraphMapping> matches = findMatches(rule.lhs_, robot_graph);
+      if (!matches.empty()) {
+        // Use the first match
+        robot_graph = applyRule(rule, robot_graph, matches[0]);
+      }
     }
   }
 
