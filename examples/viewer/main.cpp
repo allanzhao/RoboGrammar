@@ -33,6 +33,8 @@ int main(int argc, char **argv) {
       {{"cpu", torch::kCPU}, {"cuda", torch::kCUDA}}, torch::kCPU);
   args::Flag optim_flag(
       parser, "optim", "Optimize a trajectory", {'o', "optim"});
+  args::Flag render_flag(
+      parser, "render", "Render the trajectory", {'r', "render"});
   args::ValueFlag<std::string> save_image_flag(
       parser, "save_image", "Save PNG image to file", {"save_image"});
 
@@ -240,7 +242,10 @@ int main(int argc, char **argv) {
       std::cerr << "Failed to save image: " << lodepng_error_text(error)
                 << std::endl;
     }
-  } else {
+  }
+
+  if (args::get(render_flag)) {
+    // Render the trajectory
     GLFWRenderer renderer;
     double sim_time = glfwGetTime();
     int i = 0, j = 0;
