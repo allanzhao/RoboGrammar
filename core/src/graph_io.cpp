@@ -28,15 +28,16 @@ std::vector<Graph> loadGraphs(const std::string &filename) {
         state.subgraph_states_.back();
     root_subgraph_state.result_.node_attrs_ = {
         /*label=*/"",
-        /*joint_type=*/JointType::HINGE,
-        /*joint_axis=*/Vector3::UnitZ(),
         /*shape=*/LinkShape::NONE,
-        /*length=*/1.0};
+        /*length=*/1.0,
+        /*base=*/false};
     root_subgraph_state.result_.edge_attrs_ = {
         /*id=*/"",
         /*label=*/"",
+        /*joint_type=*/JointType::FIXED,
         /*joint_pos=*/1.0,
         /*joint_rot=*/Quaternion::Identity(),
+        /*joint_axis=*/Vector3::UnitZ(),
         /*scale=*/1.0};
     success = tao::pegtl::parse<
         tao::pegtl::pad<dot_rules::graph, dot_rules::sep>,
@@ -49,6 +50,20 @@ std::vector<Graph> loadGraphs(const std::string &filename) {
   return graphs;
 }
 
+static bool parseDOTBool(const std::string &str) {
+  // TODO: add case insensitivity
+  if (str == "true" || str == "yes") {
+    return true;
+  } else if (str == "false" || str == "no") {
+    return false;
+  } else {
+    std::istringstream in(str);
+    bool value;
+    in >> value;
+    return value;
+  }
+}
+
 void updateNodeAttributes(
     NodeAttributes &node_attrs,
     const std::vector<std::pair<std::string, std::string>> &attr_list) {
@@ -57,21 +72,6 @@ void updateNodeAttributes(
     const std::string &value = attr.second;
     if (key == "label") {
       node_attrs.label_ = value;
-    } else if (key == "joint_type") {
-      if (value == "free") {
-        node_attrs.joint_type_ = JointType::FREE;
-      } else if (value == "hinge") {
-        node_attrs.joint_type_ = JointType::HINGE;
-      } else if (value == "fixed") {
-        node_attrs.joint_type_ = JointType::FIXED;
-      } else {
-        throw std::runtime_error(
-            "Unexpected value \"" + value + "\" for joint_type");
-      }
-    } else if (key == "joint_axis") {
-      std::istringstream in(value);
-      Vector3 &joint_axis = node_attrs.joint_axis_;
-      in >> joint_axis(0) >> joint_axis(1) >> joint_axis(2);
     } else if (key == "link_shape") {
       if (value == "capsule") {
         node_attrs.shape_ = LinkShape::CAPSULE;
@@ -84,6 +84,8 @@ void updateNodeAttributes(
     } else if (key == "length") {
       std::istringstream in(value);
       in >> node_attrs.length_;
+    } else if (key == "base") {
+      node_attrs.base_ = parseDOTBool(value);
     }
   }
 }
@@ -98,6 +100,17 @@ void updateEdgeAttributes(
       edge_attrs.id_ = value;
     } else if (key == "label") {
       edge_attrs.label_ = value;
+    } else if (key == "joint_type") {
+      if (value == "free") {
+        edge_attrs.joint_type_ = JointType::FREE;
+      } else if (value == "hinge") {
+        edge_attrs.joint_type_ = JointType::HINGE;
+      } else if (value == "fixed") {
+        edge_attrs.joint_type_ = JointType::FIXED;
+      } else {
+        throw std::runtime_error(
+            "Unexpected value \"" + value + "\" for joint_type");
+      }
     } else if (key == "offset") {
       std::istringstream in(value);
       in >> edge_attrs.joint_pos_;
@@ -108,6 +121,10 @@ void updateEdgeAttributes(
       in >> axis(0) >> axis(1) >> axis(2) >> angle;
       edge_attrs.joint_rot_ =
           Eigen::AngleAxis<Scalar>(angle * RAD_PER_DEG, axis);
+    } else if (key == "joint_axis") {
+      std::istringstream in(value);
+      Vector3 &joint_axis = edge_attrs.joint_axis_;
+      in >> joint_axis(0) >> joint_axis(1) >> joint_axis(2);
     } else if (key == "scale") {
       std::istringstream in(value);
       in >> edge_attrs.scale_;

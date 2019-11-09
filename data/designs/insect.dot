@@ -7,7 +7,7 @@ digraph hexapod {
   }
 
   subgraph R {
-    body [link_shape=capsule, joint_type=free, length=0.5];
+    body [link_shape=capsule, length=0.5, base=true];
     leg_design1 [label="leg_design"];
     leg_design2 [label="leg_design"];
     leg_design3 [label="leg_design"];
@@ -32,13 +32,14 @@ digraph simple_leg_design {
 
   subgraph R {
     node [link_shape=capsule];
-    base [joint_type=fixed, length=0.15];
-    proximal [joint_type=hinge, joint_axis="0 1 0", length=0.15];
-    distal [joint_type=hinge, joint_axis="0 1 0", length=0.15];
+    base [length=0.15];
+    proximal [length=0.15];
+    distal [length=0.15];
 
     any_node1 -> base [id="edges1"];
-    base -> proximal [axis_angle="0 0 1 90"];
-    proximal -> distal;
+    base -> proximal [joint_type=hinge, axis_angle="0 0 1 90",
+                      joint_axis="0 1 0"];
+    proximal -> distal [joint_type=hinge, joint_axis="0 1 0"];
   }
 }
 
@@ -51,16 +52,19 @@ digraph spider_leg_design {
 
   subgraph R {
     node [link_shape=capsule];
-    coxa [joint_type=fixed, length=0.15];
-    femur [joint_type=hinge, joint_axis="0 1 0", length=0.2];
-    tibia [joint_type=hinge, joint_axis="0 0 1", length=0.2];
-    metatarsus [joint_type=hinge, joint_axis="0 0 1", length=0.2];
-    tarsus [joint_type=fixed, length=0.05];
+    coxa [length=0.15];
+    femur [length=0.2];
+    tibia [length=0.2];
+    metatarsus [length=0.2];
+    tarsus [length=0.05];
 
     any_node1 -> coxa [id="edges1"];
-    coxa -> femur [axis_angle="0 0 1 -15"];
-    femur -> tibia [axis_angle="0 0 1 60"];
-    tibia -> metatarsus [axis_angle="0 0 1 60"];
+    coxa -> femur [joint_type=hinge, axis_angle="0 0 1 -15",
+                   joint_axis="0 1 0"];
+    femur -> tibia [joint_type=hinge, axis_angle="0 0 1 60",
+                    joint_axis="0 0 1"];
+    tibia -> metatarsus [joint_type=hinge, axis_angle="0 0 1 60",
+                         joint_axis="0 0 1"];
     metatarsus -> tarsus [axis_angle="0 0 1 -45"];
   }
 }

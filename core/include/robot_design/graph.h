@@ -20,10 +20,9 @@ using EdgeIndex = std::size_t;
 // See the definition of Link for more information about these attributes
 struct NodeAttributes {
   std::string label_;
-  JointType joint_type_;
-  Vector3 joint_axis_;
   LinkShape shape_;
   Scalar length_;
+  bool base_;
 
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 };
@@ -38,8 +37,10 @@ struct Node {
 struct EdgeAttributes {
   std::string id_;
   std::string label_;
+  JointType joint_type_;
   Scalar joint_pos_;
   Quaternion joint_rot_;
+  Vector3 joint_axis_;
   Scalar scale_;
 
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
