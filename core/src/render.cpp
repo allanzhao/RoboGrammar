@@ -58,6 +58,13 @@ Program::Program(const std::string &vertex_shader_source,
   glBindAttribLocation(program_, ATTRIB_NORMAL.index_, ATTRIB_NORMAL.name_.c_str());
 
   glLinkProgram(program_);
+  // Check for link errors
+  glGetProgramiv(program_, GL_LINK_STATUS, &status);
+  if (!status) {
+    char buffer[512];
+    glGetProgramInfoLog(program_, sizeof(buffer), NULL, buffer);
+    throw std::runtime_error(std::string("Failed to link shader program: ") + buffer);
+  }
 
   // Find uniform indices
   proj_matrix_index_ = glGetUniformLocation(program_, "proj_matrix");
