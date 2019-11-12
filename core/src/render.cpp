@@ -550,7 +550,7 @@ void GLFWRenderer::draw(const Simulation &sim, const Program &program,
       sim.getLinkTransform(robot_idx, link_idx, link_transform);
 
       // Draw the link's collision shape
-      program_state.setObjectColor({0.45f, 0.5f, 0.55f});  // Slate gray
+      program_state.setObjectColor(link.color_);
       switch (link.shape_) {
       case LinkShape::CAPSULE:
         drawCapsule(link_transform.cast<float>(), link.length_ / 2,
@@ -565,7 +565,7 @@ void GLFWRenderer::draw(const Simulation &sim, const Program &program,
       }
 
       // Draw the link's joint
-      program_state.setObjectColor({1.0f, 0.5f, 0.3f});  // Coral
+      program_state.setObjectColor(link.joint_color_);
       Matrix3 joint_axis_rotation =
           makeVectorToVectorRotation(link.joint_axis_, Vector3::UnitX());
       Matrix4 joint_transform = (

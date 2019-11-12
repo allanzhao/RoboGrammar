@@ -17,6 +17,7 @@ Robot buildRobot(const Graph &graph) {
     Scalar joint_pos_;
     Quaternion joint_rot_;
     Vector3 joint_axis_;
+    Color joint_color_;
     // Cumulative scaling factor
     Scalar scale_;
   };
@@ -32,11 +33,12 @@ Robot buildRobot(const Graph &graph) {
         "Graph has no suitable starting node (no node has base == true)");
   }
   NodeIndex starting_node = std::distance(graph.nodes_.begin(), it);
+  // The base link doesn't have a joint, so joint-related params don't matter
   std::deque<NodeEntry> entries_to_expand = {NodeEntry{
       /*node=*/starting_node, /*parent_link=*/-1,
       /*joint_type=*/JointType::FREE, /*joint_pos=*/0.0,
       /*joint_rot=*/Quaternion::Identity(), /*joint_axis=*/Vector3::Zero(),
-      /*scale=*/1.0}};
+      /*joint_color=*/Color::Zero(), /*scale=*/1.0}};
 
   while (!entries_to_expand.empty()) {
     NodeEntry &entry = entries_to_expand.front();
@@ -47,7 +49,8 @@ Robot buildRobot(const Graph &graph) {
         /*parent=*/entry.parent_link_, /*joint_type=*/entry.joint_type_,
         /*joint_pos=*/entry.joint_pos_, /*joint_rot=*/entry.joint_rot_,
         /*joint_axis=*/entry.joint_axis_, /*shape=*/node.attrs_.shape_,
-        /*length=*/node.attrs_.length_);
+        /*length=*/node.attrs_.length_, /*color=*/node.attrs_.color_,
+        /*joint_color=*/entry.joint_color_);
 
     for (const Edge &edge : graph.edges_) {
       if (edge.tail_ == entry.node_) {
@@ -58,6 +61,7 @@ Robot buildRobot(const Graph &graph) {
             /*joint_pos=*/edge.attrs_.joint_pos_,
             /*joint_rot=*/edge.attrs_.joint_rot_,
             /*joint_axis=*/edge.attrs_.joint_axis_,
+            /*joint_color=*/edge.attrs_.color_,
             /*scale=*/entry.scale_ * edge.attrs_.scale_});
       }
     }

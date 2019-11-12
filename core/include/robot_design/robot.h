@@ -14,10 +14,10 @@ enum class JointType : Index { FREE, HINGE, FIXED };
 struct Link {
   Link(Index parent, JointType joint_type, Scalar joint_pos,
        const Quaternion &joint_rot, const Vector3 &joint_axis, LinkShape shape,
-       Scalar length)
+       Scalar length, const Color &color, const Color &joint_color)
       : parent_(parent), joint_type_(joint_type), joint_pos_(joint_pos),
         joint_rot_(joint_rot), joint_axis_(joint_axis), shape_(shape),
-        length_(length) {}
+        length_(length), color_(color), joint_color_(joint_color) {}
 
   // Parent link index (-1 for base link)
   Index parent_;
@@ -33,6 +33,10 @@ struct Link {
   LinkShape shape_;
   // Link length
   Scalar length_;
+  // Link color for rendering
+  Color color_;
+  // Joint color for rendering
+  Color joint_color_;
 
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };

@@ -17,5 +17,6 @@ using MatrixX = Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>;
 using Quaternion = Eigen::Quaternion<Scalar>;
 using Affine3 = Eigen::Transform<Scalar, 3, Eigen::Affine>;
 using Translation3 = Eigen::Translation<Scalar, 3>;
+using Color = Eigen::Vector3f;
 
 }  // namespace robot_design

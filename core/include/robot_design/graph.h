@@ -19,10 +19,18 @@ using EdgeIndex = std::size_t;
 // Nodes contain Link attributes which should be shared across all instances
 // See the definition of Link for more information about these attributes
 struct NodeAttributes {
-  std::string label_;
-  LinkShape shape_;
-  Scalar length_;
-  bool base_;
+  NodeAttributes() = default;
+  NodeAttributes(const std::string &label) : label_(label) {}
+  NodeAttributes(const std::string &label, LinkShape shape, Scalar length,
+                 bool base, const Color &color)
+      : label_(label), shape_(shape), length_(length), base_(base),
+        color_(color) {}
+
+  std::string label_ = "";
+  LinkShape shape_ = LinkShape::NONE;
+  Scalar length_ = 1.0;
+  bool base_ = false;
+  Color color_ = {0.45f, 0.5f, 0.55f};  // Slate gray
 
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 };
@@ -35,13 +43,23 @@ struct Node {
 // Edges contain Link attributes which are unique to each instance
 // E.g. the rigid transformation relative to the parent link, uniform scaling
 struct EdgeAttributes {
-  std::string id_;
-  std::string label_;
-  JointType joint_type_;
-  Scalar joint_pos_;
-  Quaternion joint_rot_;
-  Vector3 joint_axis_;
-  Scalar scale_;
+  EdgeAttributes() = default;
+  EdgeAttributes(const std::string &id, const std::string &label,
+                 JointType joint_type, Scalar joint_pos,
+                 const Quaternion &joint_rot, const Vector3 &joint_axis,
+                 Scalar scale, const Color &color)
+      : id_(id), label_(label), joint_type_(joint_type), joint_pos_(joint_pos),
+        joint_rot_(joint_rot), joint_axis_(joint_axis), scale_(scale),
+        color_(color) {}
+
+  std::string id_ = "";
+  std::string label_ = "";
+  JointType joint_type_ = JointType::FIXED;
+  Scalar joint_pos_ = 1.0;
+  Quaternion joint_rot_ = Quaternion::Identity();
+  Vector3 joint_axis_ = Vector3::UnitZ();
+  Scalar scale_ = 1.0;
+  Color color_ = {1.0f, 0.5f, 0.3f};  // Coral
 
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 };

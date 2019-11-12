@@ -24,21 +24,6 @@ std::vector<Graph> loadGraphs(const std::string &filename) {
     dot_parsing::State state;
     // Create a root subgraph with default attribute values
     state.subgraph_states_.emplace_back();
-    dot_parsing::SubgraphState &root_subgraph_state =
-        state.subgraph_states_.back();
-    root_subgraph_state.result_.node_attrs_ = {
-        /*label=*/"",
-        /*shape=*/LinkShape::NONE,
-        /*length=*/1.0,
-        /*base=*/false};
-    root_subgraph_state.result_.edge_attrs_ = {
-        /*id=*/"",
-        /*label=*/"",
-        /*joint_type=*/JointType::FIXED,
-        /*joint_pos=*/1.0,
-        /*joint_rot=*/Quaternion::Identity(),
-        /*joint_axis=*/Vector3::UnitZ(),
-        /*scale=*/1.0};
     success = tao::pegtl::parse<
         tao::pegtl::pad<dot_rules::graph, dot_rules::sep>,
         dot_parsing::dot_action>(input, state);
@@ -86,6 +71,10 @@ void updateNodeAttributes(
       in >> node_attrs.length_;
     } else if (key == "base") {
       node_attrs.base_ = parseDOTBool(value);
+    } else if (key == "color") {
+      std::istringstream in(value);
+      Color &color = node_attrs.color_;
+      in >> color(0) >> color(1) >> color(2);
     }
   }
 }
@@ -128,6 +117,10 @@ void updateEdgeAttributes(
     } else if (key == "scale") {
       std::istringstream in(value);
       in >> edge_attrs.scale_;
+    } else if (key == "color") {
+      std::istringstream in(value);
+      Color &color = edge_attrs.color_;
+      in >> color(0) >> color(1) >> color(2);
     }
   }
 }

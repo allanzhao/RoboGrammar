@@ -87,7 +87,7 @@ int main(int argc, char **argv) {
   // Generate a robot graph
   Graph robot_graph = {
       /*name=*/"robot",
-      /*nodes=*/{Node{"robot", {/*label=*/"robot"}}},
+      /*nodes=*/{Node{"robot", NodeAttributes("robot")}},
       /*edges=*/{},
       /*subgraphs=*/{}};
   for (unsigned int rule_idx : args::get(rule_sequence_arg)) {
