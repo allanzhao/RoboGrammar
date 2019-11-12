@@ -39,9 +39,6 @@ Index BulletSimulation::addRobot(std::shared_ptr<const Robot> robot,
 
     std::shared_ptr<btCollisionShape> col_shape;
     switch (link.shape_) {
-    case LinkShape::NONE:
-      // Links do not need to have a collision shape for rendering purposes
-      break;
     case LinkShape::CAPSULE:
       col_shape = std::make_shared<btCapsuleShapeX>(
           robot->link_radius_, link.length_);
@@ -53,12 +50,9 @@ Index BulletSimulation::addRobot(std::shared_ptr<const Robot> robot,
     default:
       throw std::runtime_error("Unexpected link shape");
     }
-    Scalar link_mass = 0;
-    btVector3 link_inertia(0, 0, 0);
-    if (col_shape) {
-      link_mass = link.length_ * robot->link_density_;
-      col_shape->calculateLocalInertia(link_mass, link_inertia);
-    }
+    Scalar link_mass = link.length_ * robot->link_density_;
+    btVector3 link_inertia;
+    col_shape->calculateLocalInertia(link_mass, link_inertia);
 
     if (i == 0) {
       assert(link.parent_ == -1 && link.joint_type_ == JointType::FREE);
@@ -121,21 +115,19 @@ Index BulletSimulation::addRobot(std::shared_ptr<const Robot> robot,
   // Add collision objects to world
   wrapper.colliders_.resize(wrapper.col_shapes_.size());
   for (std::size_t i = 0; i < wrapper.col_shapes_.size(); ++i) {
-    if (wrapper.col_shapes_[i]) {
-      auto collider = std::make_shared<btMultiBodyLinkCollider>(
-          wrapper.multi_body_.get(), i - 1);
-      collider->setCollisionShape(wrapper.col_shapes_[i].get());
-      collider->setFriction(robot->friction_);
-      world_->addCollisionObject(collider.get(),
-                                 /*collisionFilterGroup=*/1,
-                                 /*collisionFilterMask=*/3);
-      if (i == 0) {
-        wrapper.multi_body_->setBaseCollider(collider.get());
-      } else {
-        wrapper.multi_body_->getLink(i - 1).m_collider = collider.get();
-      }
-      wrapper.colliders_[i] = std::move(collider);
+    auto collider = std::make_shared<btMultiBodyLinkCollider>(
+        wrapper.multi_body_.get(), i - 1);
+    collider->setCollisionShape(wrapper.col_shapes_[i].get());
+    collider->setFriction(robot->friction_);
+    world_->addCollisionObject(collider.get(),
+                               /*collisionFilterGroup=*/1,
+                               /*collisionFilterMask=*/3);
+    if (i == 0) {
+      wrapper.multi_body_->setBaseCollider(collider.get());
+    } else {
+      wrapper.multi_body_->getLink(i - 1).m_collider = collider.get();
     }
+    wrapper.colliders_[i] = std::move(collider);
   }
 
   // Initialize collision object world transforms
@@ -224,9 +216,7 @@ Index BulletSimulation::findPropIndex(const Prop &prop) const {
 void BulletSimulation::unregisterRobotWrapper(BulletRobotWrapper &robot_wrapper) {
   // Remove collision objects for every link
   for (auto collider : robot_wrapper.colliders_) {
-    if (collider) {
-      world_->removeCollisionObject(collider.get());
-    }
+    world_->removeCollisionObject(collider.get());
   }
   world_->removeMultiBody(robot_wrapper.multi_body_.get());
 }

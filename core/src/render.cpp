@@ -552,12 +552,6 @@ void GLFWRenderer::draw(const Simulation &sim, const Program &program,
       // Draw the link's collision shape
       program_state.setObjectColor({0.45f, 0.5f, 0.55f});  // Slate gray
       switch (link.shape_) {
-      case LinkShape::NONE:
-        // Draw a placeholder shape
-        program_state.setObjectColor({0.0f, 1.0f, 1.0f});  // Aqua
-        drawCapsule(link_transform.cast<float>(), link.length_ / 2,
-                    robot.link_radius_, program, program_state);
-        break;
       case LinkShape::CAPSULE:
         drawCapsule(link_transform.cast<float>(), link.length_ / 2,
                     robot.link_radius_, program, program_state);
