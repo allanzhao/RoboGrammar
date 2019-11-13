@@ -7,64 +7,91 @@ digraph hexapod {
   }
 
   subgraph R {
-    body [link_shape=capsule, length=0.5, base=true];
-    leg_design1 [label="leg_design"];
-    leg_design2 [label="leg_design"];
-    leg_design3 [label="leg_design"];
-
-    body -> leg_design1 [offset=0.0, axis_angle="0 1 0 105"];
-    body -> leg_design1 [offset=0.0, axis_angle="0 1 0 -105", mirror=true];
-    body -> leg_design2 [offset=0.5, axis_angle="0 1 0 90"];
-    body -> leg_design2 [offset=0.5, axis_angle="0 1 0 -90", mirror=true];
-    body -> leg_design3 [offset=1.0, axis_angle="0 1 0 75"];
-    body -> leg_design3 [offset=1.0, axis_angle="0 1 0 -75", mirror=true];
+    body [shape=capsule, length=0.5, base=true];
+    leg1 [label="leg"];
+    leg2 [label="leg"];
+    leg3 [label="leg"];
+    body -> leg1 [offset=0.0, axis_angle="0 1 0 105"];
+    body -> leg1 [offset=0.0, axis_angle="0 1 0 -105", mirror=true];
+    body -> leg2 [offset=0.5, axis_angle="0 1 0 90"];
+    body -> leg2 [offset=0.5, axis_angle="0 1 0 -90", mirror=true];
+    body -> leg3 [offset=1.0, axis_angle="0 1 0 75"];
+    body -> leg3 [offset=1.0, axis_angle="0 1 0 -75", mirror=true];
   }
 }
 
-digraph simple_leg_design {
-  // A simple leg design with two hinge joints.
-
+digraph leg {
   subgraph L {
-    leg_design [label="leg_design"];
-
-    any_node1 -> leg_design [id="edges1"];
+    leg [label="leg"];
+    body -> leg [id="incoming_edges"];
   }
 
   subgraph R {
-    node [link_shape=capsule];
-    base [length=0.15];
-    proximal [length=0.15];
-    distal [length=0.15];
-
-    any_node1 -> base [id="edges1"];
-    base -> proximal [joint_type=hinge, axis_angle="0 0 1 90",
-                      joint_axis="0 1 0"];
-    proximal -> distal [joint_type=hinge, joint_axis="0 1 0"];
+    base [shape=capsule, length=0.15];
+    segment [label="segment"];
+    body -> base [id="incoming_edges"];
+    base -> segment [label="joint"];
   }
 }
 
-digraph spider_leg_design {
+digraph middle_segment {
   subgraph L {
-    leg_design [label="leg_design"];
-
-    any_node1 -> leg_design [id="edges1"];
+    segment [label="segment"];
+    prev -> segment [id="incoming_edges"];
   }
 
   subgraph R {
-    node [link_shape=capsule];
-    coxa [length=0.15];
-    femur [length=0.2];
-    tibia [length=0.2];
-    metatarsus [length=0.2];
-    tarsus [length=0.05];
+    link [shape=capsule, length=0.25];
+    next_segment [label="segment"];
+    prev -> link [id="incoming_edges"];
+    link -> next_segment [label="joint"];
+  }
+}
 
-    any_node1 -> coxa [id="edges1"];
-    coxa -> femur [joint_type=hinge, axis_angle="0 0 1 -15",
-                   joint_axis="0 1 0"];
-    femur -> tibia [joint_type=hinge, axis_angle="0 0 1 60",
-                    joint_axis="0 0 1"];
-    tibia -> metatarsus [joint_type=hinge, axis_angle="0 0 1 60",
-                         joint_axis="0 0 1"];
-    metatarsus -> tarsus [axis_angle="0 0 1 -45"];
+digraph end_segment {
+  subgraph L {
+    segment [label="segment"];
+    prev -> segment [id="incoming_edges"];
+  }
+
+  subgraph R {
+    link [shape=capsule, length=0.25];
+    prev -> link [id="incoming_edges"];
+  }
+}
+
+digraph knee_joint {
+  subgraph L {
+    prev -> next [label="joint"];
+  }
+
+  subgraph R {
+    prev -> next [type=hinge, joint_axis="0 0 1", limits="-120 0",
+                  color="1 0.5 0.3"];  // Coral
+  }
+}
+
+digraph pin_joint {
+  subgraph L {
+    prev -> next [label="joint"];
+  }
+
+  subgraph R {
+    prev -> next [type=hinge, joint_axis="0 1 0", limits="-90 90",
+                  color="0.15 0.55 0.15"];  // Forest green
+  }
+}
+
+digraph ball_joint {
+  subgraph L {
+    prev -> next [label="joint"];
+  }
+
+  subgraph R {
+    mid [shape=capsule, length=0.15];
+    prev -> mid [type=hinge, joint_axis="0 1 0", limits="-90 90",
+                 color="0.85 0.45 0.85"];  // Orchid
+    mid -> next [type=hinge, joint_axis="0 0 1", limits="-45 45",
+                 color="0.85 0.45 0.85"];  // Orchid
   }
 }

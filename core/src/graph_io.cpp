@@ -57,7 +57,7 @@ void updateNodeAttributes(
     const std::string &value = attr.second;
     if (key == "label") {
       node_attrs.label_ = value;
-    } else if (key == "link_shape") {
+    } else if (key == "shape") {
       if (value == "capsule") {
         node_attrs.shape_ = LinkShape::CAPSULE;
       } else if (value == "cylinder") {
@@ -89,7 +89,7 @@ void updateEdgeAttributes(
       edge_attrs.id_ = value;
     } else if (key == "label") {
       edge_attrs.label_ = value;
-    } else if (key == "joint_type") {
+    } else if (key == "type") {
       if (value == "free") {
         edge_attrs.joint_type_ = JointType::FREE;
       } else if (value == "hinge") {
