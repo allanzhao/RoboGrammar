@@ -158,13 +158,17 @@ std::vector<GraphMapping> findMatches(
     // Edges in pattern incident on i must also be present in target
     bool edge_fail = false;
     for (const Edge &pattern_edge : pattern.edges_) {
+      const std::string &pattern_label = pattern_edge.attrs_.label_;
       if (pattern_edge.head_ == i && pattern_edge.tail_ <= i) {
         // Pattern edge i_tail -> i requires target edge j_tail -> j
         NodeIndex j_tail = pm.node_mapping_[pattern_edge.tail_];
         auto it = std::find_if(target.edges_.begin(), target.edges_.end(),
-            [=] (const Edge &target_edge) {
+            [&, j, j_tail] (const Edge &target_edge) {
+              const std::string &target_label = target_edge.attrs_.label_;
               return target_edge.head_ == j &&
-                     target_edge.tail_ == j_tail; });
+                     target_edge.tail_ == j_tail &&
+                     (pattern_label.empty() || pattern_label == target_label);
+            });
         if (it == target.edges_.end()) {
           // No such target edge exists
           edge_fail = true;
@@ -174,9 +178,12 @@ std::vector<GraphMapping> findMatches(
         // Pattern edge i -> i_head requires target edge j -> j_head
         NodeIndex j_head = pm.node_mapping_[pattern_edge.head_];
         auto it = std::find_if(target.edges_.begin(), target.edges_.end(),
-            [=] (const Edge &target_edge) {
+            [&, j, j_head] (const Edge &target_edge) {
+              const std::string &target_label = target_edge.attrs_.label_;
               return target_edge.tail_ == j &&
-                     target_edge.head_ == j_head; });
+                     target_edge.head_ == j_head &&
+                     (pattern_label.empty() || pattern_label == target_label);
+            });
         if (it == target.edges_.end()) {
           // No such target edge exists
           edge_fail = true;
@@ -198,11 +205,14 @@ std::vector<GraphMapping> findMatches(
       new_match.edge_mapping_.resize(pattern.edges_.size());
       for (EdgeIndex m = 0; m < pattern.edges_.size(); ++m) {
         const Edge &pattern_edge = pattern.edges_[m];
+        const std::string &pattern_label = pattern_edge.attrs_.label_;
         NodeIndex j_head = new_match.node_mapping_[pattern_edge.head_];
         NodeIndex j_tail = new_match.node_mapping_[pattern_edge.tail_];
         for (EdgeIndex n = 0; n < target.edges_.size(); ++n) {
           const Edge &target_edge = target.edges_[n];
-          if (target_edge.head_ == j_head && target_edge.tail_ == j_tail) {
+          const std::string &target_label = target_edge.attrs_.label_;
+          if (target_edge.head_ == j_head && target_edge.tail_ == j_tail &&
+              (pattern_label.empty() || pattern_label == target_label)) {
             new_match.edge_mapping_[m].push_back(n);
           }
         }
