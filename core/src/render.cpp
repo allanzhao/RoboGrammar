@@ -573,13 +573,17 @@ void GLFWRenderer::draw(const Simulation &sim, const Program &program,
           Translation3(-link.length_ / 2, 0, 0) *
           Affine3(joint_axis_rotation)).matrix();
       switch (link.joint_type_) {
+      case JointType::FREE:
+        // Nothing to draw
+        break;
       case JointType::HINGE:
         drawCylinder(joint_transform.cast<float>(), robot.link_radius_,
                      robot.link_radius_, program, program_state);
         break;
-      case JointType::FREE:
       case JointType::FIXED:
-        // Nothing to draw
+        drawBox(joint_transform.cast<float>(),
+                Eigen::Vector3f::Constant(robot.link_radius_), program,
+                program_state);
         break;
       default:
         throw std::runtime_error("Unexpected joint type");
