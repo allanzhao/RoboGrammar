@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <cstddef>
 #include <deque>
 #include <iterator>
 #include <memory>
@@ -9,6 +10,7 @@
 namespace robot_design {
 
 Robot buildRobot(const Graph &graph) {
+  // State struct for graph traversal
   struct NodeEntry {
     NodeIndex node_;
     // Arguments for link construction
@@ -21,25 +23,40 @@ Robot buildRobot(const Graph &graph) {
     // Cumulative scaling factor
     Scalar scale_;
   };
+
+  assert(!graph.nodes_.empty());
+
+  // Find a root for the kinematic tree (which will become the base link)
+  NodeIndex root_node = 0;
+  // If a node has base == true, use it as the root
+  const auto it = std::find_if(graph.nodes_.begin(), graph.nodes_.end(),
+      [] (const Node &node) { return node.attrs_.base_; });
+  if (it != graph.nodes_.end()) {
+    root_node = std::distance(graph.nodes_.begin(), it);
+  } else {
+    // Follow edges backwards in the graph to find a root
+    // Limit the number of iterations in case the graph contains a cycle
+    for (std::size_t i = 0; i < graph.edges_.size(); ++i) {
+      // Find an edge pointing towards this node
+      const auto it = std::find_if(graph.edges_.begin(), graph.edges_.end(),
+          [root_node] (const Edge &edge) { return edge.head_ == root_node; });
+      if (it != graph.edges_.end()) {
+        root_node = it->tail_;  // Follow edge backwards
+      } else {
+        break;  // Node is a root
+      }
+    }
+  }
+
+  // Build the (simulated) robot using breadth-first traversal
   Robot robot(/*link_density=*/1.0, /*link_radius=*/0.05, /*friction=*/0.9,
               /*motor_kp=*/2.0, /*motor_kd=*/0.1);
-  // The first node with base == true is the starting node
-  const auto it = std::find_if(graph.nodes_.begin(), graph.nodes_.end(),
-      [] (const Node &node) {
-        return node.attrs_.base_;
-      });
-  if (it == graph.nodes_.end()) {
-    throw std::runtime_error(
-        "Graph has no suitable starting node (no node has base == true)");
-  }
-  NodeIndex starting_node = std::distance(graph.nodes_.begin(), it);
   // The base link doesn't have a joint, so joint-related params don't matter
   std::deque<NodeEntry> entries_to_expand = {NodeEntry{
-      /*node=*/starting_node, /*parent_link=*/-1,
-      /*joint_type=*/JointType::FREE, /*joint_pos=*/0.0,
-      /*joint_rot=*/Quaternion::Identity(), /*joint_axis=*/Vector3::Zero(),
-      /*joint_color=*/Color::Zero(), /*scale=*/1.0}};
-
+      /*node=*/root_node, /*parent_link=*/-1, /*joint_type=*/JointType::FREE,
+      /*joint_pos=*/0.0, /*joint_rot=*/Quaternion::Identity(),
+      /*joint_axis=*/Vector3::Zero(), /*joint_color=*/Color::Zero(),
+      /*scale=*/1.0}};
   while (!entries_to_expand.empty()) {
     NodeEntry &entry = entries_to_expand.front();
     const Node &node = graph.nodes_[entry.node_];
