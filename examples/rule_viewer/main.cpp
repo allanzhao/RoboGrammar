@@ -18,18 +18,18 @@ enum class RuleSide : unsigned int { LHS, RHS };
 
 int main(int argc, char **argv) {
   args::ArgumentParser parser("Robot design rule viewer.");
-  args::HelpFlag help_flag(
-      parser, "help", "Display this help message", {'h', "help"});
+  args::HelpFlag help_flag(parser, "help", "Display this help message",
+                           {'h', "help"});
   args::Positional<std::string> graph_file_arg(
       parser, "graph_file", "Graph file (.dot)", args::Options::Required);
-  args::Positional<unsigned int> rule_arg(
-      parser, "rule", "Rule index", args::Options::Required);
+  args::Positional<unsigned int> rule_arg(parser, "rule", "Rule index",
+                                          args::Options::Required);
   args::MapPositional<std::string, RuleSide> side_arg(
       parser, "side", "Rule side (lhs|rhs)",
       {{"lhs", RuleSide::LHS}, {"rhs", RuleSide::RHS}}, RuleSide::LHS,
       args::Options::Required);
-  args::Flag render_flag(
-      parser, "render", "Render to a window", {'r', "render"});
+  args::Flag render_flag(parser, "render", "Render to a window",
+                         {'r', "render"});
   args::ValueFlag<std::string> save_image_flag(
       parser, "save_image", "Save PNG image to file", {"save_image"});
 
@@ -75,7 +75,7 @@ int main(int argc, char **argv) {
   Graph robot_graph;
   if (args::get(side_arg) == RuleSide::LHS) {
     robot_graph = rule.lhs_;
-  } else {  // RuleSide::RHS
+  } else { // RuleSide::RHS
     robot_graph = rule.rhs_;
   }
   assert(!robot_graph.nodes_.empty());
@@ -97,15 +97,15 @@ int main(int argc, char **argv) {
     for (const auto &edges : rule.common_to_lhs_.edge_mapping_) {
       edges_in_common.insert(edges.begin(), edges.end());
     }
-    diff_color = {0.5f, 0.0f, 0.0f};  // Maroon
-  } else {  // RuleSide::RHS
+    diff_color = {0.5f, 0.0f, 0.0f}; // Maroon
+  } else {                           // RuleSide::RHS
     // Nodes and edges are added in the RHS
     nodes_in_common.insert(rule.common_to_rhs_.node_mapping_.begin(),
                            rule.common_to_rhs_.node_mapping_.end());
     for (const auto &edges : rule.common_to_rhs_.edge_mapping_) {
       edges_in_common.insert(edges.begin(), edges.end());
     }
-    diff_color = {0.0f, 0.5f, 0.0f};  // Green
+    diff_color = {0.0f, 0.5f, 0.0f}; // Green
   }
   for (NodeIndex i = 0; i < robot_graph.nodes_.size(); ++i) {
     if (nodes_in_common.count(i) == 0) {
@@ -133,7 +133,8 @@ int main(int argc, char **argv) {
 
   // Define a lambda function for making simulation instances
   auto make_sim_fn = [&]() -> std::shared_ptr<Simulation> {
-    std::shared_ptr<BulletSimulation> sim = std::make_shared<BulletSimulation>(time_step);
+    std::shared_ptr<BulletSimulation> sim =
+        std::make_shared<BulletSimulation>(time_step);
     sim->addRobot(robot, offset, Quaternion::Identity());
     return sim;
   };

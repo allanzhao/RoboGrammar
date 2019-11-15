@@ -20,7 +20,8 @@ struct kw_node : seq<TAO_PEGTL_ISTRING("node"), not_at<string_other>> {};
 struct kw_edge : seq<TAO_PEGTL_ISTRING("edge"), not_at<string_other>> {};
 struct kw_graph : seq<TAO_PEGTL_ISTRING("graph"), not_at<string_other>> {};
 struct kw_digraph : seq<TAO_PEGTL_ISTRING("digraph"), not_at<string_other>> {};
-struct kw_subgraph : seq<TAO_PEGTL_ISTRING("subgraph"), not_at<string_other>> {};
+struct kw_subgraph : seq<TAO_PEGTL_ISTRING("subgraph"), not_at<string_other>> {
+};
 struct kw_strict : seq<TAO_PEGTL_ISTRING("strict"), not_at<string_other>> {};
 struct keyword
     : sor<kw_node, kw_edge, kw_graph, kw_digraph, kw_subgraph, kw_strict> {};
@@ -47,23 +48,19 @@ struct sep : sor<ws, comment> {};
 struct seps : star<sep> {};
 
 // https://stackoverflow.com/questions/53427551/pegtl-how-to-skip-spaces-for-the-entire-grammar
-template <typename Separator, typename... Rules>
-struct interleaved;
+template <typename Separator, typename... Rules> struct interleaved;
 
 template <typename Separator, typename Rule0, typename... RulesRest>
 struct interleaved<Separator, Rule0, RulesRest...>
     : seq<Rule0, Separator, interleaved<Separator, RulesRest...>> {};
 
 template <typename Separator, typename Rule0>
-struct interleaved<Separator, Rule0>
-    : seq<Rule0> {};
+struct interleaved<Separator, Rule0> : seq<Rule0> {};
 
-template <typename... Rules>
-using sseq = interleaved<seps, Rules...>;
+template <typename... Rules> using sseq = interleaved<seps, Rules...>;
 
 // Prevents running actions if backtracking would occur
-template <typename... Rules>
-using guarded = seq<at<Rules...>, Rules...>;
+template <typename... Rules> using guarded = seq<at<Rules...>, Rules...>;
 
 // Core grammar
 struct stmt_list;
@@ -74,8 +71,8 @@ struct a_list_item
 struct a_list : list<a_list_item, seps> {};
 struct begin_attr_list : success {};
 struct attr_list
-    : guarded<seq<begin_attr_list, list<sseq<one<'['>, opt<a_list>, one<']'>>,
-                                        seps>>> {};
+    : guarded<seq<begin_attr_list,
+                  list<sseq<one<'['>, opt<a_list>, one<']'>>, seps>>> {};
 struct begin_subgraph : success {};
 struct subgraph_id : seq<id> {};
 struct subgraph
@@ -94,8 +91,8 @@ struct edge_rhs : list<sseq<edge_op, edge_arg>, seps> {};
 struct begin_edge_stmt : success {};
 struct edge_attr_list : seq<attr_list> {};
 struct edge_stmt
-    : guarded<sseq<begin_edge_stmt, edge_arg, edge_rhs,
-                   opt<edge_attr_list>>> {};
+    : guarded<sseq<begin_edge_stmt, edge_arg, edge_rhs, opt<edge_attr_list>>> {
+};
 struct node_def_attr_list : seq<attr_list> {};
 struct edge_def_attr_list : seq<attr_list> {};
 struct attr_stmt
@@ -104,13 +101,12 @@ struct attr_stmt
 struct graph_attr_key : seq<id> {};
 struct graph_attr_value : seq<id> {};
 struct graph_attr_stmt : sseq<graph_attr_key, one<'='>, graph_attr_value> {};
-struct stmt
-    : sor<edge_stmt, subgraph, graph_attr_stmt, attr_stmt, node_stmt> {};
+struct stmt : sor<edge_stmt, subgraph, graph_attr_stmt, attr_stmt, node_stmt> {
+};
 struct stmt_list : opt<list<sseq<stmt, opt<one<';'>>>, seps>> {};
 struct graph_id : seq<id> {};
-struct graph
-    : sseq<opt<kw_strict>, sor<kw_graph, kw_digraph>, opt<graph_id>, one<'{'>,
-           stmt_list, one<'}'>> {};
+struct graph : sseq<opt<kw_strict>, sor<kw_graph, kw_digraph>, opt<graph_id>,
+                    one<'{'>, stmt_list, one<'}'>> {};
 
-}  // namespace dot_rules
-}  // namespace robot_design
+} // namespace dot_rules
+} // namespace robot_design

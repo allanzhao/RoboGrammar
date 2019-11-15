@@ -27,7 +27,8 @@ Program::Program(const std::string &vertex_shader_source,
   if (!status) {
     char buffer[512];
     glGetShaderInfoLog(vertex_shader_, sizeof(buffer), NULL, buffer);
-    throw std::runtime_error(std::string("Failed to compile vertex shader: ") + buffer);
+    throw std::runtime_error(std::string("Failed to compile vertex shader: ") +
+                             buffer);
   }
 
   // Create fragment shader
@@ -42,7 +43,8 @@ Program::Program(const std::string &vertex_shader_source,
     if (!status) {
       char buffer[512];
       glGetShaderInfoLog(fragment_shader_, sizeof(buffer), NULL, buffer);
-      throw std::runtime_error(std::string("Failed to compile fragment shader: ") + buffer);
+      throw std::runtime_error(
+          std::string("Failed to compile fragment shader: ") + buffer);
     }
   }
 
@@ -54,8 +56,10 @@ Program::Program(const std::string &vertex_shader_source,
   }
 
   // Define fixed attribute indices
-  glBindAttribLocation(program_, ATTRIB_POSITION.index_, ATTRIB_POSITION.name_.c_str());
-  glBindAttribLocation(program_, ATTRIB_NORMAL.index_, ATTRIB_NORMAL.name_.c_str());
+  glBindAttribLocation(program_, ATTRIB_POSITION.index_,
+                       ATTRIB_POSITION.name_.c_str());
+  glBindAttribLocation(program_, ATTRIB_NORMAL.index_,
+                       ATTRIB_NORMAL.name_.c_str());
 
   glLinkProgram(program_);
   // Check for link errors
@@ -63,21 +67,26 @@ Program::Program(const std::string &vertex_shader_source,
   if (!status) {
     char buffer[512];
     glGetProgramInfoLog(program_, sizeof(buffer), NULL, buffer);
-    throw std::runtime_error(std::string("Failed to link shader program: ") + buffer);
+    throw std::runtime_error(std::string("Failed to link shader program: ") +
+                             buffer);
   }
 
   // Find uniform indices
   proj_matrix_index_ = glGetUniformLocation(program_, "proj_matrix");
   view_matrix_index_ = glGetUniformLocation(program_, "view_matrix");
-  model_view_matrix_index_ = glGetUniformLocation(program_, "model_view_matrix");
+  model_view_matrix_index_ =
+      glGetUniformLocation(program_, "model_view_matrix");
   normal_matrix_index_ = glGetUniformLocation(program_, "normal_matrix");
   object_color_index_ = glGetUniformLocation(program_, "object_color");
   world_light_dir_index_ = glGetUniformLocation(program_, "world_light_dir");
-  light_proj_matrix_index_ = glGetUniformLocation(program_, "light_proj_matrix");
-  light_model_view_matrices_index_ = glGetUniformLocation(program_, "light_model_view_matrices");
+  light_proj_matrix_index_ =
+      glGetUniformLocation(program_, "light_proj_matrix");
+  light_model_view_matrices_index_ =
+      glGetUniformLocation(program_, "light_model_view_matrices");
   light_color_index_ = glGetUniformLocation(program_, "light_color");
   shadow_map_index_ = glGetUniformLocation(program_, "shadow_map");
-  cascade_far_splits_index_ = glGetUniformLocation(program_, "cascade_far_splits");
+  cascade_far_splits_index_ =
+      glGetUniformLocation(program_, "cascade_far_splits");
 }
 
 Program::~Program() {
@@ -129,7 +138,8 @@ Mesh::~Mesh() {
 
 Texture2D::Texture2D(GLenum target, GLint level, GLint internal_format,
                      GLsizei width, GLsizei height, GLenum format, GLenum type,
-                     const GLvoid *data) : target_(target), texture_(0) {
+                     const GLvoid *data)
+    : target_(target), texture_(0) {
   glGenTextures(1, &texture_);
   glBindTexture(target, texture_);
   glTexImage2D(target, level, internal_format, width, height, 0, format, type,
@@ -140,9 +150,7 @@ Texture2D::Texture2D(GLenum target, GLint level, GLint internal_format,
   glTexParameteri(target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
 }
 
-Texture2D::~Texture2D() {
-  glDeleteTextures(1, &texture_);
-}
+Texture2D::~Texture2D() { glDeleteTextures(1, &texture_); }
 
 void Texture2D::getImage(unsigned char *pixels) const {
   bind();
@@ -164,9 +172,7 @@ Texture3D::Texture3D(GLenum target, GLint level, GLint internal_format,
   glTexParameteri(target, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_BORDER);
 }
 
-Texture3D::~Texture3D() {
-  glDeleteTextures(1, &texture_);
-}
+Texture3D::~Texture3D() { glDeleteTextures(1, &texture_); }
 
 void Texture3D::getImage(unsigned char *pixels) const {
   bind();
@@ -182,47 +188,49 @@ Framebuffer::Framebuffer() : framebuffer_(0) {
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-Framebuffer::~Framebuffer() {
-  glDeleteFramebuffers(1, &framebuffer_);
-}
+Framebuffer::~Framebuffer() { glDeleteFramebuffers(1, &framebuffer_); }
 
 void Framebuffer::attachColorTexture(const Texture2D &color_texture) const {
   bind();
-  glFramebufferTexture2D(
-      GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, color_texture.target_,
-      color_texture.texture_, 0);
+  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
+                         color_texture.target_, color_texture.texture_, 0);
   glDrawBuffer(GL_COLOR_ATTACHMENT0);
   glReadBuffer(GL_COLOR_ATTACHMENT0);
 }
 
-void Framebuffer::attachColorTextureLayer(
-    const Texture3D &color_texture, GLint layer) const {
+void Framebuffer::attachColorTextureLayer(const Texture3D &color_texture,
+                                          GLint layer) const {
   bind();
-  glFramebufferTextureLayer(
-      GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, color_texture.texture_, 0, layer);
+  glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
+                            color_texture.texture_, 0, layer);
   glDrawBuffer(GL_COLOR_ATTACHMENT0);
   glReadBuffer(GL_COLOR_ATTACHMENT0);
 }
 
 void Framebuffer::attachDepthTexture(const Texture2D &depth_texture) const {
   bind();
-  glFramebufferTexture2D(
-      GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, depth_texture.target_,
-      depth_texture.texture_, 0);
+  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
+                         depth_texture.target_, depth_texture.texture_, 0);
 }
 
-void Framebuffer::attachDepthTextureLayer(
-    const Texture3D &depth_texture, GLint layer) const {
+void Framebuffer::attachDepthTextureLayer(const Texture3D &depth_texture,
+                                          GLint layer) const {
   bind();
-  glFramebufferTextureLayer(
-      GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, depth_texture.texture_, 0, layer);
+  glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
+                            depth_texture.texture_, 0, layer);
 }
 
-const std::array<int, FPSCameraController::ACTION_COUNT> FPSCameraController::DEFAULT_KEY_BINDINGS = {
-    GLFW_KEY_W, GLFW_KEY_A, GLFW_KEY_S, GLFW_KEY_D, GLFW_KEY_Q, GLFW_KEY_E,
-    GLFW_MOUSE_BUTTON_LEFT};
+const std::array<int, FPSCameraController::ACTION_COUNT>
+    FPSCameraController::DEFAULT_KEY_BINDINGS = {GLFW_KEY_W,
+                                                 GLFW_KEY_A,
+                                                 GLFW_KEY_S,
+                                                 GLFW_KEY_D,
+                                                 GLFW_KEY_Q,
+                                                 GLFW_KEY_E,
+                                                 GLFW_MOUSE_BUTTON_LEFT};
 
-void FPSCameraController::handleKey(int key, int scancode, int action, int mods) {
+void FPSCameraController::handleKey(int key, int scancode, int action,
+                                    int mods) {
   for (int i = 0; i < ACTION_COUNT; ++i) {
     if (key == key_bindings_[i]) {
       action_flags_[i] = (action != GLFW_RELEASE);
@@ -253,12 +261,24 @@ void FPSCameraController::update(double dt) {
   float pan = 0.0f;
   float tilt = 0.0f;
 
-  if (action_flags_[ACTION_MOVE_FORWARD]) { offset(2) -= move_speed_ * dt; }
-  if (action_flags_[ACTION_MOVE_LEFT]) { offset(0) -= move_speed_ * dt; }
-  if (action_flags_[ACTION_MOVE_BACKWARD]) { offset(2) += move_speed_ * dt; }
-  if (action_flags_[ACTION_MOVE_RIGHT]) { offset(0) += move_speed_ * dt; }
-  if (action_flags_[ACTION_MOVE_UP]) { offset(1) += move_speed_ * dt; }
-  if (action_flags_[ACTION_MOVE_DOWN]) { offset(1) -= move_speed_ * dt; }
+  if (action_flags_[ACTION_MOVE_FORWARD]) {
+    offset(2) -= move_speed_ * dt;
+  }
+  if (action_flags_[ACTION_MOVE_LEFT]) {
+    offset(0) -= move_speed_ * dt;
+  }
+  if (action_flags_[ACTION_MOVE_BACKWARD]) {
+    offset(2) += move_speed_ * dt;
+  }
+  if (action_flags_[ACTION_MOVE_RIGHT]) {
+    offset(0) += move_speed_ * dt;
+  }
+  if (action_flags_[ACTION_MOVE_UP]) {
+    offset(1) += move_speed_ * dt;
+  }
+  if (action_flags_[ACTION_MOVE_DOWN]) {
+    offset(1) -= move_speed_ * dt;
+  }
   if (action_flags_[ACTION_PAN_TILT]) {
     pan -= (cursor_x_ - last_cursor_x_) * mouse_sensitivity_;
     tilt -= (cursor_y_ - last_cursor_y_) * mouse_sensitivity_;
@@ -280,10 +300,10 @@ void FPSCameraController::getViewMatrix(Eigen::Matrix4f &view_matrix) const {
   view_matrix = view_transform.matrix();
 }
 
-DirectionalLight::DirectionalLight(
-    const Eigen::Vector3f &color, const Eigen::Vector3f &dir,
-    const Eigen::Vector3f &up, GLsizei sm_width, GLsizei sm_height,
-    int sm_cascade_count)
+DirectionalLight::DirectionalLight(const Eigen::Vector3f &color,
+                                   const Eigen::Vector3f &dir,
+                                   const Eigen::Vector3f &up, GLsizei sm_width,
+                                   GLsizei sm_height, int sm_cascade_count)
     : color_(color), dir_(dir.normalized()), sm_width_(sm_width),
       sm_height_(sm_height), sm_cascade_count_(sm_cascade_count) {
   makeOrthographicProjection(/*aspect_ratio=*/1.0f, /*z_near=*/-100.0f,
@@ -293,9 +313,11 @@ DirectionalLight::DirectionalLight(
   Eigen::Vector3f norm_dir = dir_;
   Eigen::Vector3f norm_up = (up - norm_dir * up.dot(norm_dir)).normalized();
   Eigen::Matrix3f inv_view_rot_matrix;
+  // clang-format off
   inv_view_rot_matrix << norm_up.cross(norm_dir),
                          norm_up,
                          norm_dir;
+  // clang-format on
   view_rot_matrix_ = inv_view_rot_matrix.transpose();
 
   sm_depth_array_texture_ = std::make_shared<Texture3D>(
@@ -305,8 +327,8 @@ DirectionalLight::DirectionalLight(
 }
 
 void DirectionalLight::updateViewMatricesAndSplits(
-    const Eigen::Matrix4f &camera_view_matrix, float aspect_ratio,
-    float z_near, float z_far, float fov) {
+    const Eigen::Matrix4f &camera_view_matrix, float aspect_ratio, float z_near,
+    float z_far, float fov) {
   // Calculate cascade splits in view space
   for (int i = 0; i < sm_cascade_count_ + 1; ++i) {
     float t = static_cast<float>(i) / sm_cascade_count_;
@@ -315,12 +337,12 @@ void DirectionalLight::updateViewMatricesAndSplits(
 
   Eigen::Affine3f inv_camera_view_tf(camera_view_matrix.inverse());
   // https://lxjk.github.io/2017/04/15/Calculate-Minimal-Bounding-Sphere-of-Frustum.html
-  float k = std::sqrt(1.0f + aspect_ratio * aspect_ratio) *
-            std::tan(0.5f * fov);
+  float k =
+      std::sqrt(1.0f + aspect_ratio * aspect_ratio) * std::tan(0.5f * fov);
   float k_sq = k * k;
   for (int i = 0; i < sm_cascade_count_; ++i) {
-    float z_sn = sm_cascade_splits_(i);      // Near z of frustum segment
-    float z_sf = sm_cascade_splits_(i + 1);  // Far z of frustum segment
+    float z_sn = sm_cascade_splits_(i);     // Near z of frustum segment
+    float z_sf = sm_cascade_splits_(i + 1); // Far z of frustum segment
     float z_range = z_sf - z_sn;
     float z_sum = z_sf + z_sn;
     // Find a bounding sphere in view space
@@ -330,25 +352,27 @@ void DirectionalLight::updateViewMatricesAndSplits(
       center = Eigen::Vector3f{0.0f, 0.0f, -z_sf};
       radius = z_sf * k;
     } else {
-      center = Eigen::Vector3f{
-          0.0f, 0.0f, -0.5f * z_sum * (1.0f + k_sq)};
-      radius = 0.5f * std::sqrt(
-          z_range * z_range +
-          2.0f * (z_sf * z_sf + z_sn * z_sn) * k_sq +
-          z_sum * z_sum * k_sq * k_sq);
+      center = Eigen::Vector3f{0.0f, 0.0f, -0.5f * z_sum * (1.0f + k_sq)};
+      radius = 0.5f * std::sqrt(z_range * z_range +
+                                2.0f * (z_sf * z_sf + z_sn * z_sn) * k_sq +
+                                z_sum * z_sum * k_sq * k_sq);
     }
     // Transform center of sphere into world space
     Eigen::Vector3f center_world = inv_camera_view_tf * center;
-    view_matrices_.block<4, 4>(0, 4 * i) = Eigen::Affine3f(
-        Eigen::Scaling(1.0f / radius) *
-        view_rot_matrix_ *
-        Eigen::Translation3f(-center_world)).matrix();
+    view_matrices_.block<4, 4>(0, 4 * i) =
+        Eigen::Affine3f(Eigen::Scaling(1.0f / radius) * view_rot_matrix_ *
+                        Eigen::Translation3f(-center_world))
+            .matrix();
   }
 }
 
 void ProgramState::updateUniforms(const Program &program) {
-  if (proj_matrix_.dirty_) { program.setProjectionMatrix(proj_matrix_.value_); }
-  if (view_matrix_.dirty_) { program.setViewMatrix(view_matrix_.value_); }
+  if (proj_matrix_.dirty_) {
+    program.setProjectionMatrix(proj_matrix_.value_);
+  }
+  if (view_matrix_.dirty_) {
+    program.setViewMatrix(view_matrix_.value_);
+  }
   if (view_matrix_.dirty_ || model_matrix_.dirty_) {
     Eigen::Matrix4f model_view_matrix =
         view_matrix_.value_ * model_matrix_.value_;
@@ -356,7 +380,9 @@ void ProgramState::updateUniforms(const Program &program) {
     program.setNormalMatrix(
         model_view_matrix.topLeftCorner<3, 3>().inverse().transpose());
   }
-  if (object_color_.dirty_) { program.setObjectColor(object_color_.value_); }
+  if (object_color_.dirty_) {
+    program.setObjectColor(object_color_.value_);
+  }
   if (dir_light_dir_.dirty_) {
     program.setLightDir(dir_light_dir_.value_);
   }
@@ -423,11 +449,12 @@ GLFWRenderer::GLFWRenderer(bool hidden)
   // Create default shader program
   std::string default_vs_source = loadString("data/shaders/default.vert.glsl");
   std::string default_fs_source = loadString("data/shaders/default.frag.glsl");
-  default_program_ = std::make_shared<Program>(default_vs_source, default_fs_source);
+  default_program_ =
+      std::make_shared<Program>(default_vs_source, default_fs_source);
 
   // Create depth shader program
   std::string depth_vs_source = loadString("data/shaders/depth.vert.glsl");
-  std::string depth_fs_source;  // Empty string (no fragment shader needed)
+  std::string depth_fs_source; // Empty string (no fragment shader needed)
   depth_program_ = std::make_shared<Program>(depth_vs_source, depth_fs_source);
 
   // Create meshes
@@ -481,10 +508,9 @@ void GLFWRenderer::render(const Simulation &sim, int width, int height,
     width = framebuffer_width_;
     height = framebuffer_height_;
   }
-  float aspect_ratio =
-      static_cast<float>(width) / height;
-  dir_light_->updateViewMatricesAndSplits(
-      view_matrix_, aspect_ratio, z_near_, z_far_, fov_);
+  float aspect_ratio = static_cast<float>(width) / height;
+  dir_light_->updateViewMatricesAndSplits(view_matrix_, aspect_ratio, z_near_,
+                                          z_far_, fov_);
 
   // Render shadow map
   dir_light_->sm_framebuffer_->bind();
@@ -510,7 +536,7 @@ void GLFWRenderer::render(const Simulation &sim, int width, int height,
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
   }
   glViewport(0, 0, width, height);
-  glClearColor(0.4f, 0.6f, 0.8f, 1.0f);  // Cornflower blue
+  glClearColor(0.4f, 0.6f, 0.8f, 1.0f); // Cornflower blue
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   glDisable(GL_POLYGON_OFFSET_FILL);
   default_program_->use();
@@ -525,8 +551,8 @@ void GLFWRenderer::render(const Simulation &sim, int width, int height,
   glfwPollEvents();
 }
 
-void GLFWRenderer::readPixels(
-    int x, int y, int width, int height, unsigned char *data) const {
+void GLFWRenderer::readPixels(int x, int y, int width, int height,
+                              unsigned char *data) const {
   glReadPixels(x, y, width, height, GL_RGBA, GL_UNSIGNED_BYTE, data);
 }
 
@@ -568,10 +594,10 @@ void GLFWRenderer::draw(const Simulation &sim, const Program &program,
       program_state.setObjectColor(link.joint_color_);
       Matrix3 joint_axis_rotation =
           makeVectorToVectorRotation(link.joint_axis_, Vector3::UnitX());
-      Matrix4 joint_transform = (
-          Affine3(link_transform) *
-          Translation3(-link.length_ / 2, 0, 0) *
-          Affine3(joint_axis_rotation)).matrix();
+      Matrix4 joint_transform =
+          (Affine3(link_transform) * Translation3(-link.length_ / 2, 0, 0) *
+           Affine3(joint_axis_rotation))
+              .matrix();
       switch (link.joint_type_) {
       case JointType::FREE:
         // Nothing to draw
@@ -592,7 +618,7 @@ void GLFWRenderer::draw(const Simulation &sim, const Program &program,
   }
 
   // Draw props
-  program_state.setObjectColor({0.8f, 0.7f, 0.6f});  // Tan
+  program_state.setObjectColor({0.8f, 0.7f, 0.6f}); // Tan
   for (Index prop_idx = 0; prop_idx < sim.getPropCount(); ++prop_idx) {
     const Prop &prop = *sim.getProp(prop_idx);
     Matrix4 prop_transform;
@@ -602,53 +628,57 @@ void GLFWRenderer::draw(const Simulation &sim, const Program &program,
   }
 }
 
-void GLFWRenderer::drawBox(
-    const Eigen::Matrix4f &transform, const Eigen::Vector3f &half_extents,
-    const Program &program, ProgramState &program_state) const {
-  Eigen::Affine3f model_transform = Eigen::Affine3f(transform) *
-      Eigen::Scaling(half_extents);
+void GLFWRenderer::drawBox(const Eigen::Matrix4f &transform,
+                           const Eigen::Vector3f &half_extents,
+                           const Program &program,
+                           ProgramState &program_state) const {
+  Eigen::Affine3f model_transform =
+      Eigen::Affine3f(transform) * Eigen::Scaling(half_extents);
   box_mesh_->bind();
   program_state.setModelMatrix(model_transform.matrix());
   program_state.updateUniforms(program);
   box_mesh_->draw();
 }
 
-void GLFWRenderer::drawCapsule(
-    const Eigen::Matrix4f &transform, float half_length, float radius,
-    const Program &program, ProgramState &program_state) const {
+void GLFWRenderer::drawCapsule(const Eigen::Matrix4f &transform,
+                               float half_length, float radius,
+                               const Program &program,
+                               ProgramState &program_state) const {
   drawTubeBasedShape(transform, half_length, radius, program, program_state,
                      *capsule_end_mesh_);
 }
 
-void GLFWRenderer::drawCylinder(
-    const Eigen::Matrix4f &transform, float half_length, float radius,
-    const Program &program, ProgramState &program_state) const {
+void GLFWRenderer::drawCylinder(const Eigen::Matrix4f &transform,
+                                float half_length, float radius,
+                                const Program &program,
+                                ProgramState &program_state) const {
   drawTubeBasedShape(transform, half_length, radius, program, program_state,
                      *cylinder_end_mesh_);
 }
 
-void GLFWRenderer::drawTubeBasedShape(
-    const Eigen::Matrix4f &transform, float half_length, float radius,
-    const Program &program, ProgramState &program_state, const Mesh &end_mesh
-    ) const {
-  Eigen::Affine3f right_end_model_transform = Eigen::Affine3f(transform) *
-      Eigen::Translation3f(half_length, 0, 0) *
+void GLFWRenderer::drawTubeBasedShape(const Eigen::Matrix4f &transform,
+                                      float half_length, float radius,
+                                      const Program &program,
+                                      ProgramState &program_state,
+                                      const Mesh &end_mesh) const {
+  Eigen::Affine3f right_end_model_transform =
+      Eigen::Affine3f(transform) * Eigen::Translation3f(half_length, 0, 0) *
       Eigen::Scaling(radius, radius, radius);
   end_mesh.bind();
   program_state.setModelMatrix(right_end_model_transform.matrix());
   program_state.updateUniforms(program);
   end_mesh.draw();
 
-  Eigen::Affine3f left_end_model_transform = Eigen::Affine3f(transform) *
-      Eigen::Translation3f(-half_length, 0, 0) *
+  Eigen::Affine3f left_end_model_transform =
+      Eigen::Affine3f(transform) * Eigen::Translation3f(-half_length, 0, 0) *
       Eigen::Scaling(-radius, radius, -radius);
   end_mesh.bind();
   program_state.setModelMatrix(left_end_model_transform.matrix());
   program_state.updateUniforms(program);
   end_mesh.draw();
 
-  Eigen::Affine3f middle_model_transform = Eigen::Affine3f(transform) *
-      Eigen::Scaling(half_length, radius, radius);
+  Eigen::Affine3f middle_model_transform =
+      Eigen::Affine3f(transform) * Eigen::Scaling(half_length, radius, radius);
   tube_mesh_->bind();
   program_state.setModelMatrix(middle_model_transform.matrix());
   program_state.updateUniforms(program);
@@ -659,8 +689,10 @@ void GLFWRenderer::errorCallback(int error, const char *description) {
   std::cerr << "GLFW error: " << description << std::endl;
 }
 
-void GLFWRenderer::framebufferSizeCallback(GLFWwindow *window, int width, int height) {
-  GLFWRenderer *renderer = static_cast<GLFWRenderer*>(glfwGetWindowUserPointer(window));
+void GLFWRenderer::framebufferSizeCallback(GLFWwindow *window, int width,
+                                           int height) {
+  GLFWRenderer *renderer =
+      static_cast<GLFWRenderer *>(glfwGetWindowUserPointer(window));
   renderer->framebuffer_width_ = width;
   renderer->framebuffer_height_ = height;
   renderer->updateProjectionMatrix();
@@ -668,7 +700,8 @@ void GLFWRenderer::framebufferSizeCallback(GLFWwindow *window, int width, int he
 
 void GLFWRenderer::keyCallback(GLFWwindow *window, int key, int scancode,
                                int action, int mods) {
-  GLFWRenderer *renderer = static_cast<GLFWRenderer*>(glfwGetWindowUserPointer(window));
+  GLFWRenderer *renderer =
+      static_cast<GLFWRenderer *>(glfwGetWindowUserPointer(window));
   if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
     glfwSetWindowShouldClose(window, GL_TRUE);
   }
@@ -677,24 +710,28 @@ void GLFWRenderer::keyCallback(GLFWwindow *window, int key, int scancode,
 
 void GLFWRenderer::mouseButtonCallback(GLFWwindow *window, int button,
                                        int action, int mods) {
-  GLFWRenderer *renderer = static_cast<GLFWRenderer*>(glfwGetWindowUserPointer(window));
+  GLFWRenderer *renderer =
+      static_cast<GLFWRenderer *>(glfwGetWindowUserPointer(window));
   renderer->camera_controller_.handleMouseButton(button, action, mods);
 }
 
 void GLFWRenderer::cursorPositionCallback(GLFWwindow *window, double xpos,
                                           double ypos) {
-  GLFWRenderer *renderer = static_cast<GLFWRenderer*>(glfwGetWindowUserPointer(window));
+  GLFWRenderer *renderer =
+      static_cast<GLFWRenderer *>(glfwGetWindowUserPointer(window));
   renderer->camera_controller_.handleCursorPosition(xpos, ypos);
 }
 
 void GLFWRenderer::scrollCallback(GLFWwindow *window, double xoffset,
                                   double yoffset) {
-  GLFWRenderer *renderer = static_cast<GLFWRenderer*>(glfwGetWindowUserPointer(window));
+  GLFWRenderer *renderer =
+      static_cast<GLFWRenderer *>(glfwGetWindowUserPointer(window));
   renderer->camera_controller_.handleScroll(xoffset, yoffset);
 }
 
 void GLFWRenderer::updateProjectionMatrix() {
-  float aspect_ratio = static_cast<float>(framebuffer_width_) / framebuffer_height_;
+  float aspect_ratio =
+      static_cast<float>(framebuffer_width_) / framebuffer_height_;
   makePerspectiveProjection(aspect_ratio, z_near_, z_far_, fov_, proj_matrix_);
 }
 
@@ -708,44 +745,50 @@ std::string GLFWRenderer::loadString(const std::string &path) {
 void makeOrthographicProjection(float aspect_ratio, float z_near, float z_far,
                                 Eigen::Matrix4f &matrix) {
   float z_range = z_far - z_near;
+  // clang-format off
   matrix << 1 / aspect_ratio, 0, 0, 0,
             0, 1, 0, 0,
             0, 0, -2 / z_range, -(z_far + z_near) / z_range,
             0, 0, 0, 1;
+  // clang-format on
 }
 
 void makePerspectiveProjection(float aspect_ratio, float z_near, float z_far,
                                float fov, Eigen::Matrix4f &matrix) {
   float z_range = z_far - z_near;
   float tan_half_fov = std::tan(0.5f * fov);
+  // clang-format off
   matrix << 1 / (tan_half_fov * aspect_ratio), 0, 0, 0,
             0, 1 / tan_half_fov, 0, 0,
             0, 0, -(z_far + z_near) / z_range, -2 * z_far * z_near / z_range,
             0, 0, -1, 0;
+  // clang-format on
 }
 
 std::shared_ptr<Mesh> makeBoxMesh() {
+  // clang-format off
   std::vector<float> positions = {
-      -1, -1, -1, -1, -1, 1, -1, 1, 1, -1, 1, -1,  // -X face
-      -1, -1, -1, 1, -1, -1, 1, -1, 1, -1, -1, 1,  // -Y face
-      -1, -1, -1, -1, 1, -1, 1, 1, -1, 1, -1, -1,  // -Z face
-      1, 1, 1, 1, -1, 1, 1, -1, -1, 1, 1, -1,      // +X face
-      1, 1, 1, 1, 1, -1, -1, 1, -1, -1, 1, 1,      // +Y face
-      1, 1, 1, -1, 1, 1, -1, -1, 1, 1, -1, 1};     // +Z face
+      -1, -1, -1, -1, -1, 1, -1, 1, 1, -1, 1, -1, // -X face
+      -1, -1, -1, 1, -1, -1, 1, -1, 1, -1, -1, 1, // -Y face
+      -1, -1, -1, -1, 1, -1, 1, 1, -1, 1, -1, -1, // -Z face
+      1, 1, 1, 1, -1, 1, 1, -1, -1, 1, 1, -1,     // +X face
+      1, 1, 1, 1, 1, -1, -1, 1, -1, -1, 1, 1,     // +Y face
+      1, 1, 1, -1, 1, 1, -1, -1, 1, 1, -1, 1};    // +Z face
   std::vector<float> normals = {
-      -1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0,      // -X face
-      0, -1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0,      // -Y face
-      0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0, -1,      // -Z face
-      1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0,          // +X face
-      0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0,          // +Y face
-      0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1};         // +Z face
+      -1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0,     // -X face
+      0, -1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0,     // -Y face
+      0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0, -1,     // -Z face
+      1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0,         // +X face
+      0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0,         // +Y face
+      0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1};        // +Z face
   std::vector<int> indices = {
-      0, 1, 2, 3, 0, 2,                            // -X face
-      4, 5, 6, 7, 4, 6,                            // -Y face
-      8, 9, 10, 11, 8, 10,                         // -Z face
-      12, 13, 14, 15, 12, 14,                      // +X face
-      16, 17, 18, 19, 16, 18,                      // +Y face
-      20, 21, 22, 23, 20, 22};                     // +Z face
+      0, 1, 2, 3, 0, 2,                           // -X face
+      4, 5, 6, 7, 4, 6,                           // -Y face
+      8, 9, 10, 11, 8, 10,                        // -Z face
+      12, 13, 14, 15, 12, 14,                     // +X face
+      16, 17, 18, 19, 16, 18,                     // +Y face
+      20, 21, 22, 23, 20, 22};                    // +Z face
+  // clang-format on
 
   return std::make_shared<Mesh>(positions, normals, indices);
 }
@@ -759,7 +802,8 @@ std::shared_ptr<Mesh> makeTubeMesh(int n_segments) {
   for (int i = 0; i < 2; ++i) {
     for (int j = 0; j < n_segments; ++j) {
       float theta = (2 * M_PI) * j / n_segments;
-      float pos[3] = {(i == 0) ? -1.0f : 1.0f, std::cos(theta), std::sin(theta)};
+      float pos[3] = {(i == 0) ? -1.0f : 1.0f, std::cos(theta),
+                      std::sin(theta)};
       float normal[3] = {0, std::cos(theta), std::sin(theta)};
       positions.insert(positions.end(), std::begin(pos), std::end(pos));
       normals.insert(normals.end(), std::begin(normal), std::end(normal));
@@ -788,8 +832,7 @@ std::shared_ptr<Mesh> makeCapsuleEndMesh(int n_segments, int n_rings) {
     for (int j = 0; j < n_segments; ++j) {
       float theta = (2 * M_PI) * j / n_segments;
       float phi = (M_PI / 2) * i / n_rings;
-      float pos[3] = {std::sin(phi),
-                      std::cos(phi) * std::cos(theta),
+      float pos[3] = {std::sin(phi), std::cos(phi) * std::cos(theta),
                       std::cos(phi) * std::sin(theta)};
       positions.insert(positions.end(), std::begin(pos), std::end(pos));
     }
@@ -857,10 +900,12 @@ Matrix3 makeVectorToVectorRotation(Vector3 from, Vector3 to) {
   Vector3 v = from.cross(to);
   Scalar c = from.dot(to);
   Matrix3 v_cross;
+  // clang-format off
   v_cross << 0, -v(2), v(1),
              v(2), 0, -v(0),
              -v(1), v(0), 0;
+  // clang-format on
   return Matrix3::Identity() + v_cross + v_cross * v_cross / (1 + c);
 }
 
-}  // namespace robot_design
+} // namespace robot_design

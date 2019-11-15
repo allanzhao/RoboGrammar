@@ -1,7 +1,7 @@
 #pragma once
 
-#include <cmath>
 #include <Eigen/Dense>
+#include <cmath>
 #include <memory>
 #include <ostream>
 #include <robot_design/robot.h>
@@ -30,7 +30,7 @@ struct NodeAttributes {
   LinkShape shape_ = LinkShape::NONE;
   Scalar length_ = 1.0;
   bool base_ = false;
-  Color color_ = {0.45f, 0.5f, 0.55f};  // Slate gray
+  Color color_ = {0.45f, 0.5f, 0.55f}; // Slate gray
 
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 };
@@ -59,7 +59,7 @@ struct EdgeAttributes {
   Quaternion joint_rot_ = Quaternion::Identity();
   Vector3 joint_axis_ = Vector3::UnitZ();
   Scalar scale_ = 1.0;
-  Color color_ = {1.0f, 0.5f, 0.3f};  // Coral
+  Color color_ = {1.0f, 0.5f, 0.3f}; // Coral
 
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 };
@@ -122,10 +122,10 @@ Robot buildRobot(const Graph &graph);
 
 Rule createRuleFromGraph(const Graph &graph);
 
-std::vector<GraphMapping> findMatches(
-    const Graph &pattern, const Graph &target);
+std::vector<GraphMapping> findMatches(const Graph &pattern,
+                                      const Graph &target);
 
-Graph applyRule(
-    const Rule &rule, const Graph &target, const GraphMapping &lhs_to_target);
+Graph applyRule(const Rule &rule, const Graph &target,
+                const GraphMapping &lhs_to_target);
 
-}  // namespace robot_design
+} // namespace robot_design

@@ -19,4 +19,4 @@ using Affine3 = Eigen::Transform<Scalar, 3, Eigen::Affine>;
 using Translation3 = Eigen::Translation<Scalar, 3>;
 using Color = Eigen::Vector3f;
 
-}  // namespace robot_design
+} // namespace robot_design

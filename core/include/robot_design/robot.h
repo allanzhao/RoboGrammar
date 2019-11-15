@@ -47,7 +47,7 @@ struct Robot {
       : link_density_(link_density), link_radius_(link_radius),
         friction_(friction), motor_kp_(motor_kp), motor_kd_(motor_kd),
         links_() {}
-  Scalar link_density_;  // Mass of links per unit of length
+  Scalar link_density_; // Mass of links per unit of length
   Scalar link_radius_;
   Scalar friction_;
   Scalar motor_kp_;
@@ -55,4 +55,4 @@ struct Robot {
   std::vector<Link, Eigen::aligned_allocator<Link>> links_;
 };
 
-}  // namespace drbs
+} // namespace drbs

@@ -1,20 +1,22 @@
+#include <Serialize/BulletWorldImporter/btMultiBodyWorldImporter.h>
 #include <cstddef>
 #include <limits>
 #include <robot_design/sim.h>
 #include <robot_design/utils.h>
-#include <Serialize/BulletWorldImporter/btMultiBodyWorldImporter.h>
 #include <stdexcept>
 
 namespace robot_design {
 
 BulletSimulation::BulletSimulation(Scalar time_step) : time_step_(time_step) {
   collision_config_ = std::make_shared<btDefaultCollisionConfiguration>();
-  dispatcher_ = std::make_shared<btCollisionDispatcher>(collision_config_.get());
+  dispatcher_ =
+      std::make_shared<btCollisionDispatcher>(collision_config_.get());
   pair_cache_ = std::make_shared<btHashedOverlappingPairCache>();
   broadphase_ = std::make_shared<btDbvtBroadphase>(pair_cache_.get());
   solver_ = std::make_shared<btMultiBodyConstraintSolver>();
-  world_ = std::make_shared<btMultiBodyDynamicsWorld>(dispatcher_.get(),
-      broadphase_.get(), solver_.get(), collision_config_.get());
+  world_ = std::make_shared<btMultiBodyDynamicsWorld>(
+      dispatcher_.get(), broadphase_.get(), solver_.get(),
+      collision_config_.get());
   world_->setGravity(btVector3(0, -9.81, 0));
   world_->getDispatchInfo().m_deterministicOverlappingPairs = true;
 }
@@ -40,8 +42,8 @@ Index BulletSimulation::addRobot(std::shared_ptr<const Robot> robot,
     std::shared_ptr<btCollisionShape> col_shape;
     switch (link.shape_) {
     case LinkShape::CAPSULE:
-      col_shape = std::make_shared<btCapsuleShapeX>(
-          robot->link_radius_, link.length_);
+      col_shape =
+          std::make_shared<btCapsuleShapeX>(robot->link_radius_, link.length_);
       break;
     case LinkShape::CYLINDER:
       col_shape = std::make_shared<btCylinderShapeX>(btVector3{
@@ -68,30 +70,31 @@ Index BulletSimulation::addRobot(std::shared_ptr<const Robot> robot,
     } else {
       btQuaternion joint_rot = bulletQuaternionFromEigen(link.joint_rot_);
       btVector3 joint_axis = bulletVector3FromEigen(link.joint_axis_);
-      btVector3 joint_offset((link.joint_pos_ - 0.5) * robot->links_[link.parent_].length_, 0, 0);
+      btVector3 joint_offset(
+          (link.joint_pos_ - 0.5) * robot->links_[link.parent_].length_, 0, 0);
       btVector3 com_offset(0.5 * link.length_, 0, 0);
       switch (link.joint_type_) {
       case JointType::HINGE:
         wrapper.multi_body_->setupRevolute(
-          /*i=*/i - 1,  // Base link is already accounted for
-          /*mass=*/link_mass,
-          /*inertia=*/link_inertia,
-          /*parent=*/link.parent_ - 1,
-          /*rotParentToThis=*/joint_rot,
-          /*joint_axis=*/joint_axis,
-          /*parentComToThisPivotOffset=*/joint_offset,
-          /*thisPivotToThisComOffset=*/com_offset,
-          /*disableParentCollision=*/true);
+            /*i=*/i - 1, // Base link is already accounted for
+            /*mass=*/link_mass,
+            /*inertia=*/link_inertia,
+            /*parent=*/link.parent_ - 1,
+            /*rotParentToThis=*/joint_rot,
+            /*joint_axis=*/joint_axis,
+            /*parentComToThisPivotOffset=*/joint_offset,
+            /*thisPivotToThisComOffset=*/com_offset,
+            /*disableParentCollision=*/true);
         break;
       case JointType::FIXED:
         wrapper.multi_body_->setupFixed(
-          /*i=*/i - 1,  // Base link is already accounted for
-          /*mass=*/link_mass,
-          /*inertia=*/link_inertia,
-          /*parent=*/link.parent_ - 1,
-          /*rotParentToThis=*/joint_rot,
-          /*parentComToThisPivotOffset=*/joint_offset,
-          /*thisPivotToThisComOffset=*/com_offset);
+            /*i=*/i - 1, // Base link is already accounted for
+            /*mass=*/link_mass,
+            /*inertia=*/link_inertia,
+            /*parent=*/link.parent_ - 1,
+            /*rotParentToThis=*/joint_rot,
+            /*parentComToThisPivotOffset=*/joint_offset,
+            /*thisPivotToThisComOffset=*/com_offset);
         break;
       default:
         throw std::runtime_error("Unexpected joint type");
@@ -136,7 +139,8 @@ Index BulletSimulation::addRobot(std::shared_ptr<const Robot> robot,
   wrapper.multi_body_->forwardKinematics(scratch_q, scratch_m);
   btAlignedObjectArray<btQuaternion> world_to_local;
   btAlignedObjectArray<btVector3> local_origin;
-  wrapper.multi_body_->updateCollisionObjectWorldTransforms(world_to_local, local_origin);
+  wrapper.multi_body_->updateCollisionObjectWorldTransforms(world_to_local,
+                                                            local_origin);
 
   return robot_wrappers_.size() - 1;
 }
@@ -146,7 +150,8 @@ Index BulletSimulation::addProp(std::shared_ptr<const Prop> prop,
   prop_wrappers_.emplace_back(prop);
   BulletPropWrapper &wrapper = prop_wrappers_.back();
 
-  wrapper.col_shape_ = std::make_shared<btBoxShape>(bulletVector3FromEigen(prop->half_extents_));
+  wrapper.col_shape_ =
+      std::make_shared<btBoxShape>(bulletVector3FromEigen(prop->half_extents_));
   // TODO: generalize to other shapes
   Scalar mass = 8 * prop->half_extents_.prod() * prop->density_;
   btVector3 inertia(0, 0, 0);
@@ -191,29 +196,30 @@ std::shared_ptr<const Prop> BulletSimulation::getProp(Index prop_idx) const {
   return prop_wrappers_[prop_idx].prop_;
 }
 
-Index BulletSimulation::getRobotCount() const {
-  return robot_wrappers_.size();
-}
+Index BulletSimulation::getRobotCount() const { return robot_wrappers_.size(); }
 
-Index BulletSimulation::getPropCount() const {
-  return prop_wrappers_.size();
-}
+Index BulletSimulation::getPropCount() const { return prop_wrappers_.size(); }
 
 Index BulletSimulation::findRobotIndex(const Robot &robot) const {
   for (std::size_t i = 0; i < robot_wrappers_.size(); ++i) {
-    if (robot_wrappers_[i].robot_.get() == &robot) { return i; }
+    if (robot_wrappers_[i].robot_.get() == &robot) {
+      return i;
+    }
   }
   return -1;
 }
 
 Index BulletSimulation::findPropIndex(const Prop &prop) const {
   for (std::size_t i = 0; i < prop_wrappers_.size(); ++i) {
-    if (prop_wrappers_[i].prop_.get() == &prop) { return i; }
+    if (prop_wrappers_[i].prop_.get() == &prop) {
+      return i;
+    }
   }
   return -1;
 }
 
-void BulletSimulation::unregisterRobotWrapper(BulletRobotWrapper &robot_wrapper) {
+void BulletSimulation::unregisterRobotWrapper(
+    BulletRobotWrapper &robot_wrapper) {
   // Remove collision objects for every link
   for (auto collider : robot_wrapper.colliders_) {
     world_->removeCollisionObject(collider.get());
@@ -232,16 +238,19 @@ void BulletSimulation::getLinkTransform(Index robot_idx, Index link_idx,
     // Base link
     transform = eigenMatrix4FromBullet(multi_body.getBaseWorldTransform());
   } else {
-    transform = eigenMatrix4FromBullet(multi_body.getLink(link_idx - 1).m_cachedWorldTransform);
+    transform = eigenMatrix4FromBullet(
+        multi_body.getLink(link_idx - 1).m_cachedWorldTransform);
   }
 }
 
-void BulletSimulation::getPropTransform(Index prop_idx, Matrix4 &transform) const {
+void BulletSimulation::getPropTransform(Index prop_idx,
+                                        Matrix4 &transform) const {
   btRigidBody &rigid_body = *prop_wrappers_[prop_idx].rigid_body_;
   transform = eigenMatrix4FromBullet(rigid_body.getCenterOfMassTransform());
 }
 
-void BulletSimulation::getLinkVelocity(Index robot_idx, Index link_idx, Vector6 &vel) const {
+void BulletSimulation::getLinkVelocity(Index robot_idx, Index link_idx,
+                                       Vector6 &vel) const {
   btMultiBody &multi_body = *robot_wrappers_[robot_idx].multi_body_;
   if (link_idx == 0) {
     // Base link
@@ -257,7 +266,8 @@ int BulletSimulation::getRobotDofCount(Index robot_idx) const {
   return multi_body.getNumDofs();
 }
 
-void BulletSimulation::getJointPositions(Index robot_idx, Ref<VectorX> pos) const {
+void BulletSimulation::getJointPositions(Index robot_idx,
+                                         Ref<VectorX> pos) const {
   const btMultiBody &multi_body = *robot_wrappers_[robot_idx].multi_body_;
   pos.resize(multi_body.getNumPosVars());
   int offset = 0;
@@ -270,7 +280,8 @@ void BulletSimulation::getJointPositions(Index robot_idx, Ref<VectorX> pos) cons
   }
 }
 
-void BulletSimulation::getJointVelocities(Index robot_idx, Ref<VectorX> vel) const {
+void BulletSimulation::getJointVelocities(Index robot_idx,
+                                          Ref<VectorX> vel) const {
   const btMultiBody &multi_body = *robot_wrappers_[robot_idx].multi_body_;
   vel.resize(multi_body.getNumDofs());
   int offset = 0;
@@ -283,23 +294,28 @@ void BulletSimulation::getJointVelocities(Index robot_idx, Ref<VectorX> vel) con
   }
 }
 
-void BulletSimulation::getJointTargetPositions(Index robot_idx, Ref<VectorX> target_pos) const {
+void BulletSimulation::getJointTargetPositions(Index robot_idx,
+                                               Ref<VectorX> target_pos) const {
   target_pos = robot_wrappers_[robot_idx].joint_target_pos_;
 }
 
-void BulletSimulation::getJointTargetVelocities(Index robot_idx, Ref<VectorX> target_vel) const {
+void BulletSimulation::getJointTargetVelocities(Index robot_idx,
+                                                Ref<VectorX> target_vel) const {
   target_vel = robot_wrappers_[robot_idx].joint_target_vel_;
 }
 
-void BulletSimulation::setJointTargetPositions(Index robot_idx, const Ref<const VectorX> &target_pos) {
+void BulletSimulation::setJointTargetPositions(
+    Index robot_idx, const Ref<const VectorX> &target_pos) {
   robot_wrappers_[robot_idx].joint_target_pos_ = target_pos;
 }
 
-void BulletSimulation::setJointTargetVelocities(Index robot_idx, const Ref<const VectorX> &target_vel) {
+void BulletSimulation::setJointTargetVelocities(
+    Index robot_idx, const Ref<const VectorX> &target_vel) {
   robot_wrappers_[robot_idx].joint_target_vel_ = target_vel;
 }
 
-void BulletSimulation::addJointTorques(Index robot_idx, const Ref<const VectorX> &torque) {
+void BulletSimulation::addJointTorques(Index robot_idx,
+                                       const Ref<const VectorX> &torque) {
   btMultiBody &multi_body = *robot_wrappers_[robot_idx].multi_body_;
   assert(torque.size() == multi_body.getNumDofs());
   int offset = 0;
@@ -312,7 +328,8 @@ void BulletSimulation::addJointTorques(Index robot_idx, const Ref<const VectorX>
   }
 }
 
-void BulletSimulation::getRobotWorldAABB(Index robot_idx, Vector3 &lower, Vector3 &upper) const {
+void BulletSimulation::getRobotWorldAABB(Index robot_idx, Vector3 &lower,
+                                         Vector3 &upper) const {
   lower = Vector3::Constant(std::numeric_limits<Scalar>::infinity());
   upper = Vector3::Constant(-std::numeric_limits<Scalar>::infinity());
   const btMultiBody &multi_body = *robot_wrappers_[robot_idx].multi_body_;
@@ -327,8 +344,8 @@ void BulletSimulation::getRobotWorldAABB(Index robot_idx, Vector3 &lower, Vector
   for (int link_idx = 0; link_idx < multi_body.getNumLinks(); ++link_idx) {
     const btMultibodyLink &link = multi_body.getLink(link_idx);
     if (link.m_collider) {
-      link.m_collider->getCollisionShape()->getAabb(
-          link.m_cachedWorldTransform, link_lower, link_upper);
+      link.m_collider->getCollisionShape()->getAabb(link.m_cachedWorldTransform,
+                                                    link_lower, link_upper);
       lower = lower.cwiseMin(eigenVector3FromBullet(link_lower));
       upper = upper.cwiseMax(eigenVector3FromBullet(link_upper));
     }
@@ -346,7 +363,8 @@ void BulletSimulation::saveState() {
       serializer->getCurrentBufferSize());
   bullet_file->parse(false);
   if (bullet_file->ok()) {
-    saved_state_ = BulletSavedState(std::move(serializer), std::move(bullet_file));
+    saved_state_ =
+        BulletSavedState(std::move(serializer), std::move(bullet_file));
   } else {
     saved_state_ = BulletSavedState();
   }
@@ -377,7 +395,7 @@ void BulletSimulation::step() {
     addJointTorques(robot_idx, joint_torques);
   }
   world_->stepSimulation(time_step_, 0, time_step_);
-  world_->forwardKinematics();  // Update m_cachedWorldTransform for every link
+  world_->forwardKinematics(); // Update m_cachedWorldTransform for every link
 }
 
-}  // namespace robot_design
+} // namespace robot_design

@@ -13,10 +13,10 @@ Rule createRuleFromGraph(const Graph &graph) {
   // Graph must have subgraphs named "L" and "R"
   const auto lhs_subgraph = std::find_if(
       graph.subgraphs_.begin(), graph.subgraphs_.end(),
-      [] (const Subgraph &subgraph) { return subgraph.name_ == "L"; });
+      [](const Subgraph &subgraph) { return subgraph.name_ == "L"; });
   const auto rhs_subgraph = std::find_if(
       graph.subgraphs_.begin(), graph.subgraphs_.end(),
-      [] (const Subgraph &subgraph) { return subgraph.name_ == "R"; });
+      [](const Subgraph &subgraph) { return subgraph.name_ == "R"; });
   if (lhs_subgraph == graph.subgraphs_.end() ||
       rhs_subgraph == graph.subgraphs_.end()) {
     throw std::runtime_error(
@@ -48,8 +48,8 @@ Rule createRuleFromGraph(const Graph &graph) {
       graph_to_common_node[i] = rule.common_.nodes_.size() - 1;
     }
     if (!node_in_lhs && !node_in_rhs) {
-      throw std::runtime_error(
-          "Node \"" + node.name_ + "\" is in neither the LHS nor the RHS");
+      throw std::runtime_error("Node \"" + node.name_ +
+                               "\" is in neither the LHS nor the RHS");
     }
   }
 
@@ -69,11 +69,10 @@ Rule createRuleFromGraph(const Graph &graph) {
       lhs_edge.head_ = graph_to_lhs_node[lhs_edge.head_];
       lhs_edge.tail_ = graph_to_lhs_node[lhs_edge.tail_];
       if (!id.empty()) {
-        auto result = lhs_id_to_edge.emplace(id,
-                                             rule.lhs_.edges_.size() - 1);
+        auto result = lhs_id_to_edge.emplace(id, rule.lhs_.edges_.size() - 1);
         if (!result.second) {
-          throw std::runtime_error(
-              "Edge ID \"" + id + "\" is used more than once in the LHS");
+          throw std::runtime_error("Edge ID \"" + id +
+                                   "\" is used more than once in the LHS");
         }
       }
     }
@@ -83,11 +82,10 @@ Rule createRuleFromGraph(const Graph &graph) {
       rhs_edge.head_ = graph_to_rhs_node[rhs_edge.head_];
       rhs_edge.tail_ = graph_to_rhs_node[rhs_edge.tail_];
       if (!id.empty()) {
-        auto result = rhs_id_to_edge.emplace(id,
-                                             rule.rhs_.edges_.size() - 1);
+        auto result = rhs_id_to_edge.emplace(id, rule.rhs_.edges_.size() - 1);
         if (!result.second) {
-          throw std::runtime_error(
-              "Edge ID \"" + id + "\" is used more than once in the RHS");
+          throw std::runtime_error("Edge ID \"" + id +
+                                   "\" is used more than once in the RHS");
         }
       }
     }
@@ -120,8 +118,8 @@ Rule createRuleFromGraph(const Graph &graph) {
   return rule;
 }
 
-std::vector<GraphMapping> findMatches(
-    const Graph &pattern, const Graph &target) {
+std::vector<GraphMapping> findMatches(const Graph &pattern,
+                                      const Graph &target) {
   assert(pattern.nodes_.size() >= 1);
 
   // Stack for backtracking, initialized with the first partial match to try
@@ -162,11 +160,11 @@ std::vector<GraphMapping> findMatches(
       if (pattern_edge.head_ == i && pattern_edge.tail_ <= i) {
         // Pattern edge i_tail -> i requires target edge j_tail -> j
         NodeIndex j_tail = pm.node_mapping_[pattern_edge.tail_];
-        auto it = std::find_if(target.edges_.begin(), target.edges_.end(),
-            [&, j, j_tail] (const Edge &target_edge) {
+        auto it = std::find_if(
+            target.edges_.begin(), target.edges_.end(),
+            [&, j, j_tail](const Edge &target_edge) {
               const std::string &target_label = target_edge.attrs_.label_;
-              return target_edge.head_ == j &&
-                     target_edge.tail_ == j_tail &&
+              return target_edge.head_ == j && target_edge.tail_ == j_tail &&
                      (pattern_label.empty() || pattern_label == target_label);
             });
         if (it == target.edges_.end()) {
@@ -177,11 +175,11 @@ std::vector<GraphMapping> findMatches(
       } else if (pattern_edge.tail_ == i && pattern_edge.head_ <= i) {
         // Pattern edge i -> i_head requires target edge j -> j_head
         NodeIndex j_head = pm.node_mapping_[pattern_edge.head_];
-        auto it = std::find_if(target.edges_.begin(), target.edges_.end(),
-            [&, j, j_head] (const Edge &target_edge) {
+        auto it = std::find_if(
+            target.edges_.begin(), target.edges_.end(),
+            [&, j, j_head](const Edge &target_edge) {
               const std::string &target_label = target_edge.attrs_.label_;
-              return target_edge.tail_ == j &&
-                     target_edge.head_ == j_head &&
+              return target_edge.tail_ == j && target_edge.head_ == j_head &&
                      (pattern_label.empty() || pattern_label == target_label);
             });
         if (it == target.edges_.end()) {
@@ -229,8 +227,8 @@ std::vector<GraphMapping> findMatches(
   return matches;
 }
 
-Graph applyRule(
-    const Rule &rule, const Graph &target, const GraphMapping &lhs_to_target) {
+Graph applyRule(const Rule &rule, const Graph &target,
+                const GraphMapping &lhs_to_target) {
   Graph result;
 
   // Mappings from target and RHS node indices to result node indices
@@ -314,4 +312,4 @@ Graph applyRule(
   return result;
 }
 
-}  // namespace robot_design
+} // namespace robot_design

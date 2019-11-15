@@ -24,7 +24,7 @@ torch::Tensor FCValueNet::forward(torch::Tensor x) {
   for (std::size_t i = 0; i < layers_.size() - 1; ++i) {
     x = torch::tanh(layers_[i]->forward(x));
   }
-  return layers_.back()->forward(x);  // No activation after last layer
+  return layers_.back()->forward(x); // No activation after last layer
 }
 
 FCValueEstimator::FCValueEstimator(const Simulation &sim, Index robot_idx,
@@ -56,8 +56,8 @@ void FCValueEstimator::getObservation(const Simulation &sim,
   sim.getLinkTransform(robot_idx_, 0, base_transform);
   obs(2 * dof_count_) = base_transform(1, 3);
   Matrix3 base_rotation = base_transform.topLeftCorner<3, 3>();
-  obs.segment(2 * dof_count_ + 1, 9) = Eigen::Map<VectorX>(
-      base_rotation.data(), base_rotation.size());
+  obs.segment(2 * dof_count_ + 1, 9) =
+      Eigen::Map<VectorX>(base_rotation.data(), base_rotation.size());
 }
 
 void FCValueEstimator::estimateValue(const MatrixX &obs,
@@ -69,9 +69,9 @@ void FCValueEstimator::estimateValue(const MatrixX &obs,
     ensemble_outputs.push_back(nets_[k]->forward(obs_tensor));
   }
   torch::Tensor ensemble_outputs_tensor = torch::stack(ensemble_outputs);
-  torch::Tensor value_est_tensor = (
-      torch::softmax(ensemble_outputs_tensor, 0) *
-      ensemble_outputs_tensor).sum(0);
+  torch::Tensor value_est_tensor =
+      (torch::softmax(ensemble_outputs_tensor, 0) * ensemble_outputs_tensor)
+          .sum(0);
   torchTensorToEigenVector(value_est_tensor, value_est);
 }
 
@@ -90,7 +90,8 @@ void FCValueEstimator::train(const MatrixX &obs,
       torch::Tensor value_tensor = torchTensorFromEigenVector(value_batch);
       for (std::size_t k = 0; k < nets_.size(); ++k) {
         nets_[k]->zero_grad();
-        torch::Tensor value_est_tensor = nets_[k]->forward(obs_tensor).flatten();
+        torch::Tensor value_est_tensor =
+            nets_[k]->forward(obs_tensor).flatten();
         torch::Tensor loss = torch::mse_loss(value_est_tensor, value_tensor);
         loss.backward();
         optimizers_[k]->step();
@@ -100,8 +101,8 @@ void FCValueEstimator::train(const MatrixX &obs,
   }
 }
 
-torch::Tensor FCValueEstimator::torchTensorFromEigenMatrix(
-    const MatrixX &mat) const {
+torch::Tensor
+FCValueEstimator::torchTensorFromEigenMatrix(const MatrixX &mat) const {
   // Create a row-major Torch tensor from a column-major Eigen matrix
   return torch::from_blob(const_cast<Scalar *>(mat.data()),
                           {mat.cols(), mat.rows()}, torch::dtype(SCALAR_DTYPE))
@@ -123,4 +124,4 @@ void FCValueEstimator::torchTensorToEigenVector(const torch::Tensor &tensor,
                             vec.size());
 }
 
-}  // namespace robot_design
+} // namespace robot_design

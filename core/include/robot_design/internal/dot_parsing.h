@@ -48,35 +48,30 @@ struct State {
   std::unordered_map<std::string, NodeIndex> node_indices_;
 };
 
-template <typename Rule>
-struct dot_action : tao::pegtl::nothing<Rule> {};
+template <typename Rule> struct dot_action : tao::pegtl::nothing<Rule> {};
 
-template <>
-struct dot_action<dot_rules::idstring> {
+template <> struct dot_action<dot_rules::idstring> {
   template <typename Input>
   static void apply(const Input &input, State &state) {
     state.id_content_ = input.string();
   }
 };
 
-template <>
-struct dot_action<dot_rules::numeral> {
+template <> struct dot_action<dot_rules::numeral> {
   template <typename Input>
   static void apply(const Input &input, State &state) {
     state.id_content_ = input.string();
   }
 };
 
-template <>
-struct dot_action<dot_rules::dqstring::content> {
+template <> struct dot_action<dot_rules::dqstring::content> {
   template <typename Input>
   static void apply(const Input &input, State &state) {
     state.id_content_ = input.string();
   }
 };
 
-template <>
-struct dot_action<dot_rules::begin_subgraph> {
+template <> struct dot_action<dot_rules::begin_subgraph> {
   static void apply0(State &state) {
     state.subgraph_states_.emplace_back();
     // Get the second to last element
@@ -91,8 +86,7 @@ struct dot_action<dot_rules::begin_subgraph> {
   }
 };
 
-template <>
-struct dot_action<dot_rules::subgraph_id> {
+template <> struct dot_action<dot_rules::subgraph_id> {
   static void apply0(State &state) {
     SubgraphState &subgraph_state = state.subgraph_states_.back();
     std::string &subgraph_name = state.id_content_;
@@ -106,8 +100,7 @@ struct dot_action<dot_rules::subgraph_id> {
   }
 };
 
-template <>
-struct dot_action<dot_rules::subgraph> {
+template <> struct dot_action<dot_rules::subgraph> {
   static void apply0(State &state) {
     SubgraphState &subgraph_state = state.subgraph_states_.back();
     auto elem = state.subgraph_indices_.find(subgraph_state.result_.name_);
@@ -122,8 +115,8 @@ struct dot_action<dot_rules::subgraph> {
       subgraph_index = state.result_.subgraphs_.size();
       if (!subgraph_state.result_.name_.empty()) {
         // Store a mapping from this subgraph's name to its index
-        state.subgraph_indices_.insert({
-            subgraph_state.result_.name_, subgraph_index});
+        state.subgraph_indices_.insert(
+            {subgraph_state.result_.name_, subgraph_index});
       }
       state.result_.subgraphs_.push_back(std::move(subgraph_state.result_));
     }
@@ -132,8 +125,7 @@ struct dot_action<dot_rules::subgraph> {
   }
 };
 
-template <>
-struct dot_action<dot_rules::begin_node_stmt> {
+template <> struct dot_action<dot_rules::begin_node_stmt> {
   static void apply0(State &state) {
     SubgraphState &subgraph_state = state.subgraph_states_.back();
     // Copy current node attribute values into the new node state
@@ -142,8 +134,7 @@ struct dot_action<dot_rules::begin_node_stmt> {
   }
 };
 
-template <>
-struct dot_action<dot_rules::node_id> {
+template <> struct dot_action<dot_rules::node_id> {
   static void apply0(State &state) {
     NodeState &node_state = state.node_states_.back();
     std::string &node_name = state.id_content_;
@@ -157,8 +148,7 @@ struct dot_action<dot_rules::node_id> {
   }
 };
 
-template <>
-struct dot_action<dot_rules::node_stmt> {
+template <> struct dot_action<dot_rules::node_stmt> {
   static void apply0(State &state) {
     NodeState &node_state = state.node_states_.back();
     auto elem = state.node_indices_.find(node_state.result_.name_);
@@ -191,8 +181,7 @@ template <>
 struct dot_action<dot_rules::edge_node_stmt>
     : dot_action<dot_rules::node_stmt> {};
 
-template <>
-struct dot_action<dot_rules::edge_node_arg> {
+template <> struct dot_action<dot_rules::edge_node_arg> {
   static void apply0(State &state) {
     EdgeState &edge_state = state.edge_states_.back();
     if (!edge_state.edge_arg_nodes_.empty()) {
@@ -201,10 +190,10 @@ struct dot_action<dot_rules::edge_node_arg> {
       // using the current edge attribute values
       SubgraphState &subgraph_state = state.subgraph_states_.back();
       for (NodeIndex tail_index : edge_state.edge_arg_nodes_) {
-        edge_state.results_.push_back({
-            /*head=*/state.latest_node_index_,
-            /*tail=*/tail_index,
-            /*attrs=*/subgraph_state.result_.edge_attrs_});
+        edge_state.results_.push_back(
+            {/*head=*/state.latest_node_index_,
+             /*tail=*/tail_index,
+             /*attrs=*/subgraph_state.result_.edge_attrs_});
       }
     }
     // Store this argument
@@ -213,8 +202,7 @@ struct dot_action<dot_rules::edge_node_arg> {
   }
 };
 
-template <>
-struct dot_action<dot_rules::edge_subgraph_arg> {
+template <> struct dot_action<dot_rules::edge_subgraph_arg> {
   static void apply0(State &state) {
     EdgeState &edge_state = state.edge_states_.back();
     Subgraph &arg_subgraph =
@@ -226,30 +214,26 @@ struct dot_action<dot_rules::edge_subgraph_arg> {
       SubgraphState &subgraph_state = state.subgraph_states_.back();
       for (NodeIndex tail_index : edge_state.edge_arg_nodes_) {
         for (NodeIndex head_index : arg_subgraph.nodes_) {
-          edge_state.results_.push_back({
-              /*head=*/head_index,
-              /*tail=*/tail_index,
-              /*attrs=*/subgraph_state.result_.edge_attrs_});
+          edge_state.results_.push_back(
+              {/*head=*/head_index,
+               /*tail=*/tail_index,
+               /*attrs=*/subgraph_state.result_.edge_attrs_});
         }
       }
     }
     // Store this argument
     edge_state.edge_arg_nodes_.clear();
-    edge_state.edge_arg_nodes_.insert(
-        edge_state.edge_arg_nodes_.end(), arg_subgraph.nodes_.begin(),
-        arg_subgraph.nodes_.end());
+    edge_state.edge_arg_nodes_.insert(edge_state.edge_arg_nodes_.end(),
+                                      arg_subgraph.nodes_.begin(),
+                                      arg_subgraph.nodes_.end());
   }
 };
 
-template <>
-struct dot_action<dot_rules::begin_edge_stmt> {
-  static void apply0(State &state) {
-    state.edge_states_.emplace_back();
-  }
+template <> struct dot_action<dot_rules::begin_edge_stmt> {
+  static void apply0(State &state) { state.edge_states_.emplace_back(); }
 };
 
-template <>
-struct dot_action<dot_rules::edge_stmt> {
+template <> struct dot_action<dot_rules::edge_stmt> {
   static void apply0(State &state) {
     EdgeState &edge_state = state.edge_states_.back();
     EdgeIndex start_edge_index = state.result_.edges_.size();
@@ -271,37 +255,30 @@ struct dot_action<dot_rules::edge_stmt> {
   }
 };
 
-template <>
-struct dot_action<dot_rules::begin_attr_list> {
-  static void apply0(State &state) {
-    state.attr_list_.clear();
-  }
+template <> struct dot_action<dot_rules::begin_attr_list> {
+  static void apply0(State &state) { state.attr_list_.clear(); }
 };
 
-template <>
-struct dot_action<dot_rules::a_list_key> {
+template <> struct dot_action<dot_rules::a_list_key> {
   static void apply0(State &state) {
     state.attr_key_ = std::move(state.id_content_);
   }
 };
 
-template <>
-struct dot_action<dot_rules::a_list_value> {
+template <> struct dot_action<dot_rules::a_list_value> {
   static void apply0(State &state) {
     state.attr_value_ = std::move(state.id_content_);
   }
 };
 
-template <>
-struct dot_action<dot_rules::a_list_item> {
+template <> struct dot_action<dot_rules::a_list_item> {
   static void apply0(State &state) {
     state.attr_list_.emplace_back(std::move(state.attr_key_),
                                   std::move(state.attr_value_));
   }
 };
 
-template <>
-struct dot_action<dot_rules::node_attr_list> {
+template <> struct dot_action<dot_rules::node_attr_list> {
   static void apply0(State &state) {
     NodeState &node_state = state.node_states_.back();
     // Set attributes on the current node
@@ -309,8 +286,7 @@ struct dot_action<dot_rules::node_attr_list> {
   }
 };
 
-template <>
-struct dot_action<dot_rules::edge_attr_list> {
+template <> struct dot_action<dot_rules::edge_attr_list> {
   static void apply0(State &state) {
     EdgeState &edge_state = state.edge_states_.back();
     // Set attributes on all of the current edges
@@ -320,8 +296,7 @@ struct dot_action<dot_rules::edge_attr_list> {
   }
 };
 
-template <>
-struct dot_action<dot_rules::node_def_attr_list> {
+template <> struct dot_action<dot_rules::node_def_attr_list> {
   static void apply0(State &state) {
     SubgraphState &subgraph_state = state.subgraph_states_.back();
     // Set default node attributes on the current subgraph
@@ -329,8 +304,7 @@ struct dot_action<dot_rules::node_def_attr_list> {
   }
 };
 
-template <>
-struct dot_action<dot_rules::edge_def_attr_list> {
+template <> struct dot_action<dot_rules::edge_def_attr_list> {
   static void apply0(State &state) {
     SubgraphState &subgraph_state = state.subgraph_states_.back();
     // Set default edge attributes on the current subgraph
@@ -338,12 +312,11 @@ struct dot_action<dot_rules::edge_def_attr_list> {
   }
 };
 
-template <>
-struct dot_action<dot_rules::graph_id> {
+template <> struct dot_action<dot_rules::graph_id> {
   static void apply0(State &state) {
     state.result_.name_ = std::move(state.id_content_);
   }
 };
 
-}  // namespace dot_parsing
-}  // namespace robot_design
+} // namespace dot_parsing
+} // namespace robot_design

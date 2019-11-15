@@ -35,7 +35,8 @@ public:
 
 private:
   torch::Tensor torchTensorFromEigenMatrix(const MatrixX &mat) const;
-  torch::Tensor torchTensorFromEigenVector(const Eigen::Ref<const VectorX> &vec) const;
+  torch::Tensor
+  torchTensorFromEigenVector(const Eigen::Ref<const VectorX> &vec) const;
   void torchTensorToEigenVector(const torch::Tensor &tensor,
                                 Eigen::Ref<VectorX> vec) const;
 
@@ -48,4 +49,4 @@ private:
   std::vector<std::shared_ptr<torch::optim::Adam>> optimizers_;
 };
 
-}  // namespace robot_design
+} // namespace robot_design

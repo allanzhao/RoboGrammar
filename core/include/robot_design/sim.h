@@ -1,14 +1,14 @@
 #pragma once
 
-#include <btBulletDynamicsCommon.h>
 #include <BulletDynamics/Featherstone/btMultiBodyConstraintSolver.h>
 #include <BulletDynamics/Featherstone/btMultiBodyDynamicsWorld.h>
 #include <BulletDynamics/Featherstone/btMultiBodyLinkCollider.h>
+#include <Serialize/BulletFileLoader/btBulletFile.h>
+#include <btBulletDynamicsCommon.h>
 #include <memory>
 #include <robot_design/prop.h>
 #include <robot_design/robot.h>
 #include <robot_design/types.h>
-#include <Serialize/BulletFileLoader/btBulletFile.h>
 
 namespace robot_design {
 
@@ -31,16 +31,25 @@ public:
   virtual void getLinkTransform(Index robot_idx, Index link_idx,
                                 Matrix4 &transform) const = 0;
   virtual void getPropTransform(Index prop_idx, Matrix4 &transform) const = 0;
-  virtual void getLinkVelocity(Index robot_idx, Index link_idx, Vector6 &vel) const = 0;
+  virtual void getLinkVelocity(Index robot_idx, Index link_idx,
+                               Vector6 &vel) const = 0;
   virtual int getRobotDofCount(Index robot_idx) const = 0;
   virtual void getJointPositions(Index robot_idx, Ref<VectorX> pos) const = 0;
   virtual void getJointVelocities(Index robot_idx, Ref<VectorX> vel) const = 0;
-  virtual void getJointTargetPositions(Index robot_idx, Ref<VectorX> target_pos) const = 0;
-  virtual void getJointTargetVelocities(Index robot_idx, Ref<VectorX> target_vel) const = 0;
-  virtual void setJointTargetPositions(Index robot_idx, const Ref<const VectorX> &target_pos) = 0;
-  virtual void setJointTargetVelocities(Index robot_idx, const Ref<const VectorX> &target_vel) = 0;
-  virtual void addJointTorques(Index robot_idx, const Ref<const VectorX> &torque) = 0;
-  virtual void getRobotWorldAABB(Index robot_idx, Vector3 &lower, Vector3 &upper) const = 0;
+  virtual void getJointTargetPositions(Index robot_idx,
+                                       Ref<VectorX> target_pos) const = 0;
+  virtual void getJointTargetVelocities(Index robot_idx,
+                                        Ref<VectorX> target_vel) const = 0;
+  virtual void
+  setJointTargetPositions(Index robot_idx,
+                          const Ref<const VectorX> &target_pos) = 0;
+  virtual void
+  setJointTargetVelocities(Index robot_idx,
+                           const Ref<const VectorX> &target_vel) = 0;
+  virtual void addJointTorques(Index robot_idx,
+                               const Ref<const VectorX> &torque) = 0;
+  virtual void getRobotWorldAABB(Index robot_idx, Vector3 &lower,
+                                 Vector3 &upper) const = 0;
   virtual void saveState() = 0;
   virtual void restoreState() = 0;
   virtual void step() = 0;
@@ -95,17 +104,29 @@ public:
   virtual Index findPropIndex(const Prop &prop) const override;
   virtual void getLinkTransform(Index robot_idx, Index link_idx,
                                 Matrix4 &transform) const override;
-  virtual void getPropTransform(Index prop_idx, Matrix4 &transform) const override;
-  virtual void getLinkVelocity(Index robot_idx, Index link_idx, Vector6 &vel) const override;
+  virtual void getPropTransform(Index prop_idx,
+                                Matrix4 &transform) const override;
+  virtual void getLinkVelocity(Index robot_idx, Index link_idx,
+                               Vector6 &vel) const override;
   virtual int getRobotDofCount(Index robot_idx) const override;
-  virtual void getJointPositions(Index robot_idx, Ref<VectorX> pos) const override;
-  virtual void getJointVelocities(Index robot_idx, Ref<VectorX> vel) const override;
-  virtual void getJointTargetPositions(Index robot_idx, Ref<VectorX> target_pos) const override;
-  virtual void getJointTargetVelocities(Index robot_idx, Ref<VectorX> target_vel) const override;
-  virtual void setJointTargetPositions(Index robot_idx, const Ref<const VectorX> &target_pos) override;
-  virtual void setJointTargetVelocities(Index robot_idx, const Ref<const VectorX> &target_vel) override;
-  virtual void addJointTorques(Index robot_idx, const Ref<const VectorX> &torque) override;
-  virtual void getRobotWorldAABB(Index robot_idx, Vector3 &lower, Vector3 &upper) const override;
+  virtual void getJointPositions(Index robot_idx,
+                                 Ref<VectorX> pos) const override;
+  virtual void getJointVelocities(Index robot_idx,
+                                  Ref<VectorX> vel) const override;
+  virtual void getJointTargetPositions(Index robot_idx,
+                                       Ref<VectorX> target_pos) const override;
+  virtual void getJointTargetVelocities(Index robot_idx,
+                                        Ref<VectorX> target_vel) const override;
+  virtual void
+  setJointTargetPositions(Index robot_idx,
+                          const Ref<const VectorX> &target_pos) override;
+  virtual void
+  setJointTargetVelocities(Index robot_idx,
+                           const Ref<const VectorX> &target_vel) override;
+  virtual void addJointTorques(Index robot_idx,
+                               const Ref<const VectorX> &torque) override;
+  virtual void getRobotWorldAABB(Index robot_idx, Vector3 &lower,
+                                 Vector3 &upper) const override;
   virtual void saveState() override;
   virtual void restoreState() override;
   virtual void step() override;
@@ -126,4 +147,4 @@ private:
   BulletSavedState saved_state_;
 };
 
-}  // namespace robot_design
+} // namespace robot_design

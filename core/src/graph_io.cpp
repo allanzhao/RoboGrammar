@@ -24,9 +24,9 @@ std::vector<Graph> loadGraphs(const std::string &filename) {
     dot_parsing::State state;
     // Create a root subgraph with default attribute values
     state.subgraph_states_.emplace_back();
-    success = tao::pegtl::parse<
-        tao::pegtl::pad<dot_rules::graph, dot_rules::sep>,
-        dot_parsing::dot_action>(input, state);
+    success =
+        tao::pegtl::parse<tao::pegtl::pad<dot_rules::graph, dot_rules::sep>,
+                          dot_parsing::dot_action>(input, state);
     if (success) {
       graphs.push_back(std::move(state.result_));
     }
@@ -63,8 +63,8 @@ void updateNodeAttributes(
       } else if (value == "cylinder") {
         node_attrs.shape_ = LinkShape::CYLINDER;
       } else {
-        throw std::runtime_error(
-            "Unexpected value \"" + value + "\" for link_shape");
+        throw std::runtime_error("Unexpected value \"" + value +
+                                 "\" for link_shape");
       }
     } else if (key == "length") {
       std::istringstream in(value);
@@ -97,8 +97,8 @@ void updateEdgeAttributes(
       } else if (value == "fixed") {
         edge_attrs.joint_type_ = JointType::FIXED;
       } else {
-        throw std::runtime_error(
-            "Unexpected value \"" + value + "\" for joint_type");
+        throw std::runtime_error("Unexpected value \"" + value +
+                                 "\" for joint_type");
       }
     } else if (key == "offset") {
       std::istringstream in(value);
@@ -148,4 +148,4 @@ std::ostream &operator<<(std::ostream &out, const Graph &graph) {
   return out;
 }
 
-}  // namespace robot_design
+} // namespace robot_design

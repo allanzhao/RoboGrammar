@@ -1,9 +1,9 @@
 #pragma once
 
-#include <array>
 #include <Eigen/Dense>
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
+#include <array>
 #include <robot_design/sim.h>
 
 namespace robot_design {
@@ -34,7 +34,8 @@ struct Program {
     glUniformMatrix4fv(view_matrix_index_, 1, GL_FALSE, view_matrix.data());
   }
   void setModelViewMatrix(const Eigen::Matrix4f &model_view_matrix) const {
-    glUniformMatrix4fv(model_view_matrix_index_, 1, GL_FALSE, model_view_matrix.data());
+    glUniformMatrix4fv(model_view_matrix_index_, 1, GL_FALSE,
+                       model_view_matrix.data());
   }
   void setNormalMatrix(const Eigen::Matrix3f &normal_matrix) const {
     glUniformMatrix3fv(normal_matrix_index_, 1, GL_FALSE, normal_matrix.data());
@@ -46,14 +47,14 @@ struct Program {
     glUniform3fv(world_light_dir_index_, 1, light_dir.data());
   }
   void setLightProjMatrix(const Eigen::Matrix4f &light_proj_matrix) const {
-    glUniformMatrix4fv(light_proj_matrix_index_, 1, GL_FALSE, light_proj_matrix.data());
+    glUniformMatrix4fv(light_proj_matrix_index_, 1, GL_FALSE,
+                       light_proj_matrix.data());
   }
   void setLightModelViewMatrices(
       const Eigen::Matrix<float, 4, Eigen::Dynamic> &light_mv_matrices) const {
     GLsizei count = light_mv_matrices.cols() / 4;
-    glUniformMatrix4fv(
-        light_model_view_matrices_index_, count, GL_FALSE,
-        light_mv_matrices.data());
+    glUniformMatrix4fv(light_model_view_matrices_index_, count, GL_FALSE,
+                       light_mv_matrices.data());
   }
   void setLightColor(const Eigen::Vector3f &light_color) const {
     glUniform3fv(light_color_index_, 1, light_color.data());
@@ -83,14 +84,11 @@ struct Program {
 
 struct Mesh {
   Mesh(const std::vector<GLfloat> &positions,
-       const std::vector<GLfloat> &normals,
-       const std::vector<GLint> &indices);
+       const std::vector<GLfloat> &normals, const std::vector<GLint> &indices);
   virtual ~Mesh();
   Mesh(const Mesh &other) = delete;
   Mesh &operator=(const Mesh &other) = delete;
-  void bind() const {
-    glBindVertexArray(vertex_array_);
-  }
+  void bind() const { glBindVertexArray(vertex_array_); }
   void draw() const {
     glDrawElements(GL_TRIANGLES, index_count_, GL_UNSIGNED_INT, 0);
   }
@@ -109,9 +107,7 @@ struct Texture2D {
   virtual ~Texture2D();
   Texture2D(const Texture2D &other) = delete;
   Texture2D &operator=(const Texture2D &other) = delete;
-  void bind() const {
-    glBindTexture(target_, texture_);
-  }
+  void bind() const { glBindTexture(target_, texture_); }
   void getImage(unsigned char *pixels) const;
 
   GLenum target_;
@@ -125,9 +121,7 @@ struct Texture3D {
   virtual ~Texture3D();
   Texture3D(const Texture3D &other) = delete;
   Texture3D &operator=(const Texture3D &other) = delete;
-  void bind() const {
-    glBindTexture(target_, texture_);
-  }
+  void bind() const { glBindTexture(target_, texture_); }
   void getImage(unsigned char *pixels) const;
 
   GLenum target_;
@@ -139,24 +133,24 @@ struct Framebuffer {
   virtual ~Framebuffer();
   Framebuffer(const Framebuffer &other) = delete;
   Framebuffer &operator=(const Framebuffer &other) = delete;
-  void bind() const {
-    glBindFramebuffer(GL_FRAMEBUFFER, framebuffer_);
-  }
+  void bind() const { glBindFramebuffer(GL_FRAMEBUFFER, framebuffer_); }
   void attachColorTexture(const Texture2D &color_texture) const;
-  void attachColorTextureLayer(const Texture3D &color_texture, GLint layer) const;
+  void attachColorTextureLayer(const Texture3D &color_texture,
+                               GLint layer) const;
   void attachDepthTexture(const Texture2D &depth_texture) const;
-  void attachDepthTextureLayer(const Texture3D &depth_texture, GLint layer) const;
+  void attachDepthTextureLayer(const Texture3D &depth_texture,
+                               GLint layer) const;
 
   GLuint framebuffer_;
 };
 
 class FPSCameraController {
 public:
-  FPSCameraController(
-      const Eigen::Vector3f &position = Eigen::Vector3f::Zero(),
-      float yaw = 0.0f, float pitch = 0.0f, float distance = 1.0f,
-      float move_speed = 2.0f, float mouse_sensitivity = 0.005f,
-      float scroll_sensitivity = 0.1f)
+  FPSCameraController(const Eigen::Vector3f &position = Eigen::Vector3f::Zero(),
+                      float yaw = 0.0f, float pitch = 0.0f,
+                      float distance = 1.0f, float move_speed = 2.0f,
+                      float mouse_sensitivity = 0.005f,
+                      float scroll_sensitivity = 0.1f)
       : position_(position), yaw_(yaw), pitch_(pitch), distance_(distance),
         move_speed_(move_speed), mouse_sensitivity_(mouse_sensitivity),
         scroll_sensitivity_(scroll_sensitivity), cursor_x_(0), cursor_y_(0),
@@ -179,9 +173,15 @@ public:
 
 private:
   enum Action {
-      ACTION_MOVE_FORWARD, ACTION_MOVE_LEFT, ACTION_MOVE_BACKWARD,
-      ACTION_MOVE_RIGHT, ACTION_MOVE_UP, ACTION_MOVE_DOWN, ACTION_PAN_TILT,
-      ACTION_COUNT};
+    ACTION_MOVE_FORWARD,
+    ACTION_MOVE_LEFT,
+    ACTION_MOVE_BACKWARD,
+    ACTION_MOVE_RIGHT,
+    ACTION_MOVE_UP,
+    ACTION_MOVE_DOWN,
+    ACTION_PAN_TILT,
+    ACTION_COUNT
+  };
   static const std::array<int, ACTION_COUNT> DEFAULT_KEY_BINDINGS;
   double cursor_x_, cursor_y_;
   double last_cursor_x_, last_cursor_y_;
@@ -191,13 +191,12 @@ private:
 
 struct DirectionalLight {
   DirectionalLight() {}
-  DirectionalLight(
-      const Eigen::Vector3f &color, const Eigen::Vector3f &dir,
-      const Eigen::Vector3f &up, GLsizei sm_width, GLsizei sm_height,
-      int sm_cascade_count);
-  void updateViewMatricesAndSplits(
-      const Eigen::Matrix4f &camera_view_matrix, float aspect_ratio,
-      float z_near, float z_far, float fov);
+  DirectionalLight(const Eigen::Vector3f &color, const Eigen::Vector3f &dir,
+                   const Eigen::Vector3f &up, GLsizei sm_width,
+                   GLsizei sm_height, int sm_cascade_count);
+  void updateViewMatricesAndSplits(const Eigen::Matrix4f &camera_view_matrix,
+                                   float aspect_ratio, float z_near,
+                                   float z_far, float fov);
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
   Eigen::Vector3f color_;
@@ -213,8 +212,7 @@ struct DirectionalLight {
   std::shared_ptr<Framebuffer> sm_framebuffer_;
 };
 
-template <typename T>
-struct ProgramParameter {
+template <typename T> struct ProgramParameter {
   ProgramParameter() : dirty_(false) {}
   void setValue(const T &value) {
     value_ = value;
@@ -260,7 +258,8 @@ struct ProgramState {
   ProgramParameter<Eigen::Vector3f> dir_light_color_;
   ProgramParameter<Eigen::Vector3f> dir_light_dir_;
   ProgramParameter<Eigen::Matrix4f> dir_light_proj_matrix_;
-  ProgramParameter<Eigen::Matrix<float, 4, Eigen::Dynamic>> dir_light_view_matrices_;
+  ProgramParameter<Eigen::Matrix<float, 4, Eigen::Dynamic>>
+      dir_light_view_matrices_;
   ProgramParameter<Eigen::VectorXf> dir_light_sm_cascade_splits_;
 };
 
@@ -278,13 +277,16 @@ public:
   void getFramebufferSize(int &width, int &height) const;
   bool shouldClose() const;
   static void errorCallback(int error, const char *description);
-  static void framebufferSizeCallback(GLFWwindow *window, int width, int height);
+  static void framebufferSizeCallback(GLFWwindow *window, int width,
+                                      int height);
   static void keyCallback(GLFWwindow *window, int key, int scancode, int action,
                           int mods);
   static void mouseButtonCallback(GLFWwindow *window, int button, int action,
                                   int mods);
-  static void cursorPositionCallback(GLFWwindow *window, double xpos, double ypos);
-  static void scrollCallback(GLFWwindow *window, double xoffset, double yoffset);
+  static void cursorPositionCallback(GLFWwindow *window, double xpos,
+                                     double ypos);
+  static void scrollCallback(GLFWwindow *window, double xoffset,
+                             double yoffset);
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
   FPSCameraController camera_controller_;
@@ -293,8 +295,8 @@ private:
   void draw(const Simulation &sim, const Program &program,
             ProgramState &program_state) const;
   void drawBox(const Eigen::Matrix4f &transform,
-               const Eigen::Vector3f &half_extents,
-               const Program &program, ProgramState &program_state) const;
+               const Eigen::Vector3f &half_extents, const Program &program,
+               ProgramState &program_state) const;
   void drawCapsule(const Eigen::Matrix4f &transform, float half_length,
                    float radius, const Program &program,
                    ProgramState &program_state) const;
@@ -303,7 +305,8 @@ private:
                     ProgramState &program_state) const;
   void drawTubeBasedShape(const Eigen::Matrix4f &transform, float half_length,
                           float radius, const Program &program,
-                          ProgramState &program_state, const Mesh &end_mesh) const;
+                          ProgramState &program_state,
+                          const Mesh &end_mesh) const;
   void updateProjectionMatrix();
   static std::string loadString(const std::string &path);
 
@@ -340,4 +343,4 @@ std::shared_ptr<Mesh> makeCylinderEndMesh(int n_segments);
 
 Matrix3 makeVectorToVectorRotation(Vector3 from, Vector3 to);
 
-}  // namespace robot_design
+} // namespace robot_design

@@ -27,8 +27,8 @@ void MPPIOptimizer::update() {
   std::vector<std::future<double>> sim_results;
   sim_results.reserve(sample_count_);
   for (int k = 0; k < sample_count_; ++k) {
-    sim_results.emplace_back(thread_pool_.enqueue(
-        &MPPIOptimizer::runSimulation, this, k, seed_ + k));
+    sim_results.emplace_back(thread_pool_.enqueue(&MPPIOptimizer::runSimulation,
+                                                  this, k, seed_ + k));
   }
 
   // Wait on results
@@ -62,8 +62,8 @@ void MPPIOptimizer::advance(int step_count) {
   std::vector<std::future<void>> futures;
   futures.reserve(sample_count_);
   for (int k = 0; k < sample_count_; ++k) {
-    futures.emplace_back(thread_pool_.enqueue(
-        &MPPIOptimizer::advanceSimulation, this, k, step_count));
+    futures.emplace_back(thread_pool_.enqueue(&MPPIOptimizer::advanceSimulation,
+                                              this, k, step_count));
   }
 
   // Wait for all simulation instances to advance
@@ -71,13 +71,14 @@ void MPPIOptimizer::advance(int step_count) {
     futures[k].get();
   }
 
-  input_sequence_.leftCols(horizon_ - step_count) = input_sequence_.rightCols(horizon_ - step_count);
+  input_sequence_.leftCols(horizon_ - step_count) =
+      input_sequence_.rightCols(horizon_ - step_count);
   input_sequence_.rightCols(step_count) = MatrixX::Zero(dof_count_, step_count);
 }
 
 Scalar MPPIOptimizer::runSimulation(int sample_idx, unsigned int sample_seed) {
   Simulation &sim = *sim_instances_[sample_idx];
-  Index robot_idx = 0;  // TODO: don't assume there is only one robot
+  Index robot_idx = 0; // TODO: don't assume there is only one robot
   MatrixX rand_input_seq;
   sampleInputSequence(rand_input_seq, sample_seed);
   sim.saveState();
@@ -99,7 +100,7 @@ Scalar MPPIOptimizer::runSimulation(int sample_idx, unsigned int sample_seed) {
 
 void MPPIOptimizer::advanceSimulation(int sample_idx, int step_count) {
   Simulation &sim = *sim_instances_[sample_idx];
-  Index robot_idx = 0;  // TODO: don't assume there is only one robot
+  Index robot_idx = 0; // TODO: don't assume there is only one robot
   for (int j = 0; j < step_count; ++j) {
     for (int i = 0; i < interval_; ++i) {
       sim.setJointTargetPositions(robot_idx, input_sequence_.col(j));
@@ -108,11 +109,14 @@ void MPPIOptimizer::advanceSimulation(int sample_idx, int step_count) {
   }
 }
 
-void MPPIOptimizer::sampleInputSequence(MatrixX &rand_input_seq, unsigned int sample_seed) const {
+void MPPIOptimizer::sampleInputSequence(MatrixX &rand_input_seq,
+                                        unsigned int sample_seed) const {
   std::mt19937 generator(sample_seed);
   std::normal_distribution<Scalar> distribution(0.0, 0.2);
-  rand_input_seq = input_sequence_ + MatrixX::NullaryExpr(dof_count_, horizon_,
-      [&]() { return distribution(generator); });
+  rand_input_seq =
+      input_sequence_ + MatrixX::NullaryExpr(dof_count_, horizon_, [&]() {
+        return distribution(generator);
+      });
 }
 
-}  // namespace robot_design
+} // namespace robot_design

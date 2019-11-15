@@ -25,16 +25,20 @@ inline Quaternion eigenQuaternionFromBullet(const btQuaternion &q) {
 }
 
 inline btMatrix3x3 bulletMatrix3x3FromEigen(const Matrix3 &m) {
+  // clang-format off
   return btMatrix3x3(m(0, 0), m(0, 1), m(0, 2),
                      m(1, 0), m(1, 1), m(1, 2),
                      m(2, 0), m(2, 1), m(2, 2));
+  // clang-format on
 }
 
 inline Matrix3 eigenMatrix3FromBullet(const btMatrix3x3 &m) {
   Matrix3 result;
+  // clang-format off
   result << m[0][0], m[0][1], m[0][2],
             m[1][0], m[1][1], m[1][2],
             m[2][0], m[2][1], m[2][2];
+  // clang-format on
   return result;
 }
 
@@ -45,14 +49,13 @@ inline btTransform bulletTransformFromEigen(const Matrix4 &m) {
 
 inline Matrix4 eigenMatrix4FromBullet(const btTransform &t) {
   Matrix4 result;
-  result << eigenMatrix3FromBullet(t.getBasis()), eigenVector3FromBullet(t.getOrigin()),
-            0, 0, 0, 1;
+  result << eigenMatrix3FromBullet(t.getBasis()),
+      eigenVector3FromBullet(t.getOrigin()), 0, 0, 0, 1;
   return result;
 }
 
-template <typename T>
-inline T clamp(T val, T lower, T upper) {
+template <typename T> inline T clamp(T val, T lower, T upper) {
   return std::max(lower, std::min(upper, val));
 }
 
-}  // namespace robot_design
+} // namespace robot_design

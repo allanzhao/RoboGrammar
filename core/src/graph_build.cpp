@@ -29,8 +29,9 @@ Robot buildRobot(const Graph &graph) {
   // Find a root for the kinematic tree (which will become the base link)
   NodeIndex root_node = 0;
   // If a node has base == true, use it as the root
-  const auto it = std::find_if(graph.nodes_.begin(), graph.nodes_.end(),
-      [] (const Node &node) { return node.attrs_.base_; });
+  const auto it =
+      std::find_if(graph.nodes_.begin(), graph.nodes_.end(),
+                   [](const Node &node) { return node.attrs_.base_; });
   if (it != graph.nodes_.end()) {
     root_node = std::distance(graph.nodes_.begin(), it);
   } else {
@@ -38,12 +39,13 @@ Robot buildRobot(const Graph &graph) {
     // Limit the number of iterations in case the graph contains a cycle
     for (std::size_t i = 0; i < graph.edges_.size(); ++i) {
       // Find an edge pointing towards this node
-      const auto it = std::find_if(graph.edges_.begin(), graph.edges_.end(),
-          [root_node] (const Edge &edge) { return edge.head_ == root_node; });
+      const auto it = std::find_if(
+          graph.edges_.begin(), graph.edges_.end(),
+          [root_node](const Edge &edge) { return edge.head_ == root_node; });
       if (it != graph.edges_.end()) {
-        root_node = it->tail_;  // Follow edge backwards
+        root_node = it->tail_; // Follow edge backwards
       } else {
-        break;  // Node is a root
+        break; // Node is a root
       }
     }
   }
@@ -72,14 +74,14 @@ Robot buildRobot(const Graph &graph) {
     for (const Edge &edge : graph.edges_) {
       if (edge.tail_ == entry.node_) {
         // Outgoing edge from this node, push an entry for the node it points to
-        entries_to_expand.push_back({
-            /*node=*/edge.head_, /*parent_link=*/link_index,
-            /*joint_type=*/edge.attrs_.joint_type_,
-            /*joint_pos=*/edge.attrs_.joint_pos_,
-            /*joint_rot=*/edge.attrs_.joint_rot_,
-            /*joint_axis=*/edge.attrs_.joint_axis_,
-            /*joint_color=*/edge.attrs_.color_,
-            /*scale=*/entry.scale_ * edge.attrs_.scale_});
+        entries_to_expand.push_back(
+            {/*node=*/edge.head_, /*parent_link=*/link_index,
+             /*joint_type=*/edge.attrs_.joint_type_,
+             /*joint_pos=*/edge.attrs_.joint_pos_,
+             /*joint_rot=*/edge.attrs_.joint_rot_,
+             /*joint_axis=*/edge.attrs_.joint_axis_,
+             /*joint_color=*/edge.attrs_.color_,
+             /*scale=*/entry.scale_ * edge.attrs_.scale_});
       }
     }
 
@@ -89,4 +91,4 @@ Robot buildRobot(const Graph &graph) {
   return robot;
 }
 
-}  // namespace robot_design
+} // namespace robot_design

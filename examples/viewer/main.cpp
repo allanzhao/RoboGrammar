@@ -18,23 +18,23 @@ using namespace robot_design;
 
 int main(int argc, char **argv) {
   args::ArgumentParser parser("Robot design graph viewer.");
-  args::HelpFlag help_flag(
-      parser, "help", "Display this help message", {'h', "help"});
+  args::HelpFlag help_flag(parser, "help", "Display this help message",
+                           {'h', "help"});
   args::Positional<std::string> graph_file_arg(
       parser, "graph_file", "Graph file (.dot)", args::Options::Required);
   args::PositionalList<unsigned int> rule_sequence_arg(
       parser, "rule_sequence", "Rule sequence to apply");
-  args::ValueFlag<unsigned int> seed_flag(
-      parser, "seed", "Random seed", {'s', "seed"});
+  args::ValueFlag<unsigned int> seed_flag(parser, "seed", "Random seed",
+                                          {'s', "seed"});
   args::ValueFlag<unsigned int> jobs_flag(
       parser, "jobs", "Number of jobs/threads", {'j', "jobs"}, 0);
   args::MapFlag<std::string, torch::DeviceType> device_flag(
       parser, "device", "Torch device (cpu|cuda)", {'d', "device"},
       {{"cpu", torch::kCPU}, {"cuda", torch::kCUDA}}, torch::kCPU);
-  args::Flag optim_flag(
-      parser, "optim", "Optimize a trajectory", {'o', "optim"});
-  args::Flag render_flag(
-      parser, "render", "Render the trajectory", {'r', "render"});
+  args::Flag optim_flag(parser, "optim", "Optimize a trajectory",
+                        {'o', "optim"});
+  args::Flag render_flag(parser, "render", "Render the trajectory",
+                         {'r', "render"});
   args::ValueFlag<std::string> save_image_flag(
       parser, "save_image", "Save PNG image to file", {"save_image"});
 
@@ -85,11 +85,10 @@ int main(int argc, char **argv) {
   }
 
   // Generate a robot graph
-  Graph robot_graph = {
-      /*name=*/"robot",
-      /*nodes=*/{Node{"robot", NodeAttributes("robot")}},
-      /*edges=*/{},
-      /*subgraphs=*/{}};
+  Graph robot_graph = {/*name=*/"robot",
+                       /*nodes=*/{Node{"robot", NodeAttributes("robot")}},
+                       /*edges=*/{},
+                       /*subgraphs=*/{}};
   for (unsigned int rule_idx : args::get(rule_sequence_arg)) {
     if (rule_idx < rules.size()) {
       const Rule &rule = rules[rule_idx];
@@ -105,7 +104,7 @@ int main(int argc, char **argv) {
 
   // Create a floor
   std::shared_ptr<Prop> floor = std::make_shared<Prop>(
-      /*density=*/0.0,  // static
+      /*density=*/0.0, // static
       /*friction=*/0.9,
       /*half_extents=*/Vector3{10.0, 1.0, 10.0});
 
@@ -121,7 +120,8 @@ int main(int argc, char **argv) {
 
   // Define a lambda function for making simulation instances
   auto make_sim_fn = [&]() -> std::shared_ptr<Simulation> {
-    std::shared_ptr<BulletSimulation> sim = std::make_shared<BulletSimulation>(time_step);
+    std::shared_ptr<BulletSimulation> sim =
+        std::make_shared<BulletSimulation>(time_step);
     sim->addProp(floor, Vector3{0.0, -1.0, 0.0}, Quaternion::Identity());
     sim->addRobot(robot, Vector3{0.0, y_offset, 0.0}, Quaternion::Identity());
     return sim;
@@ -195,8 +195,8 @@ int main(int argc, char **argv) {
       for (int j = episode_len - 1; j >= 0; --j) {
         returns(j) = rewards(j) + discount_factor * returns(j + 1);
       }
-      replay_obs.conservativeResize(
-          Eigen::NoChange, replay_obs.cols() + episode_len);
+      replay_obs.conservativeResize(Eigen::NoChange,
+                                    replay_obs.cols() + episode_len);
       replay_obs.rightCols(episode_len) = obs.leftCols(episode_len);
       replay_returns.conservativeResize(replay_returns.size() + episode_len);
       replay_returns.tail(episode_len) = returns.head(episode_len);
