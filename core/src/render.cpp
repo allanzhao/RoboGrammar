@@ -395,7 +395,7 @@ void ProgramState::updateUniforms(const Program &program) {
 }
 
 GLFWRenderer::GLFWRenderer(bool hidden)
-    : z_near_(0.1f), z_far_(100.0f), fov_(M_PI / 3), camera_controller_() {
+    : z_near_(0.1f), z_far_(100.0f), fov_(M_PI / 3) {
   glfwSetErrorCallback(errorCallback);
 
   if (!glfwInit()) {

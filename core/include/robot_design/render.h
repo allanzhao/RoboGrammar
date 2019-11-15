@@ -287,6 +287,8 @@ public:
   static void scrollCallback(GLFWwindow *window, double xoffset, double yoffset);
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
+  FPSCameraController camera_controller_;
+
 private:
   void draw(const Simulation &sim, const Program &program,
             ProgramState &program_state) const;
@@ -304,13 +306,13 @@ private:
                           ProgramState &program_state, const Mesh &end_mesh) const;
   void updateProjectionMatrix();
   static std::string loadString(const std::string &path);
+
   GLFWwindow *window_;
   float z_near_;
   float z_far_;
   float fov_;
   int framebuffer_width_;
   int framebuffer_height_;
-  FPSCameraController camera_controller_;
   Eigen::Matrix4f proj_matrix_;
   Eigen::Matrix4f view_matrix_;
   std::shared_ptr<Program> default_program_;
