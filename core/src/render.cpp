@@ -402,9 +402,9 @@ GLFWRenderer::GLFWRenderer(bool hidden)
     throw std::runtime_error("Could not initialize GLFW");
   }
 
-  // Require OpenGL 3.0 or higher
+  // Require OpenGL 3.2 or higher
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
   // Enable 4x MSAA
   glfwWindowHint(GLFW_SAMPLES, 4);
   if (hidden) {

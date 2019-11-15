@@ -1,4 +1,4 @@
-#version 130
+#version 150 core
 
 const int SHADOW_MAP_CASCADE_COUNT = 5;
 
