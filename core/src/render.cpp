@@ -1,7 +1,9 @@
 #include <cmath>
 #include <cstddef>
+#include <cstdlib>
 #include <fstream>
 #include <iostream>
+#include <lodepng.h>
 #include <robot_design/render.h>
 #include <robot_design/utils.h>
 #include <sstream>
@@ -12,6 +14,7 @@ namespace robot_design {
 
 const VertexAttribute ATTRIB_POSITION(0, "model_position");
 const VertexAttribute ATTRIB_NORMAL(1, "model_normal");
+const VertexAttribute ATTRIB_TEXCOORD(2, "model_texcoord");
 
 Program::Program(const std::string &vertex_shader_source,
                  const std::string &fragment_shader_source)
@@ -60,6 +63,8 @@ Program::Program(const std::string &vertex_shader_source,
                        ATTRIB_POSITION.name_.c_str());
   glBindAttribLocation(program_, ATTRIB_NORMAL.index_,
                        ATTRIB_NORMAL.name_.c_str());
+  glBindAttribLocation(program_, ATTRIB_TEXCOORD.index_,
+                       ATTRIB_TEXCOORD.name_.c_str());
 
   glLinkProgram(program_);
   // Check for link errors
@@ -469,6 +474,9 @@ GLFWRenderer::GLFWRenderer(bool hidden)
       /*dir=*/Eigen::Vector3f{1.0f, 2.0f, 3.0f},
       /*up=*/Eigen::Vector3f{0.0f, 1.0f, 0.0f},
       /*sm_width=*/2048, /*sm_height=*/2048, /*sm_cascade_count=*/5);
+
+  // Load font
+  font_ = std::make_shared<BitmapFont>("data/fonts/OpenSans-Regular.fnt");
 
   // Set up callbacks
   // Allow accessing "this" from static callbacks
@@ -906,6 +914,23 @@ Matrix3 makeVectorToVectorRotation(Vector3 from, Vector3 to) {
              -v(1), v(0), 0;
   // clang-format on
   return Matrix3::Identity() + v_cross + v_cross * v_cross / (1 + c);
+}
+
+std::shared_ptr<Texture2D> loadTexture(const std::string &path) {
+  unsigned char *rgba_raw = nullptr;
+  unsigned int width, height;
+  unsigned int error =
+      lodepng_decode32_file(&rgba_raw, &width, &height, path.c_str());
+  std::unique_ptr<unsigned char[], decltype(std::free) *> rgba(rgba_raw,
+                                                               std::free);
+  if (error) {
+    throw std::runtime_error("Could not load texture from file \"" + path +
+                             "\": " + lodepng_error_text(error));
+  }
+  return std::make_shared<Texture2D>(
+      /*target=*/GL_TEXTURE_2D, /*level=*/0, /*internal_format=*/GL_RGBA,
+      /*width=*/width, /*height=*/height, /*format=*/GL_RGBA,
+      /*type=*/GL_UNSIGNED_BYTE, /*data=*/rgba.get());
 }
 
 } // namespace robot_design

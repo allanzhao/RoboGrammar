@@ -4,7 +4,10 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <array>
+#include <memory>
 #include <robot_design/sim.h>
+#include <string>
+#include <vector>
 
 namespace robot_design {
 
@@ -17,6 +20,7 @@ struct VertexAttribute {
 
 extern const VertexAttribute ATTRIB_POSITION;
 extern const VertexAttribute ATTRIB_NORMAL;
+extern const VertexAttribute ATTRIB_TEXCOORD;
 
 struct DirectionalLight;
 
@@ -212,6 +216,25 @@ struct DirectionalLight {
   std::shared_ptr<Framebuffer> sm_framebuffer_;
 };
 
+struct BitmapFontChar {
+  char char_;
+  unsigned int width_;
+  unsigned int height_;
+  int xoffset_;
+  int yoffset_;
+  int xadvance_;
+  int x_;
+  int y_;
+  unsigned int page_;
+};
+
+struct BitmapFont {
+  explicit BitmapFont(const std::string &path);
+
+  std::vector<BitmapFontChar> chars_;
+  std::vector<std::shared_ptr<Texture2D>> page_textures_;
+};
+
 template <typename T> struct ProgramParameter {
   ProgramParameter() : dirty_(false) {}
   void setValue(const T &value) {
@@ -325,6 +348,7 @@ private:
   std::shared_ptr<Mesh> capsule_end_mesh_;
   std::shared_ptr<Mesh> cylinder_end_mesh_;
   std::shared_ptr<DirectionalLight> dir_light_;
+  std::shared_ptr<BitmapFont> font_;
 };
 
 void makeOrthographicProjection(float aspect_ratio, float z_near, float z_far,
@@ -342,5 +366,7 @@ std::shared_ptr<Mesh> makeCapsuleEndMesh(int n_segments, int n_rings);
 std::shared_ptr<Mesh> makeCylinderEndMesh(int n_segments);
 
 Matrix3 makeVectorToVectorRotation(Vector3 from, Vector3 to);
+
+std::shared_ptr<Texture2D> loadTexture(const std::string &path);
 
 } // namespace robot_design

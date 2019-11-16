@@ -23,6 +23,10 @@ find_package(OpenGL REQUIRED)
 set(GLFW_ROOT ${PROJECT_SOURCE_DIR}/extern/glfw)
 add_subdirectory(${GLFW_ROOT} ${CMAKE_BINARY_DIR}/glfw)
 
+set(LODEPNG_ROOT ${PROJECT_SOURCE_DIR}/extern/lodepng)
+set(LODEPNG_INCLUDE_DIRS ${LODEPNG_ROOT})
+set(LODEPNG_SOURCES ${LODEPNG_ROOT}/lodepng.cpp)
+
 set(PEGTL_ROOT ${PROJECT_SOURCE_DIR}/extern/PEGTL)
 set(PEGTL_BUILD_TESTS OFF CACHE BOOL "Build PEGTL test programs")
 set(PEGTL_BUILD_EXAMPLES OFF CACHE BOOL "Build PEGTL example programs")
@@ -30,7 +34,11 @@ add_subdirectory(${PEGTL_ROOT} ${CMAKE_BINARY_DIR}/PEGTL)
 
 set(THREADPOOL_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/extern/ThreadPool)
 
+set(TINYXML2_ROOT ${PROJECT_SOURCE_DIR}/extern/tinyxml2)
+add_subdirectory(${TINYXML2_ROOT} ${CMAKE_BINARY_DIR}/tinyxml2)
+
 add_library(${LIBRARY_NAME}
+    src/bitmap_font.cpp
     src/graph_build.cpp
     src/graph_io.cpp
     src/graph_rewrite.cpp
@@ -39,6 +47,7 @@ add_library(${LIBRARY_NAME}
     src/sim.cpp
     src/value.cpp
     ${BULLET_SOURCES}
+    ${LODEPNG_SOURCES}
 )
 
 target_include_directories(${LIBRARY_NAME} PUBLIC
@@ -51,6 +60,11 @@ target_include_directories(${LIBRARY_NAME} PUBLIC
     ${TORCH_INCLUDE_DIRS}
 )
 
+target_include_directories(${LIBRARY_NAME} PRIVATE
+    ${LODEPNG_INCLUDE_DIRS}
+    ${TINYXML2_INCLUDE_DIRS}
+)
+
 target_link_libraries(${LIBRARY_NAME} PUBLIC
     glfw
     ${GLEW_LIBRARIES}
@@ -61,6 +75,7 @@ target_link_libraries(${LIBRARY_NAME} PUBLIC
 
 target_link_libraries(${LIBRARY_NAME} PRIVATE
     pegtl
+    tinyxml2
 )
 
 if(MSVC)

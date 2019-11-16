@@ -10,3 +10,6 @@
 [submodule "extern/lodepng"]
 	path = extern/lodepng
 	url = https://github.com/lvandeve/lodepng.git
+[submodule "extern/tinyxml2"]
+	path = extern/tinyxml2
+	url = https://github.com/leethomason/tinyxml2.git
