@@ -15,8 +15,8 @@ namespace robot_design {
 
 constexpr Scalar RAD_PER_DEG = M_PI / 180;
 
-std::vector<Graph> loadGraphs(const std::string &filename) {
-  tao::pegtl::file_input<> input(filename);
+std::vector<Graph> loadGraphs(const std::string &path) {
+  tao::pegtl::file_input<> input(path);
   std::vector<Graph> graphs;
   bool success;
 

@@ -102,7 +102,7 @@ struct Rule {
   GraphMapping common_to_rhs_;
 };
 
-std::vector<Graph> loadGraphs(const std::string &filename);
+std::vector<Graph> loadGraphs(const std::string &path);
 
 void updateNodeAttributes(
     NodeAttributes &node_attrs,

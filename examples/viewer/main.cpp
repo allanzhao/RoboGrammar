@@ -208,8 +208,8 @@ int main(int argc, char **argv) {
 
   main_sim->saveState();
 
-  std::string save_image_filename = args::get(save_image_flag);
-  if (!save_image_filename.empty()) {
+  std::string save_image_path = args::get(save_image_flag);
+  if (!save_image_path.empty()) {
     GLFWRenderer renderer(/*hidden=*/true);
     int fb_width, fb_height;
     renderer.getFramebufferSize(fb_width, fb_height);
@@ -237,7 +237,7 @@ int main(int argc, char **argv) {
                   &rgba[(fb_height - i - 1) * fb_width * 4], fb_width * 4);
     }
     unsigned int error = lodepng::encode(
-        save_image_filename, rgba_flipped.get(), fb_width, fb_height);
+        save_image_path, rgba_flipped.get(), fb_width, fb_height);
     if (error) {
       std::cerr << "Failed to save image: " << lodepng_error_text(error)
                 << std::endl;
