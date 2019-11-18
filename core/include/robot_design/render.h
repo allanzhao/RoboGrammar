@@ -91,7 +91,7 @@ struct Program {
 };
 
 struct Mesh {
-  Mesh();
+  Mesh(GLenum usage = GL_DYNAMIC_DRAW);
   virtual ~Mesh();
   Mesh(const Mesh &other) = delete;
   Mesh &operator=(const Mesh &other) = delete;
@@ -104,6 +104,7 @@ struct Mesh {
     glDrawElements(GL_TRIANGLES, index_count_, GL_UNSIGNED_INT, 0);
   }
 
+  GLenum usage_;
   GLuint vertex_array_;
   GLuint position_buffer_;
   GLuint normal_buffer_;

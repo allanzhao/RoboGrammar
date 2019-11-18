@@ -103,16 +103,11 @@ Program::~Program() {
   glDeleteShader(vertex_shader_);
 }
 
-Mesh::Mesh()
-    : vertex_array_(0), position_buffer_(0), normal_buffer_(0),
+Mesh::Mesh(GLenum usage)
+    : usage_(usage), vertex_array_(0), position_buffer_(0), normal_buffer_(0),
       tex_coord_buffer_(0), index_buffer_(0) {
   // Create vertex array object (VAO)
   glGenVertexArrays(1, &vertex_array_);
-  bind();
-  glGenBuffers(1, &position_buffer_);
-  glGenBuffers(1, &normal_buffer_);
-  glGenBuffers(1, &tex_coord_buffer_);
-  glGenBuffers(1, &index_buffer_);
 }
 
 Mesh::~Mesh() {
@@ -125,36 +120,40 @@ Mesh::~Mesh() {
 
 void Mesh::setPositions(const std::vector<GLfloat> &positions) {
   bind();
+  if (!position_buffer_) { glGenBuffers(1, &position_buffer_); }
   glBindBuffer(GL_ARRAY_BUFFER, position_buffer_);
   glBufferData(GL_ARRAY_BUFFER, positions.size() * sizeof(positions[0]),
-               positions.data(), GL_STATIC_DRAW);
+               positions.data(), usage_);
   glVertexAttribPointer(ATTRIB_POSITION.index_, 3, GL_FLOAT, GL_FALSE, 0, 0);
   glEnableVertexAttribArray(ATTRIB_POSITION.index_);
 }
 
 void Mesh::setNormals(const std::vector<GLfloat> &normals) {
   bind();
+  if (!normal_buffer_) { glGenBuffers(1, &normal_buffer_); }
   glBindBuffer(GL_ARRAY_BUFFER, normal_buffer_);
   glBufferData(GL_ARRAY_BUFFER, normals.size() * sizeof(normals[0]),
-               normals.data(), GL_STATIC_DRAW);
+               normals.data(), usage_);
   glVertexAttribPointer(ATTRIB_NORMAL.index_, 3, GL_FLOAT, GL_FALSE, 0, 0);
   glEnableVertexAttribArray(ATTRIB_NORMAL.index_);
 }
 
 void Mesh::setTexCoords(const std::vector<GLfloat> &tex_coords) {
   bind();
+  if (!tex_coord_buffer_) { glGenBuffers(1, &tex_coord_buffer_); }
   glBindBuffer(GL_ARRAY_BUFFER, tex_coord_buffer_);
   glBufferData(GL_ARRAY_BUFFER, tex_coords.size() * sizeof(tex_coords[0]),
-               tex_coords.data(), GL_STATIC_DRAW);
+               tex_coords.data(), usage_);
   glVertexAttribPointer(ATTRIB_TEX_COORD.index_, 2, GL_FLOAT, GL_FALSE, 0, 0);
   glEnableVertexAttribArray(ATTRIB_TEX_COORD.index_);
 }
 
 void Mesh::setIndices(const std::vector<GLint> &indices) {
   bind();
+  if (!index_buffer_) { glGenBuffers(1, &index_buffer_); }
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_buffer_);
   glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(indices[0]),
-               indices.data(), GL_STATIC_DRAW);
+               indices.data(), usage_);
   index_count_ = indices.size();
 }
 
@@ -824,7 +823,7 @@ std::shared_ptr<Mesh> makeBoxMesh() {
       20, 21, 22, 23, 20, 22};                    // +Z face
   // clang-format on
 
-  auto mesh = std::make_shared<Mesh>();
+  auto mesh = std::make_shared<Mesh>(GL_STATIC_DRAW);
   mesh->setPositions(positions);
   mesh->setNormals(normals);
   mesh->setIndices(indices);
@@ -858,7 +857,7 @@ std::shared_ptr<Mesh> makeTubeMesh(int n_segments) {
     indices.insert(indices.end(), std::begin(idx), std::end(idx));
   }
 
-  auto mesh = std::make_shared<Mesh>();
+  auto mesh = std::make_shared<Mesh>(GL_STATIC_DRAW);
   mesh->setPositions(positions);
   mesh->setNormals(normals);
   mesh->setIndices(indices);
@@ -903,7 +902,7 @@ std::shared_ptr<Mesh> makeCapsuleEndMesh(int n_segments, int n_rings) {
   }
 
   // The positions and normals of points on a unit sphere are equal
-  auto mesh = std::make_shared<Mesh>();
+  auto mesh = std::make_shared<Mesh>(GL_STATIC_DRAW);
   mesh->setPositions(positions);
   mesh->setNormals(positions);
   mesh->setIndices(indices);
@@ -936,7 +935,7 @@ std::shared_ptr<Mesh> makeCylinderEndMesh(int n_segments) {
     indices.insert(indices.end(), std::begin(idx), std::end(idx));
   }
 
-  auto mesh = std::make_shared<Mesh>();
+  auto mesh = std::make_shared<Mesh>(GL_STATIC_DRAW);
   mesh->setPositions(positions);
   mesh->setNormals(normals);
   mesh->setIndices(indices);
