@@ -83,16 +83,19 @@ struct Program {
   GLint light_model_view_matrices_index_;
   GLint light_color_index_;
   GLint shadow_map_index_;
+  GLint msdf_index_;
   GLint cascade_far_splits_index_;
 };
 
 struct Mesh {
-  Mesh(const std::vector<GLfloat> &positions,
-       const std::vector<GLfloat> &normals, const std::vector<GLint> &indices);
+  Mesh();
   virtual ~Mesh();
   Mesh(const Mesh &other) = delete;
   Mesh &operator=(const Mesh &other) = delete;
   void bind() const { glBindVertexArray(vertex_array_); }
+  void setPositions(const std::vector<GLfloat> &positions);
+  void setNormals(const std::vector<GLfloat> &positions);
+  void setIndices(const std::vector<GLint> &indices);
   void draw() const {
     glDrawElements(GL_TRIANGLES, index_count_, GL_UNSIGNED_INT, 0);
   }

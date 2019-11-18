@@ -102,36 +102,15 @@ Program::~Program() {
   glDeleteShader(vertex_shader_);
 }
 
-Mesh::Mesh(const std::vector<GLfloat> &positions,
-           const std::vector<GLfloat> &normals,
-           const std::vector<GLint> &indices)
+Mesh::Mesh()
     : vertex_array_(0), position_buffer_(0), normal_buffer_(0),
-      index_buffer_(0), index_count_(indices.size()) {
+      index_buffer_(0) {
   // Create vertex array object (VAO)
   glGenVertexArrays(1, &vertex_array_);
-  glBindVertexArray(vertex_array_);
-
-  // Create vertex position buffer
+  bind();
   glGenBuffers(1, &position_buffer_);
-  glBindBuffer(GL_ARRAY_BUFFER, position_buffer_);
-  glBufferData(GL_ARRAY_BUFFER, positions.size() * sizeof(positions[0]),
-               positions.data(), GL_STATIC_DRAW);
-  glVertexAttribPointer(ATTRIB_POSITION.index_, 3, GL_FLOAT, GL_FALSE, 0, 0);
-  glEnableVertexAttribArray(ATTRIB_POSITION.index_);
-
-  // Create vertex normal buffer
   glGenBuffers(1, &normal_buffer_);
-  glBindBuffer(GL_ARRAY_BUFFER, normal_buffer_);
-  glBufferData(GL_ARRAY_BUFFER, normals.size() * sizeof(normals[0]),
-               normals.data(), GL_STATIC_DRAW);
-  glVertexAttribPointer(ATTRIB_NORMAL.index_, 3, GL_FLOAT, GL_FALSE, 0, 0);
-  glEnableVertexAttribArray(ATTRIB_NORMAL.index_);
-
-  // Create index buffer
   glGenBuffers(1, &index_buffer_);
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_buffer_);
-  glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(indices[0]),
-               indices.data(), GL_STATIC_DRAW);
 }
 
 Mesh::~Mesh() {
@@ -139,6 +118,32 @@ Mesh::~Mesh() {
   glDeleteBuffers(1, &normal_buffer_);
   glDeleteBuffers(1, &position_buffer_);
   glDeleteVertexArrays(1, &vertex_array_);
+}
+
+void Mesh::setPositions(const std::vector<GLfloat> &positions) {
+  bind();
+  glBindBuffer(GL_ARRAY_BUFFER, position_buffer_);
+  glBufferData(GL_ARRAY_BUFFER, positions.size() * sizeof(positions[0]),
+               positions.data(), GL_STATIC_DRAW);
+  glVertexAttribPointer(ATTRIB_POSITION.index_, 3, GL_FLOAT, GL_FALSE, 0, 0);
+  glEnableVertexAttribArray(ATTRIB_POSITION.index_);
+}
+
+void Mesh::setNormals(const std::vector<GLfloat> &normals) {
+  bind();
+  glBindBuffer(GL_ARRAY_BUFFER, normal_buffer_);
+  glBufferData(GL_ARRAY_BUFFER, normals.size() * sizeof(normals[0]),
+               normals.data(), GL_STATIC_DRAW);
+  glVertexAttribPointer(ATTRIB_NORMAL.index_, 3, GL_FLOAT, GL_FALSE, 0, 0);
+  glEnableVertexAttribArray(ATTRIB_NORMAL.index_);
+}
+
+void Mesh::setIndices(const std::vector<GLint> &indices) {
+  bind();
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_buffer_);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(indices[0]),
+               indices.data(), GL_STATIC_DRAW);
+  index_count_ = indices.size();
 }
 
 Texture2D::Texture2D(GLenum target, GLint level, GLint internal_format,
@@ -798,7 +803,11 @@ std::shared_ptr<Mesh> makeBoxMesh() {
       20, 21, 22, 23, 20, 22};                    // +Z face
   // clang-format on
 
-  return std::make_shared<Mesh>(positions, normals, indices);
+  auto mesh = std::make_shared<Mesh>();
+  mesh->setPositions(positions);
+  mesh->setNormals(normals);
+  mesh->setIndices(indices);
+  return mesh;
 }
 
 std::shared_ptr<Mesh> makeTubeMesh(int n_segments) {
@@ -828,7 +837,11 @@ std::shared_ptr<Mesh> makeTubeMesh(int n_segments) {
     indices.insert(indices.end(), std::begin(idx), std::end(idx));
   }
 
-  return std::make_shared<Mesh>(positions, normals, indices);
+  auto mesh = std::make_shared<Mesh>();
+  mesh->setPositions(positions);
+  mesh->setNormals(normals);
+  mesh->setIndices(indices);
+  return mesh;
 }
 
 std::shared_ptr<Mesh> makeCapsuleEndMesh(int n_segments, int n_rings) {
@@ -869,7 +882,11 @@ std::shared_ptr<Mesh> makeCapsuleEndMesh(int n_segments, int n_rings) {
   }
 
   // The positions and normals of points on a unit sphere are equal
-  return std::make_shared<Mesh>(positions, positions, indices);
+  auto mesh = std::make_shared<Mesh>();
+  mesh->setPositions(positions);
+  mesh->setNormals(positions);
+  mesh->setIndices(indices);
+  return mesh;
 }
 
 std::shared_ptr<Mesh> makeCylinderEndMesh(int n_segments) {
@@ -898,7 +915,11 @@ std::shared_ptr<Mesh> makeCylinderEndMesh(int n_segments) {
     indices.insert(indices.end(), std::begin(idx), std::end(idx));
   }
 
-  return std::make_shared<Mesh>(positions, normals, indices);
+  auto mesh = std::make_shared<Mesh>();
+  mesh->setPositions(positions);
+  mesh->setNormals(normals);
+  mesh->setIndices(indices);
+  return mesh;
 }
 
 Matrix3 makeVectorToVectorRotation(Vector3 from, Vector3 to) {
