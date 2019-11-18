@@ -14,7 +14,7 @@ namespace robot_design {
 
 const VertexAttribute ATTRIB_POSITION(0, "model_position");
 const VertexAttribute ATTRIB_NORMAL(1, "model_normal");
-const VertexAttribute ATTRIB_TEXCOORD(2, "model_texcoord");
+const VertexAttribute ATTRIB_TEX_COORD(2, "model_tex_coord");
 
 Program::Program(const std::string &vertex_shader_source,
                  const std::string &fragment_shader_source)
@@ -63,8 +63,8 @@ Program::Program(const std::string &vertex_shader_source,
                        ATTRIB_POSITION.name_.c_str());
   glBindAttribLocation(program_, ATTRIB_NORMAL.index_,
                        ATTRIB_NORMAL.name_.c_str());
-  glBindAttribLocation(program_, ATTRIB_TEXCOORD.index_,
-                       ATTRIB_TEXCOORD.name_.c_str());
+  glBindAttribLocation(program_, ATTRIB_TEX_COORD.index_,
+                       ATTRIB_TEX_COORD.name_.c_str());
 
   glLinkProgram(program_);
   // Check for link errors
@@ -90,6 +90,7 @@ Program::Program(const std::string &vertex_shader_source,
       glGetUniformLocation(program_, "light_model_view_matrices");
   light_color_index_ = glGetUniformLocation(program_, "light_color");
   shadow_map_index_ = glGetUniformLocation(program_, "shadow_map");
+  msdf_index_ = glGetUniformLocation(program_, "msdf");
   cascade_far_splits_index_ =
       glGetUniformLocation(program_, "cascade_far_splits");
 }
@@ -104,17 +105,19 @@ Program::~Program() {
 
 Mesh::Mesh()
     : vertex_array_(0), position_buffer_(0), normal_buffer_(0),
-      index_buffer_(0) {
+      tex_coord_buffer_(0), index_buffer_(0) {
   // Create vertex array object (VAO)
   glGenVertexArrays(1, &vertex_array_);
   bind();
   glGenBuffers(1, &position_buffer_);
   glGenBuffers(1, &normal_buffer_);
+  glGenBuffers(1, &tex_coord_buffer_);
   glGenBuffers(1, &index_buffer_);
 }
 
 Mesh::~Mesh() {
   glDeleteBuffers(1, &index_buffer_);
+  glDeleteBuffers(1, &tex_coord_buffer_);
   glDeleteBuffers(1, &normal_buffer_);
   glDeleteBuffers(1, &position_buffer_);
   glDeleteVertexArrays(1, &vertex_array_);
@@ -136,6 +139,15 @@ void Mesh::setNormals(const std::vector<GLfloat> &normals) {
                normals.data(), GL_STATIC_DRAW);
   glVertexAttribPointer(ATTRIB_NORMAL.index_, 3, GL_FLOAT, GL_FALSE, 0, 0);
   glEnableVertexAttribArray(ATTRIB_NORMAL.index_);
+}
+
+void Mesh::setTexCoords(const std::vector<GLfloat> &tex_coords) {
+  bind();
+  glBindBuffer(GL_ARRAY_BUFFER, tex_coord_buffer_);
+  glBufferData(GL_ARRAY_BUFFER, tex_coords.size() * sizeof(tex_coords[0]),
+               tex_coords.data(), GL_STATIC_DRAW);
+  glVertexAttribPointer(ATTRIB_TEX_COORD.index_, 2, GL_FLOAT, GL_FALSE, 0, 0);
+  glEnableVertexAttribArray(ATTRIB_TEX_COORD.index_);
 }
 
 void Mesh::setIndices(const std::vector<GLint> &indices) {
@@ -466,6 +478,11 @@ GLFWRenderer::GLFWRenderer(bool hidden)
   std::string depth_vs_source = loadString("data/shaders/depth.vert.glsl");
   std::string depth_fs_source; // Empty string (no fragment shader needed)
   depth_program_ = std::make_shared<Program>(depth_vs_source, depth_fs_source);
+
+  // Create MSDF text shader program
+  std::string msdf_vs_source = loadString("data/shaders/msdf.vert.glsl");
+  std::string msdf_fs_source = loadString("data/shaders/msdf.frag.glsl");
+  msdf_program_ = std::make_shared<Program>(msdf_vs_source, msdf_fs_source);
 
   // Create meshes
   box_mesh_ = makeBoxMesh();

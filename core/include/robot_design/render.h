@@ -20,7 +20,7 @@ struct VertexAttribute {
 
 extern const VertexAttribute ATTRIB_POSITION;
 extern const VertexAttribute ATTRIB_NORMAL;
-extern const VertexAttribute ATTRIB_TEXCOORD;
+extern const VertexAttribute ATTRIB_TEX_COORD;
 
 struct DirectionalLight;
 
@@ -66,6 +66,9 @@ struct Program {
   void setShadowMapTextureUnit(GLint unit) const {
     glUniform1i(shadow_map_index_, unit);
   }
+  void setMSDFTextureUnit(GLint unit) const {
+    glUniform1i(msdf_index_, unit);
+  }
   void setCascadeFarSplits(const Eigen::Vector4f &far_splits) const {
     glUniform4fv(cascade_far_splits_index_, 1, far_splits.data());
   }
@@ -94,7 +97,8 @@ struct Mesh {
   Mesh &operator=(const Mesh &other) = delete;
   void bind() const { glBindVertexArray(vertex_array_); }
   void setPositions(const std::vector<GLfloat> &positions);
-  void setNormals(const std::vector<GLfloat> &positions);
+  void setNormals(const std::vector<GLfloat> &normals);
+  void setTexCoords(const std::vector<GLfloat> &tex_coords);
   void setIndices(const std::vector<GLint> &indices);
   void draw() const {
     glDrawElements(GL_TRIANGLES, index_count_, GL_UNSIGNED_INT, 0);
@@ -103,6 +107,7 @@ struct Mesh {
   GLuint vertex_array_;
   GLuint position_buffer_;
   GLuint normal_buffer_;
+  GLuint tex_coord_buffer_;
   GLuint index_buffer_;
   GLsizei index_count_;
 };
@@ -346,6 +351,7 @@ private:
   Eigen::Matrix4f view_matrix_;
   std::shared_ptr<Program> default_program_;
   std::shared_ptr<Program> depth_program_;
+  std::shared_ptr<Program> msdf_program_;
   std::shared_ptr<Mesh> box_mesh_;
   std::shared_ptr<Mesh> tube_mesh_;
   std::shared_ptr<Mesh> capsule_end_mesh_;
