@@ -34,6 +34,8 @@ add_subdirectory(${PEGTL_ROOT} ${CMAKE_BINARY_DIR}/PEGTL)
 
 set(THREADPOOL_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/extern/ThreadPool)
 
+set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build TinyXML2 shared libraries")
+set(BUILD_TESTS OFF CACHE BOOL "Build TinyXML2 test programs")
 set(TINYXML2_ROOT ${PROJECT_SOURCE_DIR}/extern/tinyxml2)
 add_subdirectory(${TINYXML2_ROOT} ${CMAKE_BINARY_DIR}/tinyxml2)
 
