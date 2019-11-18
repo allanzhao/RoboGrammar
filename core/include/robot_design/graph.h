@@ -21,10 +21,6 @@ using EdgeIndex = std::size_t;
 struct NodeAttributes {
   NodeAttributes() = default;
   NodeAttributes(const std::string &label) : label_(label) {}
-  NodeAttributes(const std::string &label, LinkShape shape, Scalar length,
-                 bool base, const Color &color)
-      : label_(label), shape_(shape), length_(length), base_(base),
-        color_(color) {}
 
   std::string label_ = "";
   LinkShape shape_ = LinkShape::NONE;
@@ -44,13 +40,6 @@ struct Node {
 // E.g. the rigid transformation relative to the parent link, uniform scaling
 struct EdgeAttributes {
   EdgeAttributes() = default;
-  EdgeAttributes(const std::string &id, const std::string &label,
-                 JointType joint_type, Scalar joint_pos,
-                 const Quaternion &joint_rot, const Vector3 &joint_axis,
-                 Scalar scale, const Color &color)
-      : id_(id), label_(label), joint_type_(joint_type), joint_pos_(joint_pos),
-        joint_rot_(joint_rot), joint_axis_(joint_axis), scale_(scale),
-        color_(color) {}
 
   std::string id_ = "";
   std::string label_ = "";
@@ -58,6 +47,8 @@ struct EdgeAttributes {
   Scalar joint_pos_ = 1.0;
   Quaternion joint_rot_ = Quaternion::Identity();
   Vector3 joint_axis_ = Vector3::UnitZ();
+  Scalar joint_lower_limit_ = 0.0;
+  Scalar joint_upper_limit_ = 0.0;
   Scalar scale_ = 1.0;
   Color color_ = {1.0f, 0.5f, 0.3f}; // Coral
 

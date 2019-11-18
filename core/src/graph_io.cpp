@@ -114,6 +114,12 @@ void updateEdgeAttributes(
       std::istringstream in(value);
       Vector3 &joint_axis = edge_attrs.joint_axis_;
       in >> joint_axis(0) >> joint_axis(1) >> joint_axis(2);
+    } else if (key == "limits") {
+      std::istringstream in(value);
+      Scalar lower_limit, upper_limit;
+      in >> lower_limit >> upper_limit;
+      edge_attrs.joint_lower_limit_ = lower_limit * RAD_PER_DEG;
+      edge_attrs.joint_upper_limit_ = upper_limit * RAD_PER_DEG;
     } else if (key == "scale") {
       std::istringstream in(value);
       in >> edge_attrs.scale_;
