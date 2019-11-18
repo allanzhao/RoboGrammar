@@ -13,11 +13,13 @@ using tinyxml2::XMLError;
 using tinyxml2::XML_SUCCESS;
 
 struct BitmapFontXMLVisitor : tinyxml2::XMLVisitor {
-  BitmapFontXMLVisitor(BitmapFont &font) : font_(font) {}
+  BitmapFontXMLVisitor(BitmapFont &font, const std::string &resource_dir)
+      : font_(font), resource_dir_(resource_dir) {}
   bool VisitEnter(const XMLElement &element, const XMLAttribute *attr) override;
   bool VisitExit(const XMLElement &element) override;
 
   BitmapFont &font_;
+  const std::string &resource_dir_;
 };
 
 bool BitmapFontXMLVisitor::VisitEnter(const XMLElement &element,
@@ -38,7 +40,7 @@ bool BitmapFontXMLVisitor::VisitEnter(const XMLElement &element,
     if (id >= font_.page_textures_.size()) {
       font_.page_textures_.resize(id + 1);
     }
-    font_.page_textures_[id] = loadTexture(file);
+    font_.page_textures_[id] = loadTexture(resource_dir_ + "/" + file);
   } else if (element_name == "char") {
     font_.chars_.emplace_back();
     BitmapFontChar &font_char = font_.chars_.back();
@@ -73,7 +75,8 @@ bool BitmapFontXMLVisitor::VisitExit(const XMLElement &element) {
   return true;
 }
 
-BitmapFont::BitmapFont(const std::string &path) {
+BitmapFont::BitmapFont(const std::string &path,
+                       const std::string &resource_dir) {
   XMLDocument document;
   XMLError error = document.LoadFile(path.c_str());
   if (error != XML_SUCCESS) {
@@ -81,7 +84,7 @@ BitmapFont::BitmapFont(const std::string &path) {
                              document.ErrorStr());
   }
 
-  BitmapFontXMLVisitor visitor(*this);
+  BitmapFontXMLVisitor visitor(*this, resource_dir);
   document.Accept(&visitor);
 }
 

@@ -481,7 +481,8 @@ GLFWRenderer::GLFWRenderer(bool hidden)
       /*sm_width=*/2048, /*sm_height=*/2048, /*sm_cascade_count=*/5);
 
   // Load font
-  font_ = std::make_shared<BitmapFont>("data/fonts/OpenSans-Regular.fnt");
+  font_ = std::make_shared<BitmapFont>("data/fonts/OpenSans-Regular.fnt",
+                                       "data/fonts");
 
   // Set up callbacks
   // Allow accessing "this" from static callbacks

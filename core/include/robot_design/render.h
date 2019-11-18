@@ -232,7 +232,7 @@ struct BitmapFontChar {
 };
 
 struct BitmapFont {
-  explicit BitmapFont(const std::string &path);
+  explicit BitmapFont(const std::string &path, const std::string &resource_dir);
 
   std::vector<BitmapFontChar> chars_;
   std::vector<std::shared_ptr<Texture2D>> page_textures_;
