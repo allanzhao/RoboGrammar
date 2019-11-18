@@ -768,6 +768,9 @@ void GLFWRenderer::updateProjectionMatrix() {
 
 std::string GLFWRenderer::loadString(const std::string &path) {
   std::ifstream ifs(path);
+  if (!ifs.is_open()) {
+    throw std::runtime_error("Could not open file \"" + path + "\"");
+  }
   std::stringstream ss;
   ss << ifs.rdbuf();
   return ss.str();
