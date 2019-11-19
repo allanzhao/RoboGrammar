@@ -120,7 +120,9 @@ Mesh::~Mesh() {
 
 void Mesh::setPositions(const std::vector<GLfloat> &positions) {
   bind();
-  if (!position_buffer_) { glGenBuffers(1, &position_buffer_); }
+  if (!position_buffer_) {
+    glGenBuffers(1, &position_buffer_);
+  }
   glBindBuffer(GL_ARRAY_BUFFER, position_buffer_);
   glBufferData(GL_ARRAY_BUFFER, positions.size() * sizeof(positions[0]),
                positions.data(), usage_);
@@ -130,7 +132,9 @@ void Mesh::setPositions(const std::vector<GLfloat> &positions) {
 
 void Mesh::setNormals(const std::vector<GLfloat> &normals) {
   bind();
-  if (!normal_buffer_) { glGenBuffers(1, &normal_buffer_); }
+  if (!normal_buffer_) {
+    glGenBuffers(1, &normal_buffer_);
+  }
   glBindBuffer(GL_ARRAY_BUFFER, normal_buffer_);
   glBufferData(GL_ARRAY_BUFFER, normals.size() * sizeof(normals[0]),
                normals.data(), usage_);
@@ -140,7 +144,9 @@ void Mesh::setNormals(const std::vector<GLfloat> &normals) {
 
 void Mesh::setTexCoords(const std::vector<GLfloat> &tex_coords) {
   bind();
-  if (!tex_coord_buffer_) { glGenBuffers(1, &tex_coord_buffer_); }
+  if (!tex_coord_buffer_) {
+    glGenBuffers(1, &tex_coord_buffer_);
+  }
   glBindBuffer(GL_ARRAY_BUFFER, tex_coord_buffer_);
   glBufferData(GL_ARRAY_BUFFER, tex_coords.size() * sizeof(tex_coords[0]),
                tex_coords.data(), usage_);
@@ -150,7 +156,9 @@ void Mesh::setTexCoords(const std::vector<GLfloat> &tex_coords) {
 
 void Mesh::setIndices(const std::vector<GLint> &indices) {
   bind();
-  if (!index_buffer_) { glGenBuffers(1, &index_buffer_); }
+  if (!index_buffer_) {
+    glGenBuffers(1, &index_buffer_);
+  }
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_buffer_);
   glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(indices[0]),
                indices.data(), usage_);
@@ -688,8 +696,30 @@ void GLFWRenderer::drawOpaque(const Simulation &sim, const Program &program,
 
 void GLFWRenderer::drawLabels(const Simulation &sim, const Program &program,
                               ProgramState &program_state) const {
-  Eigen::Affine3f transform(Eigen::Translation3f(0.0f, 0.0f, 0.0f));
-  drawText(transform.matrix(), 0.05f, program, program_state, "robot");
+  // Draw robot labels
+  for (Index robot_idx = 0; robot_idx < sim.getRobotCount(); ++robot_idx) {
+    const Robot &robot = *sim.getRobot(robot_idx);
+    for (std::size_t link_idx = 0; link_idx < robot.links_.size(); ++link_idx) {
+      const Link &link = robot.links_[link_idx];
+      Matrix4 link_transform;
+      sim.getLinkTransform(robot_idx, link_idx, link_transform);
+
+      // Draw the link's label, if it has one
+      if (!link.label_.empty()) {
+        drawText(link_transform.cast<float>(), robot.link_radius_, program,
+                 program_state, link.label_);
+      }
+
+      // Draw the joint's label, if it has one
+      if (!link.joint_label_.empty()) {
+        Matrix4 joint_transform =
+            (Affine3(link_transform) * Translation3(-link.length_ / 2, 0, 0))
+                .matrix();
+        drawText(joint_transform.cast<float>(), robot.link_radius_, program,
+                 program_state, link.joint_label_);
+      }
+    }
+  }
 }
 
 void GLFWRenderer::drawBox(const Eigen::Matrix4f &transform,

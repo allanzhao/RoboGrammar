@@ -20,6 +20,7 @@ Robot buildRobot(const Graph &graph) {
     Quaternion joint_rot_;
     Vector3 joint_axis_;
     Color joint_color_;
+    std::string joint_label_;
     // Cumulative scaling factor
     Scalar scale_;
   };
@@ -58,7 +59,7 @@ Robot buildRobot(const Graph &graph) {
       /*node=*/root_node, /*parent_link=*/-1, /*joint_type=*/JointType::FREE,
       /*joint_pos=*/0.0, /*joint_rot=*/Quaternion::Identity(),
       /*joint_axis=*/Vector3::Zero(), /*joint_color=*/Color::Zero(),
-      /*scale=*/1.0}};
+      /*joint_label=*/"", /*scale=*/1.0}};
   while (!entries_to_expand.empty()) {
     NodeEntry &entry = entries_to_expand.front();
     const Node &node = graph.nodes_[entry.node_];
@@ -69,7 +70,8 @@ Robot buildRobot(const Graph &graph) {
         /*joint_pos=*/entry.joint_pos_, /*joint_rot=*/entry.joint_rot_,
         /*joint_axis=*/entry.joint_axis_, /*shape=*/node.attrs_.shape_,
         /*length=*/node.attrs_.length_, /*color=*/node.attrs_.color_,
-        /*joint_color=*/entry.joint_color_);
+        /*joint_color=*/entry.joint_color_, /*label=*/node.attrs_.label_,
+        /*joint_label=*/entry.joint_label_);
 
     for (const Edge &edge : graph.edges_) {
       if (edge.tail_ == entry.node_) {
@@ -81,6 +83,7 @@ Robot buildRobot(const Graph &graph) {
              /*joint_rot=*/edge.attrs_.joint_rot_,
              /*joint_axis=*/edge.attrs_.joint_axis_,
              /*joint_color=*/edge.attrs_.color_,
+             /*joint_label=*/edge.attrs_.label_,
              /*scale=*/entry.scale_ * edge.attrs_.scale_});
       }
     }
