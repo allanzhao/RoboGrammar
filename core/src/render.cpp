@@ -538,7 +538,8 @@ GLFWRenderer::GLFWRenderer(bool hidden)
 
   // Enable alpha blending
   glEnable(GL_BLEND);
-  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  // Use premultiplied alpha
+  glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
 
   // Set default camera parameters
   camera_controller_.pitch_ = -M_PI / 6;

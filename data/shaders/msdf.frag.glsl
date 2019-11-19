@@ -15,5 +15,5 @@ void main() {
   vec3 sample = texture(msdf, texture_coords).rgb;
   float signed_dist = median(sample.r, sample.g, sample.b) - 0.5;
   float alpha = clamp(signed_dist / fwidth(signed_dist) + 0.5, 0.0, 1.0);
-  frag_color = vec4(object_color, alpha);
+  frag_color = vec4(object_color, 1.0) * alpha;
 }
