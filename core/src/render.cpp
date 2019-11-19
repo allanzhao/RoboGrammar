@@ -173,6 +173,11 @@ Texture2D::Texture2D(GLenum target, GLint level, GLint internal_format,
 
 Texture2D::~Texture2D() { glDeleteTextures(1, &texture_); }
 
+void Texture2D::setParameter(GLenum name, GLint value) const {
+  bind();
+  glTexParameteri(target_, name, value);
+}
+
 void Texture2D::getImage(unsigned char *pixels) const {
   bind();
   glGetTexImage(target_, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
@@ -194,6 +199,11 @@ Texture3D::Texture3D(GLenum target, GLint level, GLint internal_format,
 }
 
 Texture3D::~Texture3D() { glDeleteTextures(1, &texture_); }
+
+void Texture3D::setParameter(GLenum name, GLint value) const {
+  bind();
+  glTexParameteri(target_, name, value);
+}
 
 void Texture3D::getImage(unsigned char *pixels) const {
   bind();
@@ -488,6 +498,8 @@ GLFWRenderer::GLFWRenderer(bool hidden)
   tube_mesh_ = makeTubeMesh(/*n_segments=*/32);
   capsule_end_mesh_ = makeCapsuleEndMesh(/*n_segments=*/32, /*n_rings=*/8);
   cylinder_end_mesh_ = makeCylinderEndMesh(/*n_segments=*/32);
+  // drawText will create new vertex data for each string
+  text_mesh_ = std::make_shared<Mesh>(/*usage=*/GL_STREAM_DRAW);
 
   // Create directional light
   dir_light_ = std::make_shared<DirectionalLight>(
@@ -516,6 +528,10 @@ GLFWRenderer::GLFWRenderer(bool hidden)
   // Enable depth test
   glEnable(GL_DEPTH_TEST);
 
+  // Enable alpha blending
+  glEnable(GL_BLEND);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
   // Set default camera parameters
   camera_controller_.pitch_ = -M_PI / 6;
   camera_controller_.distance_ = 2.0;
@@ -542,7 +558,7 @@ void GLFWRenderer::render(const Simulation &sim, int width, int height,
   dir_light_->updateViewMatricesAndSplits(view_matrix_, aspect_ratio, z_near_,
                                           z_far_, fov_);
 
-  // Render shadow map
+  // Render shadow maps
   dir_light_->sm_framebuffer_->bind();
   glViewport(0, 0, dir_light_->sm_width_, dir_light_->sm_height_);
   glEnable(GL_POLYGON_OFFSET_FILL);
@@ -556,10 +572,10 @@ void GLFWRenderer::render(const Simulation &sim, int width, int height,
     depth_program_state.setProjectionMatrix(dir_light_->proj_matrix_);
     depth_program_state.setViewMatrix(
         dir_light_->view_matrices_.block<4, 4>(0, 4 * i));
-    draw(sim, *depth_program_, depth_program_state);
+    drawOpaque(sim, *depth_program_, depth_program_state);
   }
 
-  // Render main window
+  // Render camera view, using the shadow maps as input
   if (target_framebuffer) {
     target_framebuffer->bind();
   } else {
@@ -575,7 +591,19 @@ void GLFWRenderer::render(const Simulation &sim, int width, int height,
   default_program_state.setViewMatrix(view_matrix_);
   default_program_state.setDirectionalLight(*dir_light_);
   dir_light_->sm_depth_array_texture_->bind();
-  draw(sim, *default_program_, default_program_state);
+  drawOpaque(sim, *default_program_, default_program_state);
+
+  // Render label text with depth testing/writing turned off
+  glDisable(GL_DEPTH_TEST);
+  glDepthMask(GL_FALSE);
+  msdf_program_->use();
+  ProgramState msdf_program_state;
+  msdf_program_state.setProjectionMatrix(proj_matrix_);
+  msdf_program_state.setViewMatrix(view_matrix_);
+  font_->page_textures_.at(0)->bind();
+  drawLabels(sim, *msdf_program_, msdf_program_state);
+  glDepthMask(GL_TRUE);
+  glEnable(GL_DEPTH_TEST);
 
   glfwSwapBuffers(window_);
   glfwPollEvents();
@@ -595,8 +623,8 @@ bool GLFWRenderer::shouldClose() const {
   return glfwWindowShouldClose(window_);
 }
 
-void GLFWRenderer::draw(const Simulation &sim, const Program &program,
-                        ProgramState &program_state) const {
+void GLFWRenderer::drawOpaque(const Simulation &sim, const Program &program,
+                              ProgramState &program_state) const {
   // Draw robots
   for (Index robot_idx = 0; robot_idx < sim.getRobotCount(); ++robot_idx) {
     const Robot &robot = *sim.getRobot(robot_idx);
@@ -658,6 +686,12 @@ void GLFWRenderer::draw(const Simulation &sim, const Program &program,
   }
 }
 
+void GLFWRenderer::drawLabels(const Simulation &sim, const Program &program,
+                              ProgramState &program_state) const {
+  Eigen::Affine3f transform(Eigen::Translation3f(0.0f, 0.0f, 0.0f));
+  drawText(transform.matrix(), 0.05f, program, program_state, "robot");
+}
+
 void GLFWRenderer::drawBox(const Eigen::Matrix4f &transform,
                            const Eigen::Vector3f &half_extents,
                            const Program &program,
@@ -713,6 +747,59 @@ void GLFWRenderer::drawTubeBasedShape(const Eigen::Matrix4f &transform,
   program_state.setModelMatrix(middle_model_transform.matrix());
   program_state.updateUniforms(program);
   tube_mesh_->draw();
+}
+
+void GLFWRenderer::drawText(const Eigen::Matrix4f &transform, float half_height,
+                            const Program &program, ProgramState &program_state,
+                            const std::string &str) const {
+  std::vector<float> positions;
+  std::vector<float> tex_coords;
+  std::vector<int> indices;
+  float xy_scale = 2.0f * half_height / font_->line_height_;
+  float u_scale = 1.0f / font_->page_width_;
+  float v_scale = 1.0f / font_->page_height_;
+  float x = -0.5f * font_->getStringWidth(str) * xy_scale;
+  float y = -half_height;
+  int j = 0; // Vertex index
+  for (char c : str) {
+    const auto it = font_->chars_.find(c);
+    if (it != font_->chars_.end()) {
+      const BitmapFontChar &char_info = it->second;
+      float x_min = x + char_info.xoffset_ * xy_scale;
+      float x_max = x_min + char_info.width_ * xy_scale;
+      float y_max = y + (font_->line_height_ - char_info.yoffset_) * xy_scale;
+      float y_min = y_max - char_info.height_ * xy_scale;
+      float u_min = char_info.x_ * u_scale;
+      float u_max = u_min + char_info.width_ * u_scale;
+      float v_max = (font_->page_height_ - char_info.y_) * v_scale;
+      float v_min = v_max - char_info.height_ * v_scale;
+      // Reverse v coordinates, since textures are loaded upside-down
+      v_min = 1.0f - v_min;
+      v_max = 1.0f - v_max;
+      // Define a textured rectangle
+      // clang-format off
+      float pos[12] = {x_min, y_min, 0.0f, x_max, y_min, 0.0f,
+                       x_max, y_max, 0.0f, x_min, y_max, 0.0f};
+      float tex_coord[8] = {u_min, v_min, u_max, v_min,
+                            u_max, v_max, u_min, v_max};
+      int idx[6] = {j, j + 1, j + 2, j + 3, j, j + 2};
+      // clang-format on
+      positions.insert(positions.end(), std::begin(pos), std::end(pos));
+      tex_coords.insert(tex_coords.end(), std::begin(tex_coord),
+                        std::end(tex_coord));
+      indices.insert(indices.end(), std::begin(idx), std::end(idx));
+      x += char_info.xadvance_ * xy_scale;
+      j += 4;
+    }
+  }
+  text_mesh_->setPositions(positions);
+  text_mesh_->setTexCoords(tex_coords);
+  text_mesh_->setIndices(indices);
+
+  text_mesh_->bind();
+  program_state.setModelMatrix(transform.matrix());
+  program_state.updateUniforms(program);
+  text_mesh_->draw();
 }
 
 void GLFWRenderer::errorCallback(int error, const char *description) {

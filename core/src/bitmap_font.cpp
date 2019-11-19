@@ -25,14 +25,28 @@ struct BitmapFontXMLVisitor : tinyxml2::XMLVisitor {
 bool BitmapFontXMLVisitor::VisitEnter(const XMLElement &element,
                                       const XMLAttribute *attr) {
   const std::string element_name(element.Name());
-  if (element_name == "page") {
+  if (element_name == "common") {
+    while (attr) {
+      const std::string attr_name(attr->Name());
+      if (attr_name == "lineHeight") {
+        font_.line_height_ = attr->UnsignedValue();
+      } else if (attr_name == "base") {
+        font_.base_ = attr->UnsignedValue();
+      } else if (attr_name == "scaleW") {
+        font_.page_width_ = attr->UnsignedValue();
+      } else if (attr_name == "scaleH") {
+        font_.page_height_ = attr->UnsignedValue();
+      }
+      attr = attr->Next();
+    }
+  } else if (element_name == "page") {
     unsigned int id = 0;
     std::string file;
     while (attr) {
       const std::string attr_name(attr->Name());
       if (attr_name == "id") {
         id = attr->UnsignedValue();
-      } else if(attr_name == "file") {
+      } else if (attr_name == "file") {
         file = attr->Value();
       }
       attr = attr->Next();
@@ -41,9 +55,11 @@ bool BitmapFontXMLVisitor::VisitEnter(const XMLElement &element,
       font_.page_textures_.resize(id + 1);
     }
     font_.page_textures_[id] = loadTexture(resource_dir_ + "/" + file);
+    // Signed distance fields should be interpolated
+    font_.page_textures_[id]->setParameter(GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    font_.page_textures_[id]->setParameter(GL_TEXTURE_MAG_FILTER, GL_LINEAR);
   } else if (element_name == "char") {
-    font_.chars_.emplace_back();
-    BitmapFontChar &font_char = font_.chars_.back();
+    BitmapFontChar font_char;
     while (attr) {
       const std::string attr_name(attr->Name());
       if (attr_name == "char") {
@@ -67,13 +83,12 @@ bool BitmapFontXMLVisitor::VisitEnter(const XMLElement &element,
       }
       attr = attr->Next();
     }
+    font_.chars_.emplace(font_char.char_, std::move(font_char));
   }
   return true;
 }
 
-bool BitmapFontXMLVisitor::VisitExit(const XMLElement &element) {
-  return true;
-}
+bool BitmapFontXMLVisitor::VisitExit(const XMLElement &element) { return true; }
 
 BitmapFont::BitmapFont(const std::string &path,
                        const std::string &resource_dir) {
@@ -86,6 +101,20 @@ BitmapFont::BitmapFont(const std::string &path,
 
   BitmapFontXMLVisitor visitor(*this, resource_dir);
   document.Accept(&visitor);
+  if (line_height_ == 0 || base_ == 0 || page_width_ == 0 ||
+      page_height_ == 0) {
+    throw std::runtime_error("Font XML has invalid/missing lineHeight, base, "
+                             "scaleW, or scaleH attribute");
+  }
+}
+
+unsigned int BitmapFont::getStringWidth(const std::string &str) const {
+  unsigned int width = 0;
+  for (char c : str) {
+    const auto it = chars_.find(c);
+    if (it != chars_.end()) { width += it->second.xadvance_; }
+  }
+  return width;
 }
 
 } // namespace robot_design

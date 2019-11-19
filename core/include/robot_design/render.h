@@ -7,6 +7,7 @@
 #include <memory>
 #include <robot_design/sim.h>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace robot_design {
@@ -121,6 +122,7 @@ struct Texture2D {
   Texture2D(const Texture2D &other) = delete;
   Texture2D &operator=(const Texture2D &other) = delete;
   void bind() const { glBindTexture(target_, texture_); }
+  void setParameter(GLenum name, GLint value) const;
   void getImage(unsigned char *pixels) const;
 
   GLenum target_;
@@ -135,6 +137,7 @@ struct Texture3D {
   Texture3D(const Texture3D &other) = delete;
   Texture3D &operator=(const Texture3D &other) = delete;
   void bind() const { glBindTexture(target_, texture_); }
+  void setParameter(GLenum name, GLint value) const;
   void getImage(unsigned char *pixels) const;
 
   GLenum target_;
@@ -239,8 +242,13 @@ struct BitmapFontChar {
 
 struct BitmapFont {
   explicit BitmapFont(const std::string &path, const std::string &resource_dir);
+  unsigned int getStringWidth(const std::string &str) const;
 
-  std::vector<BitmapFontChar> chars_;
+  unsigned int line_height_ = 0;
+  unsigned int base_ = 0;
+  unsigned int page_width_ = 0;
+  unsigned int page_height_ = 0;
+  std::unordered_map<char, BitmapFontChar> chars_;
   std::vector<std::shared_ptr<Texture2D>> page_textures_;
 };
 
@@ -324,8 +332,10 @@ public:
   FPSCameraController camera_controller_;
 
 private:
-  void draw(const Simulation &sim, const Program &program,
-            ProgramState &program_state) const;
+  void drawOpaque(const Simulation &sim, const Program &program,
+                  ProgramState &program_state) const;
+  void drawLabels(const Simulation &sim, const Program &program,
+                  ProgramState &program_state) const;
   void drawBox(const Eigen::Matrix4f &transform,
                const Eigen::Vector3f &half_extents, const Program &program,
                ProgramState &program_state) const;
@@ -339,6 +349,9 @@ private:
                           float radius, const Program &program,
                           ProgramState &program_state,
                           const Mesh &end_mesh) const;
+  void drawText(const Eigen::Matrix4f &transform, float half_height,
+                const Program &program, ProgramState &program_state,
+                const std::string &str) const;
   void updateProjectionMatrix();
   static std::string loadString(const std::string &path);
 
@@ -357,6 +370,7 @@ private:
   std::shared_ptr<Mesh> tube_mesh_;
   std::shared_ptr<Mesh> capsule_end_mesh_;
   std::shared_ptr<Mesh> cylinder_end_mesh_;
+  std::shared_ptr<Mesh> text_mesh_;
   std::shared_ptr<DirectionalLight> dir_light_;
   std::shared_ptr<BitmapFont> font_;
 };
