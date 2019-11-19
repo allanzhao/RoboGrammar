@@ -66,8 +66,8 @@ digraph knee_joint {
   }
 
   subgraph R {
-    prev -> next [type=hinge, joint_axis="0 0 1", limits="-120 0",
-                  color="1 0.5 0.3"];  // Coral
+    prev -> next [type=hinge, axis_angle="0 0 1 90", joint_axis="0 0 1",
+                  limits="-120 0", color="1 0.5 0.3"];  // Coral
   }
 }
 
