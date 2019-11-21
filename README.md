@@ -2,11 +2,18 @@
 
 ## Prerequisites
 
+[CMake](https://cmake.org/download/) >= 3.0
+* Ubuntu: `sudo apt-get install cmake`
+
 [LibTorch](https://pytorch.org/get-started/locally/) (select your OS, Package: LibTorch, CUDA: None, cxx11 ABI)
 
 GLEW
 * Ubuntu: `sudo apt-get install libglew-dev`
 * Mac OS (Homebrew): `brew install glew`
+
+Python 3 + headers
+* Ubuntu: `sudo apt-get install python3 python3-dev`
+* Mac OS (Homebrew): `brew install python3`
 
 ## Building (Linux, Mac OS)
 
