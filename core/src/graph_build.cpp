@@ -52,8 +52,7 @@ Robot buildRobot(const Graph &graph) {
   }
 
   // Build the (simulated) robot using breadth-first traversal
-  Robot robot(/*link_density=*/1.0, /*link_radius=*/0.05, /*friction=*/0.9,
-              /*motor_kp=*/2.0, /*motor_kd=*/0.1);
+  Robot robot;
   // The base link doesn't have a joint, so joint-related params don't matter
   std::deque<NodeEntry> entries_to_expand = {NodeEntry{
       /*node=*/root_node, /*parent_link=*/-1, /*joint_type=*/JointType::FREE,

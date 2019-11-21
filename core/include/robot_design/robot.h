@@ -23,29 +23,29 @@ struct Link {
         label_(label), joint_label_(joint_label) {}
 
   // Parent link index (-1 for base link)
-  Index parent_;
+  Index parent_ = -1;
   // Joint type
-  JointType joint_type_;
+  JointType joint_type_ = JointType::FIXED;
   // Joint position on parent link (0 = beginning, 1 = end)
-  Scalar joint_pos_;
+  Scalar joint_pos_ = 1.0;
   // Joint rotation relative to parent link
-  Quaternion joint_rot_;
+  Quaternion joint_rot_ = Quaternion::Identity();
   // Joint axis relative to the joint frame (defined by previous 3 parameters)
-  Vector3 joint_axis_;
+  Vector3 joint_axis_ = Vector3::UnitZ();
   // Link shape
-  LinkShape shape_;
+  LinkShape shape_ = LinkShape::CAPSULE;
   // Link length
-  Scalar length_;
+  Scalar length_ = 1.0;
   // Link color for rendering
-  Color color_;
+  Color color_ = {0.45f, 0.5f, 0.55f}; // Slate gray
   // Joint color for rendering
-  Color joint_color_;
+  Color joint_color_ = {1.0f, 0.5f, 0.3f}; // Coral
   // Link label for rendering
   std::string label_;
   // Joint label for rendering
   std::string joint_label_;
 
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 };
 
 struct Robot {
@@ -55,11 +55,12 @@ struct Robot {
       : link_density_(link_density), link_radius_(link_radius),
         friction_(friction), motor_kp_(motor_kp), motor_kd_(motor_kd),
         links_() {}
-  Scalar link_density_; // Mass of links per unit of length
-  Scalar link_radius_;
-  Scalar friction_;
-  Scalar motor_kp_;
-  Scalar motor_kd_;
+
+  Scalar link_density_ = 1.0; // Mass of links per unit of length
+  Scalar link_radius_ = 0.05;
+  Scalar friction_ = 0.9;
+  Scalar motor_kp_ = 2.0;
+  Scalar motor_kd_ = 0.1;
   std::vector<Link, Eigen::aligned_allocator<Link>> links_;
 };
 

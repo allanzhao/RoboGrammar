@@ -10,13 +10,13 @@ struct Prop {
       : density_(density), friction_(friction), half_extents_(half_extents) {}
 
   // Density
-  Scalar density_;
+  Scalar density_ = 0.0;
   // Friction
-  Scalar friction_;
+  Scalar friction_ = 0.9;
   // Half extents (size)
-  Vector3 half_extents_;
+  Vector3 half_extents_ = Vector3::Constant(1.0);
 
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 };
 
 } // namespace drbs
