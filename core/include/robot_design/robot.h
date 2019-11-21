@@ -12,6 +12,7 @@ enum class LinkShape : Index { NONE, CAPSULE, CYLINDER };
 enum class JointType : Index { FREE, HINGE, FIXED };
 
 struct Link {
+  Link() = default;
   Link(Index parent, JointType joint_type, Scalar joint_pos,
        const Quaternion &joint_rot, const Vector3 &joint_axis, LinkShape shape,
        Scalar length, const Color &color, const Color &joint_color,
@@ -48,6 +49,7 @@ struct Link {
 };
 
 struct Robot {
+  Robot() = default;
   Robot(Scalar link_density, Scalar link_radius, Scalar friction,
         Scalar motor_kp, Scalar motor_kd)
       : link_density_(link_density), link_radius_(link_radius),

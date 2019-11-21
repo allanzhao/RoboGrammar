@@ -5,6 +5,7 @@
 namespace robot_design {
 
 struct Prop {
+  Prop() = default;
   Prop(Scalar density, Scalar friction, const Vector3 &half_extents)
       : density_(density), friction_(friction), half_extents_(half_extents) {}
 
