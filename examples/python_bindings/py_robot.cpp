@@ -1,3 +1,4 @@
+#include <memory>
 #include <pybind11/eigen.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -31,7 +32,7 @@ void initRobot(py::module &m) {
       .def_readwrite("label", &rd::Link::label_)
       .def_readwrite("joint_label", &rd::Link::joint_label_);
 
-  py::class_<rd::Robot>(m, "Robot")
+  py::class_<rd::Robot, std::shared_ptr<rd::Robot>>(m, "Robot")
       .def(py::init<>())
       .def_readwrite("link_density", &rd::Robot::link_density_)
       .def_readwrite("link_radius", &rd::Robot::link_radius_)
