@@ -31,6 +31,8 @@ int main(int argc, char **argv) {
   args::MapFlag<std::string, torch::DeviceType> device_flag(
       parser, "device", "Torch device (cpu|cuda)", {'d', "device"},
       {{"cpu", torch::kCPU}, {"cuda", torch::kCUDA}}, torch::kCPU);
+  args::ValueFlag<unsigned int> episodes_flag(
+      parser, "episodes", "Number of episodes", {'e', "episodes"}, 3);
   args::Flag optim_flag(parser, "optim", "Optimize a trajectory",
                         {'o', "optim"});
   args::Flag render_flag(parser, "render", "Render the trajectory",
@@ -149,7 +151,7 @@ int main(int argc, char **argv) {
       *main_sim, /*robot_idx=*/robot_idx, /*device=*/device, /*batch_size=*/64,
       /*epoch_count=*/3);
   int episode_len = 250;
-  int episode_count = 3;
+  int episode_count = args::get(episodes_flag);
   MatrixX input_sequence = MatrixX::Zero(dof_count, episode_len);
   MatrixX obs(value_estimator->getObservationSize(), episode_len + 1);
   VectorX rewards(episode_len);
