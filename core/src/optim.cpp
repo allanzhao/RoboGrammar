@@ -44,7 +44,7 @@ void MPPIOptimizer::update() {
 
   MatrixX input_sequence_sum = MatrixX::Zero(dof_count_, horizon_);
   Scalar seq_weight_sum = 0.0;
-  MatrixX rand_input_seq;
+  MatrixX rand_input_seq(dof_count_, horizon_);
   Scalar max_reward = sim_rewards.maxCoeff();
   for (int k = 0; k < sample_count_; ++k) {
     // Recreate the same input sequence used for the simulation
@@ -79,7 +79,7 @@ void MPPIOptimizer::advance(int step_count) {
 Scalar MPPIOptimizer::runSimulation(int sample_idx, unsigned int sample_seed) {
   Simulation &sim = *sim_instances_[sample_idx];
   Index robot_idx = 0; // TODO: don't assume there is only one robot
-  MatrixX rand_input_seq;
+  MatrixX rand_input_seq(dof_count_, horizon_);
   sampleInputSequence(rand_input_seq, sample_seed);
   sim.saveState();
   Scalar reward = 0.0;
@@ -109,7 +109,7 @@ void MPPIOptimizer::advanceSimulation(int sample_idx, int step_count) {
   }
 }
 
-void MPPIOptimizer::sampleInputSequence(MatrixX &rand_input_seq,
+void MPPIOptimizer::sampleInputSequence(Ref<MatrixX> rand_input_seq,
                                         unsigned int sample_seed) const {
   std::mt19937 generator(sample_seed);
   std::normal_distribution<Scalar> distribution(0.0, 0.2);

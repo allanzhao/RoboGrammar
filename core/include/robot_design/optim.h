@@ -13,6 +13,8 @@ using MakeSimFunction = std::function<std::shared_ptr<Simulation>()>;
 
 using ObjectiveFunction = std::function<Scalar(const Simulation &)>;
 
+using Eigen::Ref;
+
 class MPPIOptimizer {
 public:
   MPPIOptimizer(Scalar kappa, Scalar discount_factor, int dof_count,
@@ -28,7 +30,7 @@ public:
 private:
   Scalar runSimulation(int sample_idx, unsigned int sample_seed);
   void advanceSimulation(int sample_idx, int step_count);
-  void sampleInputSequence(MatrixX &rand_input_seq,
+  void sampleInputSequence(Ref<MatrixX> rand_input_seq,
                            unsigned int sample_seed) const;
 
   Scalar kappa_;

@@ -232,7 +232,7 @@ void BulletSimulation::unregisterPropWrapper(BulletPropWrapper &prop_wrapper) {
 }
 
 void BulletSimulation::getLinkTransform(Index robot_idx, Index link_idx,
-                                        Matrix4 &transform) const {
+                                        Ref<Matrix4> transform) const {
   btMultiBody &multi_body = *robot_wrappers_[robot_idx].multi_body_;
   if (link_idx == 0) {
     // Base link
@@ -244,13 +244,13 @@ void BulletSimulation::getLinkTransform(Index robot_idx, Index link_idx,
 }
 
 void BulletSimulation::getPropTransform(Index prop_idx,
-                                        Matrix4 &transform) const {
+                                        Ref<Matrix4> transform) const {
   btRigidBody &rigid_body = *prop_wrappers_[prop_idx].rigid_body_;
   transform = eigenMatrix4FromBullet(rigid_body.getCenterOfMassTransform());
 }
 
 void BulletSimulation::getLinkVelocity(Index robot_idx, Index link_idx,
-                                       Vector6 &vel) const {
+                                       Ref<Vector6> vel) const {
   btMultiBody &multi_body = *robot_wrappers_[robot_idx].multi_body_;
   if (link_idx == 0) {
     // Base link
@@ -269,7 +269,6 @@ int BulletSimulation::getRobotDofCount(Index robot_idx) const {
 void BulletSimulation::getJointPositions(Index robot_idx,
                                          Ref<VectorX> pos) const {
   const btMultiBody &multi_body = *robot_wrappers_[robot_idx].multi_body_;
-  pos.resize(multi_body.getNumPosVars());
   int offset = 0;
   for (int link_idx = 0; link_idx < multi_body.getNumLinks(); ++link_idx) {
     const btMultibodyLink &link = multi_body.getLink(link_idx);
@@ -283,7 +282,6 @@ void BulletSimulation::getJointPositions(Index robot_idx,
 void BulletSimulation::getJointVelocities(Index robot_idx,
                                           Ref<VectorX> vel) const {
   const btMultiBody &multi_body = *robot_wrappers_[robot_idx].multi_body_;
-  vel.resize(multi_body.getNumDofs());
   int offset = 0;
   for (int link_idx = 0; link_idx < multi_body.getNumLinks(); ++link_idx) {
     const btMultibodyLink &link = multi_body.getLink(link_idx);
@@ -328,8 +326,8 @@ void BulletSimulation::addJointTorques(Index robot_idx,
   }
 }
 
-void BulletSimulation::getRobotWorldAABB(Index robot_idx, Vector3 &lower,
-                                         Vector3 &upper) const {
+void BulletSimulation::getRobotWorldAABB(Index robot_idx, Ref<Vector3> lower,
+                                         Ref<Vector3> upper) const {
   lower = Vector3::Constant(std::numeric_limits<Scalar>::infinity());
   upper = Vector3::Constant(-std::numeric_limits<Scalar>::infinity());
   const btMultiBody &multi_body = *robot_wrappers_[robot_idx].multi_body_;

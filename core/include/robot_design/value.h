@@ -1,5 +1,6 @@
 #pragma once
 
+#include <Eigen/Dense>
 #include <memory>
 #include <robot_design/sim.h>
 #include <robot_design/types.h>
@@ -8,6 +9,8 @@
 #include <vector>
 
 namespace robot_design {
+
+using Eigen::Ref;
 
 // Torch dtype corresponding to Scalar
 constexpr torch::Dtype SCALAR_DTYPE =
@@ -29,16 +32,15 @@ public:
                    const torch::Device &device, int batch_size = 32,
                    int epoch_count = 4, int ensemble_size = 6);
   int getObservationSize() const;
-  void getObservation(const Simulation &sim, Eigen::Ref<VectorX> obs) const;
-  void estimateValue(const MatrixX &obs, Eigen::Ref<VectorX> value_est) const;
-  void train(const MatrixX &obs, const Eigen::Ref<const VectorX> &value);
+  void getObservation(const Simulation &sim, Ref<VectorX> obs) const;
+  void estimateValue(const MatrixX &obs, Ref<VectorX> value_est) const;
+  void train(const MatrixX &obs, const Ref<const VectorX> &value);
 
 private:
-  torch::Tensor torchTensorFromEigenMatrix(const MatrixX &mat) const;
-  torch::Tensor
-  torchTensorFromEigenVector(const Eigen::Ref<const VectorX> &vec) const;
+  torch::Tensor torchTensorFromEigenMatrix(const Ref<const MatrixX> &mat) const;
+  torch::Tensor torchTensorFromEigenVector(const Ref<const VectorX> &vec) const;
   void torchTensorToEigenVector(const torch::Tensor &tensor,
-                                Eigen::Ref<VectorX> vec) const;
+                                Ref<VectorX> vec) const;
 
   int robot_idx_;
   torch::Device device_;

@@ -330,7 +330,8 @@ void FPSCameraController::update(double dt) {
   last_cursor_y_ = cursor_y_;
 }
 
-void FPSCameraController::getViewMatrix(Eigen::Matrix4f &view_matrix) const {
+void FPSCameraController::getViewMatrix(
+    Ref<Eigen::Matrix4f> view_matrix) const {
   Eigen::Affine3f view_transform(
       Eigen::Translation3f(0.0f, 0.0f, -distance_) *
       Eigen::AngleAxisf(-pitch_, Eigen::Vector3f::UnitX()) *
@@ -894,7 +895,7 @@ std::string GLFWRenderer::loadString(const std::string &path) {
 }
 
 void makeOrthographicProjection(float aspect_ratio, float z_near, float z_far,
-                                Eigen::Matrix4f &matrix) {
+                                Ref<Eigen::Matrix4f> matrix) {
   float z_range = z_far - z_near;
   // clang-format off
   matrix << 1 / aspect_ratio, 0, 0, 0,
@@ -905,7 +906,7 @@ void makeOrthographicProjection(float aspect_ratio, float z_near, float z_far,
 }
 
 void makePerspectiveProjection(float aspect_ratio, float z_near, float z_far,
-                               float fov, Eigen::Matrix4f &matrix) {
+                               float fov, Ref<Eigen::Matrix4f> matrix) {
   float z_range = z_far - z_near;
   float tan_half_fov = std::tan(0.5f * fov);
   // clang-format off

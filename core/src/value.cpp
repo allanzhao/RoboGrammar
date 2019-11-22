@@ -49,7 +49,7 @@ int FCValueEstimator::getObservationSize() const {
 }
 
 void FCValueEstimator::getObservation(const Simulation &sim,
-                                      Eigen::Ref<VectorX> obs) const {
+                                      Ref<VectorX> obs) const {
   sim.getJointPositions(robot_idx_, obs.segment(0, dof_count_));
   sim.getJointVelocities(robot_idx_, obs.segment(dof_count_, dof_count_));
   Matrix4 base_transform;
@@ -61,7 +61,7 @@ void FCValueEstimator::getObservation(const Simulation &sim,
 }
 
 void FCValueEstimator::estimateValue(const MatrixX &obs,
-                                     Eigen::Ref<VectorX> value_est) const {
+                                     Ref<VectorX> value_est) const {
   torch::Tensor obs_tensor = torchTensorFromEigenMatrix(obs);
   std::vector<torch::Tensor> ensemble_outputs;
   ensemble_outputs.reserve(nets_.size());
@@ -76,7 +76,7 @@ void FCValueEstimator::estimateValue(const MatrixX &obs,
 }
 
 void FCValueEstimator::train(const MatrixX &obs,
-                             const Eigen::Ref<const VectorX> &value) {
+                             const Ref<const VectorX> &value) {
   assert(obs.cols() == value.size());
   size_t example_count = obs.cols();
   torch::data::samplers::RandomSampler sampler(0);
@@ -101,8 +101,8 @@ void FCValueEstimator::train(const MatrixX &obs,
   }
 }
 
-torch::Tensor
-FCValueEstimator::torchTensorFromEigenMatrix(const MatrixX &mat) const {
+torch::Tensor FCValueEstimator::torchTensorFromEigenMatrix(
+    const Ref<const MatrixX> &mat) const {
   // Create a row-major Torch tensor from a column-major Eigen matrix
   return torch::from_blob(const_cast<Scalar *>(mat.data()),
                           {mat.cols(), mat.rows()}, torch::dtype(SCALAR_DTYPE))
@@ -111,7 +111,7 @@ FCValueEstimator::torchTensorFromEigenMatrix(const MatrixX &mat) const {
 }
 
 torch::Tensor FCValueEstimator::torchTensorFromEigenVector(
-    const Eigen::Ref<const VectorX> &vec) const {
+    const Ref<const VectorX> &vec) const {
   return torch::from_blob(const_cast<Scalar *>(vec.data()), {vec.size()},
                           torch::dtype(SCALAR_DTYPE))
       .toType(TORCH_DTYPE)
@@ -119,7 +119,7 @@ torch::Tensor FCValueEstimator::torchTensorFromEigenVector(
 }
 
 void FCValueEstimator::torchTensorToEigenVector(const torch::Tensor &tensor,
-                                                Eigen::Ref<VectorX> vec) const {
+                                                Ref<VectorX> vec) const {
   vec = Eigen::Map<VectorX>(tensor.cpu().toType(SCALAR_DTYPE).data<Scalar>(),
                             vec.size());
 }

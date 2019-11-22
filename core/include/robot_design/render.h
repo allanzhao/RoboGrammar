@@ -12,6 +12,8 @@
 
 namespace robot_design {
 
+using Eigen::Ref;
+
 struct VertexAttribute {
   VertexAttribute(GLuint index, const std::string &name)
       : index_(index), name_(name) {}
@@ -177,7 +179,7 @@ public:
   void handleCursorPosition(double xpos, double ypos);
   void handleScroll(double xoffset, double yoffset);
   void update(double dt);
-  void getViewMatrix(Eigen::Matrix4f &view_matrix) const;
+  void getViewMatrix(Ref<Eigen::Matrix4f> view_matrix) const;
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
   Eigen::Vector3f position_;
@@ -376,10 +378,10 @@ private:
 };
 
 void makeOrthographicProjection(float aspect_ratio, float z_near, float z_far,
-                                Eigen::Matrix4f &matrix);
+                                Ref<Eigen::Matrix4f> matrix);
 
 void makePerspectiveProjection(float aspect_ratio, float z_near, float z_far,
-                               float fov, Eigen::Matrix4f &matrix);
+                               float fov, Ref<Eigen::Matrix4f> matrix);
 
 std::shared_ptr<Mesh> makeBoxMesh();
 

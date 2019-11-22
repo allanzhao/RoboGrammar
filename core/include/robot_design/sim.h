@@ -29,10 +29,11 @@ public:
   virtual Index findRobotIndex(const Robot &robot) const = 0;
   virtual Index findPropIndex(const Prop &prop) const = 0;
   virtual void getLinkTransform(Index robot_idx, Index link_idx,
-                                Matrix4 &transform) const = 0;
-  virtual void getPropTransform(Index prop_idx, Matrix4 &transform) const = 0;
+                                Ref<Matrix4> transform) const = 0;
+  virtual void getPropTransform(Index prop_idx,
+                                Ref<Matrix4> transform) const = 0;
   virtual void getLinkVelocity(Index robot_idx, Index link_idx,
-                               Vector6 &vel) const = 0;
+                               Ref<Vector6> vel) const = 0;
   virtual int getRobotDofCount(Index robot_idx) const = 0;
   virtual void getJointPositions(Index robot_idx, Ref<VectorX> pos) const = 0;
   virtual void getJointVelocities(Index robot_idx, Ref<VectorX> vel) const = 0;
@@ -48,8 +49,8 @@ public:
                            const Ref<const VectorX> &target_vel) = 0;
   virtual void addJointTorques(Index robot_idx,
                                const Ref<const VectorX> &torque) = 0;
-  virtual void getRobotWorldAABB(Index robot_idx, Vector3 &lower,
-                                 Vector3 &upper) const = 0;
+  virtual void getRobotWorldAABB(Index robot_idx, Ref<Vector3> lower,
+                                 Ref<Vector3> upper) const = 0;
   virtual void saveState() = 0;
   virtual void restoreState() = 0;
   virtual void step() = 0;
@@ -103,11 +104,11 @@ public:
   virtual Index findRobotIndex(const Robot &robot) const override;
   virtual Index findPropIndex(const Prop &prop) const override;
   virtual void getLinkTransform(Index robot_idx, Index link_idx,
-                                Matrix4 &transform) const override;
+                                Ref<Matrix4> transform) const override;
   virtual void getPropTransform(Index prop_idx,
-                                Matrix4 &transform) const override;
+                                Ref<Matrix4> transform) const override;
   virtual void getLinkVelocity(Index robot_idx, Index link_idx,
-                               Vector6 &vel) const override;
+                               Ref<Vector6> vel) const override;
   virtual int getRobotDofCount(Index robot_idx) const override;
   virtual void getJointPositions(Index robot_idx,
                                  Ref<VectorX> pos) const override;
@@ -125,8 +126,8 @@ public:
                            const Ref<const VectorX> &target_vel) override;
   virtual void addJointTorques(Index robot_idx,
                                const Ref<const VectorX> &torque) override;
-  virtual void getRobotWorldAABB(Index robot_idx, Vector3 &lower,
-                                 Vector3 &upper) const override;
+  virtual void getRobotWorldAABB(Index robot_idx, Ref<Vector3> lower,
+                                 Ref<Vector3> upper) const override;
   virtual void saveState() override;
   virtual void restoreState() override;
   virtual void step() override;
