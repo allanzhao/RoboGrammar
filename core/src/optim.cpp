@@ -32,24 +32,24 @@ void MPPIOptimizer::update() {
   }
 
   // Wait on results
-  VectorX sim_rewards(sample_count_);
+  VectorX sim_returns(sample_count_);
   for (int k = 0; k < sample_count_; ++k) {
-    sim_rewards(k) = sim_results[k].get();
+    sim_returns(k) = sim_results[k].get();
   }
 
-  // Estimate (discounted) values of final states and add to simulation reward
+  // Estimate (discounted) values of final states and add to simulation return
   VectorX final_value_est(sample_count_);
   value_estimator_->estimateValue(final_obs_, final_value_est);
-  sim_rewards += final_value_est * std::pow(discount_factor_, horizon_);
+  sim_returns += final_value_est * std::pow(discount_factor_, horizon_);
 
   MatrixX input_sequence_sum = MatrixX::Zero(dof_count_, horizon_);
   Scalar seq_weight_sum = 0.0;
   MatrixX rand_input_seq(dof_count_, horizon_);
-  Scalar max_reward = sim_rewards.maxCoeff();
+  Scalar max_return = sim_returns.maxCoeff();
   for (int k = 0; k < sample_count_; ++k) {
     // Recreate the same input sequence used for the simulation
     sampleInputSequence(rand_input_seq, seed_ + k);
-    Scalar seq_weight = std::exp(kappa_ * (sim_rewards(k) - max_reward));
+    Scalar seq_weight = std::exp(kappa_ * (sim_returns(k) - max_return));
     input_sequence_sum += rand_input_seq * seq_weight;
     seq_weight_sum += seq_weight;
   }
@@ -82,20 +82,20 @@ Scalar MPPIOptimizer::runSimulation(int sample_idx, unsigned int sample_seed) {
   MatrixX rand_input_seq(dof_count_, horizon_);
   sampleInputSequence(rand_input_seq, sample_seed);
   sim.saveState();
-  Scalar reward = 0.0;
+  Scalar sim_return = 0.0;
   Scalar discount_prod = 1.0;
   for (int j = 0; j < horizon_; ++j) {
     for (int i = 0; i < interval_; ++i) {
       sim.setJointTargetPositions(robot_idx, rand_input_seq.col(j));
       sim.step();
-      reward += objective_fn_(sim) * discount_prod;
+      sim_return += objective_fn_(sim) * discount_prod;
     }
     discount_prod *= discount_factor_;
   }
   // Collect observation for final state
   value_estimator_->getObservation(sim, final_obs_.col(sample_idx));
   sim.restoreState();
-  return reward;
+  return sim_return;
 }
 
 void MPPIOptimizer::advanceSimulation(int sample_idx, int step_count) {
