@@ -350,6 +350,10 @@ void BulletSimulation::getRobotWorldAABB(Index robot_idx, Ref<Vector3> lower,
   }
 }
 
+Scalar BulletSimulation::getTimeStep() const {
+  return time_step_;
+}
+
 void BulletSimulation::saveState() {
   auto serializer = std::make_shared<btDefaultSerializer>();
   int ser_flags = serializer->getSerializationFlags();
