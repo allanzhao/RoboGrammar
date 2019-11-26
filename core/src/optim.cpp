@@ -119,4 +119,16 @@ void MPPIOptimizer::sampleInputSequence(Ref<MatrixX> rand_input_seq,
       });
 }
 
+Scalar SumOfSquaresObjective::operator()(const Simulation &sim) const {
+  Scalar cost = 0.0;
+  for (Index robot_idx = 0; robot_idx < sim.getRobotCount(); ++robot_idx) {
+    Vector6 base_vel;
+    sim.getLinkVelocity(robot_idx, 0, base_vel);
+    Vector6 vel_error = base_vel - base_vel_ref_;
+    cost += vel_error.transpose() * base_vel_weight_.asDiagonal() * vel_error;
+  }
+  // Negate the cost to turn it into a reward, and make it time step invariant
+  return -cost * sim.getTimeStep();
+}
+
 } // namespace robot_design

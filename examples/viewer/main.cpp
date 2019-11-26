@@ -130,13 +130,9 @@ int main(int argc, char **argv) {
   };
 
   // Define an objective function
-  auto objective_fn = [&](const Simulation &sim) -> Scalar {
-    Index robot_idx = sim.findRobotIndex(*robot);
-    Vector6 base_vel;
-    sim.getLinkVelocity(robot_idx, 0, base_vel);
-    Scalar forward_progress_term = base_vel(3) * time_step;
-    return 1.0 * forward_progress_term;
-  };
+  SumOfSquaresObjective objective_fn;
+  objective_fn.base_vel_ref_ = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0};
+  objective_fn.base_vel_weight_ = Vector6::Ones();
 
   // Create the "main" simulation
   std::shared_ptr<Simulation> main_sim = make_sim_fn();

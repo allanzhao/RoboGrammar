@@ -47,4 +47,11 @@ private:
   ThreadPool thread_pool_;
 };
 
+struct SumOfSquaresObjective {
+  Scalar operator()(const Simulation &sim) const;
+
+  Vector6 base_vel_ref_ = Vector6::Zero();
+  Vector6 base_vel_weight_ = Vector6::Ones();
+};
+
 } // namespace robot_design
