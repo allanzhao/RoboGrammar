@@ -11,6 +11,7 @@ pybind11_add_module(${LIBRARY_NAME}
     py_graph.cpp
     py_optim.cpp
     py_prop.cpp
+    py_render.cpp
     py_robot.cpp
     py_robot_design.cpp
     py_sim.cpp
