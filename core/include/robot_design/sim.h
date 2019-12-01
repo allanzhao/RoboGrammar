@@ -16,6 +16,7 @@ using Eigen::Ref;
 
 class Simulation {
 public:
+  virtual ~Simulation() {}
   virtual Index addRobot(std::shared_ptr<const Robot> robot, const Vector3 &pos,
                          const Quaternion &rot) = 0;
   virtual Index addProp(std::shared_ptr<const Prop> prop, const Vector3 &pos,
