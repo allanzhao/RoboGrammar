@@ -1,7 +1,8 @@
 import numpy as np
 import pyrobotdesign as rd
+import time
 
-graphs = rd.load_graphs('../../data/designs/insect.dot')
+graphs = rd.load_graphs('data/designs/insect.dot')
 rules = [rd.create_rule_from_graph(g) for g in graphs]
 
 n0 = rd.Node()
@@ -51,19 +52,40 @@ input_sequence = np.zeros((dof_count, episode_len))
 obs = np.zeros((value_estimator.get_observation_size(), episode_len + 1),
                order='f')
 rewards = np.zeros(episode_len)
-for j in range(episode_len):
-  optimizer.update()
-  input_sequence[:,j] = optimizer.input_sequence[:,0]
-  optimizer.advance(1)
+#for j in range(episode_len):
+#  optimizer.update()
+#  input_sequence[:,j] = optimizer.input_sequence[:,0]
+#  optimizer.advance(1)
+#
+#  value_estimator.get_observation(main_sim, obs[:,j])
+#  rewards[j] = 0.0;
+#  for i in range(interval):
+#    main_sim.set_joint_target_positions(robot_idx, input_sequence[:,j])
+#    main_sim.step()
+#    rewards[j] += objective_fn(main_sim)
+#value_estimator.get_observation(main_sim, obs[:,-1])
 
-  value_estimator.get_observation(main_sim, obs[:,j])
-  rewards[j] = 0.0;
-  for i in range(interval):
-    main_sim.set_joint_target_positions(robot_idx, input_sequence[:,j])
-    main_sim.step()
-    rewards[j] += objective_fn(main_sim)
-value_estimator.get_observation(main_sim, obs[:,-1])
+print('Total reward: {:f}'.format(rewards.sum()))
 
 main_sim.restore_state()
 
-print('Total reward: {:f}'.format(rewards.sum()))
+renderer = rd.GLFWRenderer()
+sim_time = time.time()
+i = 0
+j = 0
+while not renderer.should_close():
+  current_time = time.time()
+  while sim_time < current_time:
+    main_sim.set_joint_target_positions(robot_idx, input_sequence[:,j])
+    main_sim.step()
+    renderer.update(time_step)
+    sim_time += time_step
+    i += 1
+    if i >= interval:
+      i = 0
+      j += 1
+    if j >= input_sequence.shape[1]:
+      i = 0
+      j = 0
+      main_sim.restore_state()
+  renderer.render(main_sim)
