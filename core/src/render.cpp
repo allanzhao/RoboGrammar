@@ -363,6 +363,11 @@ DirectionalLight::DirectionalLight(const Eigen::Vector3f &color,
   sm_depth_array_texture_ = std::make_shared<Texture3D>(
       GL_TEXTURE_2D_ARRAY, 0, GL_DEPTH_COMPONENT, sm_width, sm_height,
       sm_cascade_count, GL_DEPTH_COMPONENT, GL_FLOAT);
+  sm_depth_array_texture_->setParameter(GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  sm_depth_array_texture_->setParameter(GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  sm_depth_array_texture_->setParameter(GL_TEXTURE_COMPARE_MODE,
+                                        GL_COMPARE_R_TO_TEXTURE);
+  sm_depth_array_texture_->setParameter(GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
   sm_framebuffer_ = std::make_shared<Framebuffer>();
 }
 

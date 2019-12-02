@@ -11,23 +11,17 @@ out vec4 frag_color;
 
 uniform vec3 object_color = vec3(0.5, 0.5, 0.5);
 uniform vec3 light_color = vec3(1.0, 1.0, 1.0);
-uniform sampler2DArray shadow_map;
+uniform sampler2DArrayShadow shadow_map;
 uniform vec4 cascade_far_splits;
 
 const vec3 view_camera_dir = vec3(0.0, 0.0, 1.0);
 
 float computeShadowFactor(vec4 light_frag_pos, int cascade_idx) {
   vec3 proj_light_frag_pos = light_frag_pos.xyz / light_frag_pos.w;
-  vec3 shadow_map_coords = vec3(0.5 * proj_light_frag_pos.xy + 0.5,
-                                cascade_idx);
-  float frag_depth = 0.5 * proj_light_frag_pos.z + 0.5;
-  float shadow_map_depth = texture(shadow_map, shadow_map_coords).r;
-  if (frag_depth <= shadow_map_depth) {
-    // Fragment is closer to the light than the shadow map depth
-    return 1.0;
-  } else {
-    return 0.0;
-  }
+  vec4 shadow_map_coords;
+  shadow_map_coords.xyw = 0.5 * proj_light_frag_pos + 0.5;
+  shadow_map_coords.z = cascade_idx;
+  return texture(shadow_map, shadow_map_coords);
 }
 
 void main() {
