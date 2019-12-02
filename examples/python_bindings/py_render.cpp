@@ -26,8 +26,8 @@ void initRender(py::module &m) {
       .def(py::init<>())
       .def(py::init<bool>())
       .def("update", &rd::GLFWRenderer::update)
-      .def("render", (void (rd::GLFWRenderer::*)(const rd::Simulation &))
-           &rd::GLFWRenderer::render)
+      .def("render", [](rd::GLFWRenderer *self,
+                        const rd::Simulation &sim) { self->render(sim); })
       .def("read_pixels", &rd::GLFWRenderer::readPixels)
       .def("get_framebuffer_size", &rd::GLFWRenderer::getFramebufferSize)
       .def("should_close", &rd::GLFWRenderer::shouldClose)
