@@ -28,6 +28,7 @@ void initSim(py::module &m) {
            &rd::Simulation::getJointTargetPositions)
       .def("get_joint_target_velocities",
            &rd::Simulation::getJointTargetVelocities)
+      .def("get_joint_motor_torques", &rd::Simulation::getJointMotorTorques)
       .def("set_joint_target_positions",
            &rd::Simulation::setJointTargetPositions)
       .def("set_joint_target_velocities",

@@ -42,6 +42,8 @@ public:
                                        Ref<VectorX> target_pos) const = 0;
   virtual void getJointTargetVelocities(Index robot_idx,
                                         Ref<VectorX> target_vel) const = 0;
+  virtual void getJointMotorTorques(Index robot_idx,
+                                    Ref<VectorX> motor_torques) const = 0;
   virtual void
   setJointTargetPositions(Index robot_idx,
                           const Ref<const VectorX> &target_pos) = 0;
@@ -66,6 +68,7 @@ struct BulletRobotWrapper {
   std::vector<std::shared_ptr<btMultiBodyLinkCollider>> colliders_;
   VectorX joint_target_pos_;
   VectorX joint_target_vel_;
+  VectorX joint_motor_torques_;
 };
 
 struct BulletPropWrapper {
@@ -120,6 +123,8 @@ public:
                                        Ref<VectorX> target_pos) const override;
   virtual void getJointTargetVelocities(Index robot_idx,
                                         Ref<VectorX> target_vel) const override;
+  virtual void getJointMotorTorques(Index robot_idx,
+                                    Ref<VectorX> motor_torques) const override;
   virtual void
   setJointTargetPositions(Index robot_idx,
                           const Ref<const VectorX> &target_pos) override;

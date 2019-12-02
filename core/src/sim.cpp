@@ -110,10 +110,11 @@ Index BulletSimulation::addRobot(std::shared_ptr<const Robot> robot,
   wrapper.multi_body_->setLinearDamping(0.0);
   wrapper.multi_body_->setAngularDamping(0.0);
 
-  // Initialize joint target positions and velocities
+  // Initialize joint target positions and velocities, motor torques
   int dof_count = wrapper.multi_body_->getNumDofs();
   wrapper.joint_target_pos_ = VectorX::Zero(dof_count);
   wrapper.joint_target_vel_ = VectorX::Zero(dof_count);
+  wrapper.joint_motor_torques_ = VectorX::Zero(dof_count);
 
   // Add collision objects to world
   wrapper.colliders_.resize(wrapper.col_shapes_.size());
@@ -302,6 +303,11 @@ void BulletSimulation::getJointTargetVelocities(Index robot_idx,
   target_vel = robot_wrappers_[robot_idx].joint_target_vel_;
 }
 
+void BulletSimulation::getJointMotorTorques(Index robot_idx,
+                                            Ref<VectorX> motor_torques) const {
+  motor_torques = robot_wrappers_[robot_idx].joint_motor_torques_;
+}
+
 void BulletSimulation::setJointTargetPositions(
     Index robot_idx, const Ref<const VectorX> &target_pos) {
   robot_wrappers_[robot_idx].joint_target_pos_ = target_pos;
@@ -390,11 +396,12 @@ void BulletSimulation::step() {
     getJointVelocities(robot_idx, joint_vel);
     VectorX joint_pos_error = wrapper.joint_target_pos_ - joint_pos;
     VectorX joint_vel_error = wrapper.joint_target_vel_ - joint_vel;
-    VectorX joint_torques = wrapper.robot_->motor_kp_ * joint_pos_error +
-                            wrapper.robot_->motor_kd_ * joint_vel_error;
+    wrapper.joint_motor_torques_ = wrapper.robot_->motor_kp_ * joint_pos_error +
+                                   wrapper.robot_->motor_kd_ * joint_vel_error;
     // TODO: make the torque limits depend on gear ratio
-    joint_torques = joint_torques.array().max(-5.0).min(5.0);
-    addJointTorques(robot_idx, joint_torques);
+    wrapper.joint_motor_torques_ =
+        wrapper.joint_motor_torques_.array().max(-5.0).min(5.0);
+    addJointTorques(robot_idx, wrapper.joint_motor_torques_);
   }
   world_->stepSimulation(time_step_, 0, time_step_);
   world_->forwardKinematics(); // Update m_cachedWorldTransform for every link
