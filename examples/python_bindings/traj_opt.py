@@ -19,6 +19,8 @@ for r in rule_sequence:
 
 robot = rd.build_robot(robot_graph)
 
+floor = rd.Prop(0.0, 0.9, [10.0, 1.0, 10.0])
+
 time_step = 1.0 / 240
 discount_factor = 0.99
 interval = 4
@@ -27,9 +29,21 @@ thread_count = 16
 opt_seed = 0
 episode_len = 250
 
+# Find an initial y offset that will place the robot precisely on the ground
+def find_y_offset(robot):
+  temp_sim = rd.BulletSimulation(time_step)
+  temp_sim.add_robot(robot, np.zeros(3), rd.Quaterniond(1.0, 0.0, 0.0, 0.0))
+  lower = np.zeros(3)
+  upper = np.zeros(3)
+  temp_sim.get_robot_world_aabb(temp_sim.find_robot_index(robot), lower, upper)
+  return -lower[1]
+
+y_offset = find_y_offset(robot)
+
 def make_sim_fn():
   sim = rd.BulletSimulation(time_step)
-  sim.add_robot(robot, [0, 0, 0], rd.Quaterniond(1, 0, 0, 0))
+  sim.add_prop(floor, [0.0, -1.0, 0.0], rd.Quaterniond(1.0, 0.0, 0.0, 0.0))
+  sim.add_robot(robot, [0.0, y_offset, 0.0], rd.Quaterniond(1.0, 0.0, 0.0, 0.0))
   return sim
 
 main_sim = make_sim_fn()
@@ -52,18 +66,18 @@ input_sequence = np.zeros((dof_count, episode_len))
 obs = np.zeros((value_estimator.get_observation_size(), episode_len + 1),
                order='f')
 rewards = np.zeros(episode_len)
-#for j in range(episode_len):
-#  optimizer.update()
-#  input_sequence[:,j] = optimizer.input_sequence[:,0]
-#  optimizer.advance(1)
-#
-#  value_estimator.get_observation(main_sim, obs[:,j])
-#  rewards[j] = 0.0;
-#  for i in range(interval):
-#    main_sim.set_joint_target_positions(robot_idx, input_sequence[:,j])
-#    main_sim.step()
-#    rewards[j] += objective_fn(main_sim)
-#value_estimator.get_observation(main_sim, obs[:,-1])
+for j in range(episode_len):
+  optimizer.update()
+  input_sequence[:,j] = optimizer.input_sequence[:,0]
+  optimizer.advance(1)
+
+  value_estimator.get_observation(main_sim, obs[:,j])
+  rewards[j] = 0.0;
+  for i in range(interval):
+    main_sim.set_joint_target_positions(robot_idx, input_sequence[:,j])
+    main_sim.step()
+    rewards[j] += objective_fn(main_sim)
+value_estimator.get_observation(main_sim, obs[:,-1])
 
 print('Total reward: {:f}'.format(rewards.sum()))
 
