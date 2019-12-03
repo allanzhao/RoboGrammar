@@ -35,6 +35,7 @@ public:
                                 Ref<Matrix4> transform) const = 0;
   virtual void getLinkVelocity(Index robot_idx, Index link_idx,
                                Ref<Vector6> vel) const = 0;
+  virtual Scalar getLinkMass(Index robot_idx, Index link_idx) const = 0;
   virtual int getRobotDofCount(Index robot_idx) const = 0;
   virtual void getJointPositions(Index robot_idx, Ref<VectorX> pos) const = 0;
   virtual void getJointVelocities(Index robot_idx, Ref<VectorX> vel) const = 0;
@@ -55,6 +56,8 @@ public:
   virtual void getRobotWorldAABB(Index robot_idx, Ref<Vector3> lower,
                                  Ref<Vector3> upper) const = 0;
   virtual Scalar getTimeStep() const = 0;
+  virtual Vector3 getGravity() const = 0;
+  virtual void setGravity(const Ref<const Vector3> &gravity) = 0;
   virtual void saveState() = 0;
   virtual void restoreState() = 0;
   virtual void step() = 0;
@@ -114,6 +117,7 @@ public:
                                 Ref<Matrix4> transform) const override;
   virtual void getLinkVelocity(Index robot_idx, Index link_idx,
                                Ref<Vector6> vel) const override;
+  virtual Scalar getLinkMass(Index robot_idx, Index link_idx) const override;
   virtual int getRobotDofCount(Index robot_idx) const override;
   virtual void getJointPositions(Index robot_idx,
                                  Ref<VectorX> pos) const override;
@@ -136,6 +140,8 @@ public:
   virtual void getRobotWorldAABB(Index robot_idx, Ref<Vector3> lower,
                                  Ref<Vector3> upper) const override;
   virtual Scalar getTimeStep() const override;
+  virtual Vector3 getGravity() const override;
+  virtual void setGravity(const Ref<const Vector3> &gravity) override;
   virtual void saveState() override;
   virtual void restoreState() override;
   virtual void step() override;

@@ -262,6 +262,15 @@ void BulletSimulation::getLinkVelocity(Index robot_idx, Index link_idx,
   }
 }
 
+Scalar BulletSimulation::getLinkMass(Index robot_idx, Index link_idx) const {
+  btMultiBody &multi_body = *robot_wrappers_[robot_idx].multi_body_;
+  if (link_idx == 0) {
+    return multi_body.getBaseMass();
+  } else {
+    return multi_body.getLinkMass(link_idx - 1);
+  }
+}
+
 int BulletSimulation::getRobotDofCount(Index robot_idx) const {
   const btMultiBody &multi_body = *robot_wrappers_[robot_idx].multi_body_;
   return multi_body.getNumDofs();
@@ -358,6 +367,14 @@ void BulletSimulation::getRobotWorldAABB(Index robot_idx, Ref<Vector3> lower,
 
 Scalar BulletSimulation::getTimeStep() const {
   return time_step_;
+}
+
+Vector3 BulletSimulation::getGravity() const {
+  return eigenVector3FromBullet(world_->getGravity());
+}
+
+void BulletSimulation::setGravity(const Ref<const Vector3> &gravity) {
+  world_->setGravity(bulletVector3FromEigen(gravity));
 }
 
 void BulletSimulation::saveState() {

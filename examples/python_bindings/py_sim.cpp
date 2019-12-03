@@ -21,6 +21,7 @@ void initSim(py::module &m) {
       .def("get_link_transform", &rd::Simulation::getLinkTransform)
       .def("get_prop_transform", &rd::Simulation::getPropTransform)
       .def("get_link_velocity", &rd::Simulation::getLinkVelocity)
+      .def("get_link_mass", &rd::Simulation::getLinkMass)
       .def("get_robot_dof_count", &rd::Simulation::getRobotDofCount)
       .def("get_joint_positions", &rd::Simulation::getJointPositions)
       .def("get_joint_velocities", &rd::Simulation::getJointVelocities)
@@ -35,6 +36,9 @@ void initSim(py::module &m) {
            &rd::Simulation::setJointTargetVelocities)
       .def("add_joint_torques", &rd::Simulation::addJointTorques)
       .def("get_robot_world_aabb", &rd::Simulation::getRobotWorldAABB)
+      .def("get_time_step", &rd::Simulation::getTimeStep)
+      .def("get_gravity", &rd::Simulation::getGravity)
+      .def("set_gravity", &rd::Simulation::setGravity)
       .def("save_state", &rd::Simulation::saveState)
       .def("restore_state", &rd::Simulation::restoreState)
       .def("step", &rd::Simulation::step);
