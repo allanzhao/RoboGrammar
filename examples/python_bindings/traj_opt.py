@@ -54,6 +54,7 @@ value_estimator = rd.FCValueEstimator(main_sim, robot_idx, 'cpu', 64, 3, 6)
 objective_fn = rd.SumOfSquaresObjective()
 objective_fn.base_vel_ref = np.array([0.0, 0.0, 0.0, 1.0, 0.0, 0.0])
 objective_fn.base_vel_weight = np.full(6, 1.0)
+objective_fn.power_weight = 0.00001
 optimizer = rd.MPPIOptimizer(100.0, discount_factor, dof_count, interval,
                              horizon, 128, thread_count, opt_seed, make_sim_fn,
                              objective_fn, value_estimator)

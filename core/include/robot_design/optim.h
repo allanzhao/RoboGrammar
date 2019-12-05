@@ -51,7 +51,8 @@ struct SumOfSquaresObjective {
   Scalar operator()(const Simulation &sim) const;
 
   Vector6 base_vel_ref_ = Vector6::Zero();
-  Vector6 base_vel_weight_ = Vector6::Ones();
+  Vector6 base_vel_weight_ = Vector6::Zero();
+  Scalar power_weight_ = 0.0;
 };
 
 } // namespace robot_design

@@ -25,5 +25,6 @@ void initOptim(py::module &m) {
       .def("__call__", &rd::SumOfSquaresObjective::operator())
       .def_readwrite("base_vel_ref", &rd::SumOfSquaresObjective::base_vel_ref_)
       .def_readwrite("base_vel_weight",
-                     &rd::SumOfSquaresObjective::base_vel_weight_);
+                     &rd::SumOfSquaresObjective::base_vel_weight_)
+      .def_readwrite("power_weight", &rd::SumOfSquaresObjective::power_weight_);
 }
