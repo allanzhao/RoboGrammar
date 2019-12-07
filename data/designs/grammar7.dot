@@ -1,0 +1,146 @@
+digraph start_body {
+  subgraph L {
+    robot [label="robot"];
+  }
+
+  subgraph R {
+    head [shape=capsule, length=0.1, base=true];
+    body_section [label="body_section"];
+    body_rest [label="body_rest"];
+    head -> body_section [type=hinge];
+    body_section -> body_rest;
+  }
+}
+
+digraph extend_body {
+  subgraph L {
+    body_rest [label="body_rest"];
+    prev -> body_rest [id="prev_edges"];
+  }
+
+  subgraph R {
+    body_section [label="body_section"];
+    prev -> body_section [id="prev_edges"];
+    body_section -> body_rest;
+  }
+}
+
+digraph end_body {
+  subgraph L {
+    body_rest [label="body_rest"];
+    prev -> body_rest [id="prev_edges"];
+  }
+
+  subgraph R {
+    tail [shape=capsule, length=0.1];
+    prev -> tail [id="prev_edges"];
+  }
+}
+
+digraph symmetric_appendages {
+  subgraph L {
+    body_section [label="body_section"];
+    prev -> body_section [id="prev_edges"];
+    body_section -> next [id="next_edges"];
+  }
+
+  subgraph R {
+    body_link [shape=capsule, length=0.25];
+    side_link [shape=capsule, length=0.1];
+    appendage_rest [label="appendage_rest"];
+    prev -> body_link [id="prev_edges"];
+    body_link -> next [id="next_edges"];
+    body_link -> side_link [offset=0.5, axis_angle="0 1 0 90"];
+    body_link -> side_link [offset=0.5, axis_angle="0 1 0 -90", mirror=true];
+    side_link -> appendage_rest [label="appendage_joint"];
+  }
+}
+
+digraph no_appendages {
+  subgraph L {
+    body_section [label="body_section"];
+    prev -> body_section [id="prev_edges"];
+    body_section -> next [id="next_edges"];
+  }
+
+  subgraph R {
+    body_link [shape=capsule, length=0.25];
+    prev -> body_link [id="prev_edges"];
+    body_link -> next [id="next_edges"];
+  }
+}
+
+digraph extend_appendage {
+  subgraph L {
+    appendage_rest [label="appendage_rest"];
+    prev -> appendage_rest [id="prev_edges"];
+  }
+
+  subgraph R {
+    appendage_link [label="appendage_link"];
+    prev -> appendage_link [id="prev_edges"];
+    appendage_link -> appendage_rest [label="appendage_joint"];
+  }
+}
+
+digraph end_appendage_with_foot {
+  subgraph L {
+    appendage_rest [label="appendage_rest"];
+    prev -> appendage_rest [id="prev_edges"];
+  }
+
+  subgraph R {
+    ankle_link [label="appendage_link"];
+    foot_link [shape=capsule, length=0.1];
+    prev -> ankle_link [id="prev_edges"];
+    ankle_link -> foot_link [offset=1.0, axis_angle="0 0 1 -30"];
+  }
+}
+
+digraph short_link {
+  subgraph L {
+    appendage_link [label="appendage_link"];
+    prev -> appendage_link [id="prev_edges"];
+    appendage_link -> next [id="next_edges"];
+  }
+
+  subgraph R {
+    link [shape=capsule, length=0.2];
+    prev -> link [id="prev_edges"];
+    link -> next [id="next_edges"];
+  }
+}
+
+digraph long_link {
+  subgraph L {
+    appendage_link [label="appendage_link"];
+    prev -> appendage_link [id="prev_edges"];
+    appendage_link -> next [id="next_edges"];
+  }
+
+  subgraph R {
+    link [shape=capsule, length=0.4];
+    prev -> link [id="prev_edges"];
+    link -> next [id="next_edges"];
+  }
+}
+
+digraph swing_joint {
+  subgraph L {
+    prev -> next [label="appendage_joint"];
+  }
+
+  subgraph R {
+    prev -> next [type=hinge, joint_axis="0 1 0", color="0 0.8 0"];
+  }
+}
+
+digraph lift_joint {
+  subgraph L {
+    prev -> next [label="appendage_joint"];
+  }
+
+  subgraph R {
+    prev -> next [type=hinge, joint_axis="0 0 1", axis_angle="0 0 1 60"];
+  }
+}
