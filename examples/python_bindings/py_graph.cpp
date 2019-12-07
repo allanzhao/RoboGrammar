@@ -71,12 +71,9 @@ void initGraph(py::module &m) {
       .def_readwrite("common_to_rhs", &rd::Rule::common_to_rhs_);
 
   m.def("load_graphs", &rd::loadGraphs);
-
   m.def("build_robot", &rd::buildRobot);
-
   m.def("create_rule_from_graph", &rd::createRuleFromGraph);
-
   m.def("find_matches", &rd::findMatches);
-
+  m.def("check_rule_applicability", &rd::checkRuleApplicability);
   m.def("apply_rule", &rd::applyRule);
 }

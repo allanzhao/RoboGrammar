@@ -116,6 +116,9 @@ Rule createRuleFromGraph(const Graph &graph);
 std::vector<GraphMapping> findMatches(const Graph &pattern,
                                       const Graph &target);
 
+bool checkRuleApplicability(const Rule &rule, const Graph &target,
+                            const GraphMapping &lhs_to_target);
+
 Graph applyRule(const Rule &rule, const Graph &target,
                 const GraphMapping &lhs_to_target);
 

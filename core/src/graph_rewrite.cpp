@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <iterator>
 #include <robot_design/graph.h>
 #include <stdexcept>
 #include <unordered_map>
@@ -144,6 +145,13 @@ std::vector<GraphMapping> findMatches(const Graph &pattern,
       continue;
     }
 
+    // No two pattern nodes can map to the same target node (injective mapping)
+    if (std::find(pm.node_mapping_.begin(), std::prev(pm.node_mapping_.end()),
+                  j) != std::prev(pm.node_mapping_.end())) {
+      ++j;
+      continue;
+    }
+
     // If pattern node i has a label, target node j must have the same label
     const std::string &pattern_node_label = pattern.nodes_[i].attrs_.label_;
     const std::string &target_node_label = target.nodes_[j].attrs_.label_;
@@ -227,6 +235,38 @@ std::vector<GraphMapping> findMatches(const Graph &pattern,
   return matches;
 }
 
+bool checkRuleApplicability(const Rule &rule, const Graph &target,
+                            const GraphMapping &lhs_to_target) {
+  // Target nodes in the LHS but not in common with the RHS will be removed
+  std::unordered_set<NodeIndex> target_nodes_to_remove(
+      lhs_to_target.node_mapping_.begin(), lhs_to_target.node_mapping_.end());
+  for (NodeIndex i = 0; i < rule.common_.nodes_.size(); ++i) {
+    NodeIndex lhs_node = rule.common_to_lhs_.node_mapping_[i];
+    target_nodes_to_remove.erase(lhs_to_target.node_mapping_[lhs_node]);
+  }
+
+  std::unordered_set<EdgeIndex> target_edges_in_lhs;
+  for (const auto &target_edges : lhs_to_target.edge_mapping_) {
+    target_edges_in_lhs.insert(target_edges.begin(), target_edges.end());
+  }
+
+  // Check that no target edges that are not in the LHS are incident on a
+  // node to be removed (dangling condition)
+  for (EdgeIndex m = 0; m < target.edges_.size(); ++m) {
+    if (target_edges_in_lhs.count(m) == 0) {
+      // Target edge is not in the LHS
+      if (target_nodes_to_remove.count(target.edges_[m].head_) > 0 ||
+          target_nodes_to_remove.count(target.edges_[m].tail_) > 0) {
+        // Head or tail node would be removed, making this edge a dangling edge
+        return false;
+      }
+    }
+  }
+
+  // All checks passed
+  return true;
+}
+
 Graph applyRule(const Rule &rule, const Graph &target,
                 const GraphMapping &lhs_to_target) {
   Graph result;
@@ -277,6 +317,12 @@ Graph applyRule(const Rule &rule, const Graph &target,
       Edge &edge = result.edges_.back();
       edge.head_ = target_to_result_node[edge.head_];
       edge.tail_ = target_to_result_node[edge.tail_];
+      if (edge.head_ == NodeIndex(-1) || edge.tail_ == NodeIndex(-1)) {
+        // The head or tail node was removed without also removing this edge
+        // (violates dangling condition)
+        throw std::invalid_argument(
+            "Resulting graph would have a dangling edge");
+      }
     }
   }
 
