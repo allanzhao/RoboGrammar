@@ -21,17 +21,17 @@ Python 3 + headers
 
 `cd robot_design`
 
-`git submodule init`
-
-`git submodule update`
+`git submodule update --init`
 
 `mkdir build; cd build`
 
-`cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo ..`
+`cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DPYTHON_EXECUTABLE=/path/to/python3 ..` (replace `/path/to/python3` as appropriate)
 
 `make -j4` (replace 4 with the number of CPU cores available)
 
 ## Running Examples
+
+### C++ Examples
 
 Make sure you are in the `build` directory created earlier.
 
@@ -43,3 +43,10 @@ Optimize and view a trajectory for the example robot:
 
 View a rule from the grammar:
 `examples/rule_viewer/RuleViewer ../data/designs/insect.dot 0 rhs -r` (views the right-hand side of rule 0)
+
+### Python Examples
+
+Add the `build/examples/python_bindings` directory to your `PYTHONPATH` environment variable, and make sure you are in the `robot_design` directory.
+
+Optimize and view a trajectory for the example robot:
+`python3 examples/python_bindings/traj_opt.py`
