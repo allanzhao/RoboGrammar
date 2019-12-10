@@ -7,7 +7,7 @@ digraph start_body {
     head [shape=capsule, length=0.1, base=true];
     body_section [label="body_section"];
     body_rest [label="body_rest"];
-    head -> body_section [type=hinge];
+    head -> body_section [type=hinge, joint_axis="0 1 0"];
     body_section -> body_rest;
   }
 }
