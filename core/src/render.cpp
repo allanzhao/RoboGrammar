@@ -665,8 +665,8 @@ void GLFWRenderer::drawOpaque(const Simulation &sim, const Program &program,
 
       // Draw the link's joint
       program_state.setObjectColor(link.joint_color_);
-      Matrix3 joint_axis_rotation =
-          makeVectorToVectorRotation(link.joint_axis_, Vector3::UnitX());
+      Matrix3 joint_axis_rotation(Quaternion::FromTwoVectors(link.joint_axis_,
+                                                             Vector3::UnitX()));
       Matrix4 joint_transform =
           (Affine3(link_transform) * Translation3(-link.length_ / 2, 0, 0) *
            Affine3(joint_axis_rotation))
@@ -1064,21 +1064,6 @@ std::shared_ptr<Mesh> makeCylinderEndMesh(int n_segments) {
   mesh->setNormals(normals);
   mesh->setIndices(indices);
   return mesh;
-}
-
-Matrix3 makeVectorToVectorRotation(Vector3 from, Vector3 to) {
-  // https://math.stackexchange.com/questions/180418/calculate-rotation-matrix-to-align-vector-a-to-vector-b-in-3d
-  from.normalize();
-  to.normalize();
-  Vector3 v = from.cross(to);
-  Scalar c = from.dot(to);
-  Matrix3 v_cross;
-  // clang-format off
-  v_cross << 0, -v(2), v(1),
-             v(2), 0, -v(0),
-             -v(1), v(0), 0;
-  // clang-format on
-  return Matrix3::Identity() + v_cross + v_cross * v_cross / (1 + c);
 }
 
 std::shared_ptr<Texture2D> loadTexture(const std::string &path) {
