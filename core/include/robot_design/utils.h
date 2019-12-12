@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstddef>
+#include <functional>
 #include <LinearMath/btMatrix3x3.h>
 #include <LinearMath/btQuaternion.h>
 #include <LinearMath/btTransform.h>
@@ -56,6 +58,13 @@ inline Matrix4 eigenMatrix4FromBullet(const btTransform &t) {
 
 template <typename T> inline T clamp(T val, T lower, T upper) {
   return std::max(lower, std::min(upper, val));
+}
+
+// https://stackoverflow.com/questions/2590677/how-do-i-combine-hash-values-in-c0x, originally from Boost
+template <typename T>
+inline void hashCombine(std::size_t &seed, const T &v) {
+  std::hash<T> hash_fn;
+  seed ^= hash_fn(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
 }
 
 } // namespace robot_design

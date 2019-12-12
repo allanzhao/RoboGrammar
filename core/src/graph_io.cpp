@@ -1,5 +1,6 @@
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
+#include <cmath>
 #include <memory>
 #include <robot_design/graph.h>
 #include <robot_design/internal/dot_parsing.h>

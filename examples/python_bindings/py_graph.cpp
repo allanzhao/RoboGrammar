@@ -10,6 +10,10 @@ void initGraph(py::module &m) {
   py::class_<rd::NodeAttributes>(m, "NodeAttributes")
       .def(py::init<>())
       .def(py::init<const std::string &>())
+      .def("__hash__",
+           [](const rd::NodeAttributes *self) {
+             return std::hash<rd::NodeAttributes>()(*self);
+           })
       .def_readwrite("label", &rd::NodeAttributes::label_)
       .def_readwrite("shape", &rd::NodeAttributes::shape_)
       .def_readwrite("length", &rd::NodeAttributes::length_)
@@ -18,11 +22,17 @@ void initGraph(py::module &m) {
 
   py::class_<rd::Node>(m, "Node")
       .def(py::init<>())
+      .def("__hash__",
+           [](const rd::Node *self) { return std::hash<rd::Node>()(*self); })
       .def_readwrite("name", &rd::Node::name_)
       .def_readwrite("attrs", &rd::Node::attrs_);
 
   py::class_<rd::EdgeAttributes>(m, "EdgeAttributes")
       .def(py::init<>())
+      .def("__hash__",
+           [](const rd::EdgeAttributes *self) {
+             return std::hash<rd::EdgeAttributes>()(*self);
+           })
       .def_readwrite("id", &rd::EdgeAttributes::id_)
       .def_readwrite("label", &rd::EdgeAttributes::label_)
       .def_readwrite("joint_type", &rd::EdgeAttributes::joint_type_)
@@ -52,6 +62,8 @@ void initGraph(py::module &m) {
 
   py::class_<rd::Graph>(m, "Graph")
       .def(py::init<>())
+      .def("__hash__",
+           [](const rd::Graph *self) { return std::hash<rd::Graph>()(*self); })
       .def_readwrite("name", &rd::Graph::name_)
       .def_readwrite("nodes", &rd::Graph::nodes_)
       .def_readwrite("edges", &rd::Graph::edges_)

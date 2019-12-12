@@ -1,10 +1,11 @@
 #pragma once
 
 #include <Eigen/Dense>
-#include <cmath>
-#include <memory>
+#include <cstddef>
 #include <ostream>
+#include <robot_design/eigen_hash.h>
 #include <robot_design/robot.h>
+#include <robot_design/utils.h>
 #include <set>
 #include <string>
 #include <utility>
@@ -123,3 +124,122 @@ Graph applyRule(const Rule &rule, const Graph &target,
                 const GraphMapping &lhs_to_target);
 
 } // namespace robot_design
+
+namespace std {
+
+template <>
+struct hash<robot_design::NodeAttributes> {
+  std::size_t operator()(
+      const robot_design::NodeAttributes &node_attrs) const {
+    using robot_design::hashCombine;
+
+    std::size_t seed = 0;
+    hashCombine(seed, node_attrs.label_);
+    hashCombine(seed, node_attrs.shape_);
+    hashCombine(seed, node_attrs.length_);
+    hashCombine(seed, node_attrs.base_);
+    hashCombine(seed, node_attrs.color_);
+    return seed;
+  }
+};
+
+template <>
+struct hash<robot_design::Node> {
+  std::size_t operator()(
+      const robot_design::Node &node) const {
+    using robot_design::hashCombine;
+
+    std::size_t seed = 0;
+    hashCombine(seed, node.name_);
+    hashCombine(seed, node.attrs_);
+    return seed;
+  }
+};
+
+template <>
+struct hash<robot_design::EdgeAttributes> {
+  std::size_t operator()(
+      const robot_design::EdgeAttributes &edge_attrs) const {
+    using robot_design::hashCombine;
+
+    std::size_t seed = 0;
+    hashCombine(seed, edge_attrs.id_);
+    hashCombine(seed, edge_attrs.label_);
+    hashCombine(seed, edge_attrs.joint_type_);
+    hashCombine(seed, edge_attrs.joint_pos_);
+    hashCombine(seed, edge_attrs.joint_rot_);
+    hashCombine(seed, edge_attrs.joint_axis_);
+    hashCombine(seed, edge_attrs.joint_lower_limit_);
+    hashCombine(seed, edge_attrs.joint_upper_limit_);
+    hashCombine(seed, edge_attrs.scale_);
+    hashCombine(seed, edge_attrs.color_);
+    return seed;
+  }
+};
+
+template <>
+struct hash<robot_design::Graph> {
+  std::size_t operator()(const robot_design::Graph &graph) const {
+    using robot_design::NodeIndex;
+    using robot_design::EdgeIndex;
+    using robot_design::Node;
+    using robot_design::Edge;
+    using robot_design::Subgraph;
+    using robot_design::hashCombine;
+
+    std::size_t seed = 0;
+    hashCombine(seed, graph.name_);
+
+    // Hash nodes (order should not matter)
+    std::size_t nodes_seed = 0;
+    for (const Node &node : graph.nodes_) {
+      nodes_seed += std::hash<Node>()(node);
+    }
+    hashCombine(seed, nodes_seed);
+
+    // Hash edges (order should not matter)
+    std::size_t edges_seed = 0;
+    for (const Edge &edge : graph.edges_) {
+      std::size_t edge_seed = 0;
+      hashCombine(edge_seed, graph.nodes_[edge.head_]);
+      hashCombine(edge_seed, graph.nodes_[edge.tail_]);
+      hashCombine(edge_seed, edge.attrs_);
+      edges_seed += edge_seed;
+    }
+    hashCombine(seed, edges_seed);
+
+    // Hash subgraphs (order should not matter)
+    std::size_t subgraphs_seed = 0;
+    for (const Subgraph &subgraph : graph.subgraphs_) {
+      std::size_t subgraph_seed = 0;
+      hashCombine(subgraph_seed, subgraph.name_);
+
+      std::size_t subgraph_nodes_seed = 0;
+      for (NodeIndex i : subgraph.nodes_) {
+        subgraph_nodes_seed += std::hash<Node>()(graph.nodes_[i]);
+      }
+      hashCombine(subgraph_seed, subgraph_nodes_seed);
+
+      std::size_t subgraph_edges_seed = 0;
+      for (EdgeIndex m : subgraph.edges_) {
+        const Edge &edge = graph.edges_[m];
+
+        std::size_t subgraph_edge_seed = 0;
+        hashCombine(subgraph_edge_seed, graph.nodes_[edge.head_]);
+        hashCombine(subgraph_edge_seed, graph.nodes_[edge.tail_]);
+        hashCombine(subgraph_edge_seed, edge.attrs_);
+        subgraph_edges_seed += subgraph_edge_seed;
+      }
+      hashCombine(subgraph_seed, subgraph_edges_seed);
+
+      hashCombine(subgraph_seed, subgraph.node_attrs_);
+      hashCombine(subgraph_seed, subgraph.edge_attrs_);
+      subgraphs_seed += subgraph_seed;
+    }
+    hashCombine(seed, subgraphs_seed);
+
+    return seed;
+  }
+};
+
+} // namespace std
