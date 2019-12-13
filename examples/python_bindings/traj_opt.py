@@ -11,7 +11,7 @@ n0.attrs.label = 'robot'
 robot_graph = rd.Graph()
 robot_graph.nodes = [n0]
 
-rule_sequence = [int(s) for s in '0 1 1 1 2 2 2 3 3 3 4 4 4 5 5 5'.split(' ')]
+rule_sequence = [0, 1, 1, 2, 3, 3, 3, 5, 5, 5, 7, 7, 7, 8, 8, 8, 8, 8, 8, 11, 11, 11, 10, 10, 10]
 for r in rule_sequence:
   matches = rd.find_matches(rules[r].lhs, robot_graph)
   if matches:
@@ -53,7 +53,7 @@ dof_count = main_sim.get_robot_dof_count(robot_idx)
 value_estimator = rd.FCValueEstimator(main_sim, robot_idx, 'cpu', 64, 3, 6)
 objective_fn = rd.SumOfSquaresObjective()
 objective_fn.base_vel_ref = np.array([0.0, 0.0, 0.0, 1.0, 0.0, 0.0])
-objective_fn.base_vel_weight = np.full(6, 1.0)
+objective_fn.base_vel_weight = np.array([0.0, 0.0, 0.0, 1.0, 0.0, 0.0])
 objective_fn.power_weight = 0.0001
 optimizer = rd.MPPIOptimizer(100.0, discount_factor, dof_count, interval,
                              horizon, 128, thread_count, opt_seed, make_sim_fn,
