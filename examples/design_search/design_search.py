@@ -1,146 +1,160 @@
-import json
-from mcts import Env, TreeNode, make_initial_tree, run_mcts_iteration
+import argparse
+import contextlib
+import csv
+import datetime
+import mcts
 import numpy as np
 import os
 import pyrobotdesign as rd
 import random
 
-time_step = 1.0 / 240
-discount_factor = 0.99
-interval = 4
-horizon = 64
-thread_count = 16
-episode_len = 250
+def get_applicable_matches(rule, graph):
+  """Generates all applicable matches for rule in graph."""
+  for match in rd.find_matches(rule.lhs, graph):
+    if rd.check_rule_applicability(rule, graph, match):
+      yield match
 
-graphs = rd.load_graphs('data/designs/grammar7.dot')
-rules = [rd.create_rule_from_graph(g) for g in graphs]
+def find_y_offset(robot):
+  """Finds an initial y offset that will place the robot on the ground."""
+  temp_sim = rd.BulletSimulation()
+  temp_sim.add_robot(robot, np.zeros(3), rd.Quaterniond(1.0, 0.0, 0.0, 0.0))
+  lower = np.zeros(3)
+  upper = np.zeros(3)
+  temp_sim.get_robot_world_aabb(temp_sim.find_robot_index(robot), lower, upper)
+  return -lower[1]
 
-os.makedirs('trees')
-save_attr_names = ['visit_count', 'result_sum', 'sq_result_sum', 'children']
-class DictEncoder(json.JSONEncoder):
-  def default(self, obj):
-    if isinstance(obj, TreeNode):
-      save_dict = dict()
-      for attr_name in save_attr_names:
-        save_dict[attr_name] = getattr(obj, attr_name)
-      save_dict['rule_seq'] = [rules.index(rule) for rule in obj.state[1]]
-      return save_dict
-    else:
-      return None
+class RobotDesignEnv(mcts.Env):
+  """Robot design environment where states are (graph, rule sequence) pairs and
+  actions are rule applications."""
 
-n0 = rd.Node()
-n0.name = 'robot'
-n0.attrs.label = 'robot'
-initial_robot_graph = rd.Graph()
-initial_robot_graph.nodes = [n0]
+  def __init__(self, rules, seed, time_step=1.0/240, discount_factor=0.99,
+               interval=4, horizon=64, thread_count=16, episode_len=250):
+    self.rules = rules
+    self.rng = random.Random(seed)
+    self.time_step = time_step
+    self.discount_factor = discount_factor
+    self.interval = interval
+    self.horizon = horizon
+    self.thread_count = thread_count
+    self.episode_len = episode_len
 
-def get_applicable_matches(rule, robot_graph):
-  matches = rd.find_matches(rule.lhs, robot_graph)
-  applicable_matches = []
-  for match in matches:
-    if rd.check_rule_applicability(rule, robot_graph, match):
-      applicable_matches.append(match)
-  return applicable_matches
+    # Create initial robot graph
+    n0 = rd.Node()
+    n0.name = 'robot'
+    n0.attrs.label = 'robot'
+    self.initial_graph = rd.Graph()
+    self.initial_graph.nodes = [n0]
 
-def get_available_moves(state):
-  robot_graph, rule_seq = state
-  applicable_rules = []
-  for rule in rules:
-    if get_applicable_matches(rule, robot_graph):
-      applicable_rules.append(rule)
-  return applicable_rules
+  @property
+  def initial_state(self):
+    return (self.initial_graph, [])
 
-def get_next_state(state, rule):
-  robot_graph, rule_seq = state
-  applicable_matches = get_applicable_matches(rule, robot_graph)
-  return (rd.apply_rule(rule, robot_graph, applicable_matches[0]),
-          rule_seq + [rule])
+  def get_available_actions(self, state):
+    graph, rule_seq = state
+    for rule in self.rules:
+      if list(get_applicable_matches(rule, graph)):
+        # Rule has at least one applicable match
+        yield rule
 
-def evaluate(state):
-  robot_graph, rule_seq = state
+  def get_next_state(self, state, rule):
+    graph, rule_seq = state
+    applicable_matches = list(get_applicable_matches(rule, graph))
+    return (rd.apply_rule(rule, graph, applicable_matches[0]),
+            rule_seq + [rule])
 
-  print("Evaluating:", [rules.index(rule) for rule in rule_seq])
+  def get_result(self, state):
+    graph, rule_seq = state
 
-  robot = rd.build_robot(robot_graph)
+    robot = rd.build_robot(graph)
+    floor = rd.Prop(0.0, 0.9, [10.0, 1.0, 10.0])
+    y_offset = find_y_offset(robot)
 
-  floor = rd.Prop(0.0, 0.9, [10.0, 1.0, 10.0])
+    def make_sim_fn():
+      sim = rd.BulletSimulation(self.time_step)
+      sim.add_prop(floor, [0.0, -1.0, 0.0], rd.Quaterniond(1.0, 0.0, 0.0, 0.0))
+      sim.add_robot(robot, [0.0, y_offset, 0.0],
+                    rd.Quaterniond(1.0, 0.0, 0.0, 0.0))
+      return sim
 
-  # Find an initial y offset that will place the robot precisely on the ground
-  def find_y_offset(robot):
-    temp_sim = rd.BulletSimulation(time_step)
-    temp_sim.add_robot(robot, np.zeros(3), rd.Quaterniond(1.0, 0.0, 0.0, 0.0))
-    lower = np.zeros(3)
-    upper = np.zeros(3)
-    temp_sim.get_robot_world_aabb(temp_sim.find_robot_index(robot), lower,
-                                  upper)
-    return -lower[1]
+    main_sim = make_sim_fn()
+    robot_idx = main_sim.find_robot_index(robot)
 
-  y_offset = find_y_offset(robot)
+    dof_count = main_sim.get_robot_dof_count(robot_idx)
+    value_estimator = rd.FCValueEstimator(main_sim, robot_idx, 'cpu', 64, 3, 6)
+    objective_fn = rd.SumOfSquaresObjective()
+    objective_fn.base_vel_ref = np.array([0.0, 0.0, 0.0, 1.0, 0.0, 0.0])
+    objective_fn.base_vel_weight = np.array([0.0, 0.0, 0.0, 100.0, 0.0, 0.0])
+    objective_fn.power_weight = 0.0 # Ignore power consumption
+    opt_seed = self.rng.getrandbits(32)
+    optimizer = rd.MPPIOptimizer(100.0, self.discount_factor, dof_count,
+                                 self.interval, self.horizon, 128,
+                                 self.thread_count, opt_seed,
+                                 make_sim_fn, objective_fn, value_estimator)
+    for _ in range(10):
+      optimizer.update()
 
-  def make_sim_fn():
-    sim = rd.BulletSimulation(time_step)
-    sim.add_prop(floor, [0.0, -1.0, 0.0], rd.Quaterniond(1.0, 0.0, 0.0, 0.0))
-    sim.add_robot(robot, [0.0, y_offset, 0.0],
-                  rd.Quaterniond(1.0, 0.0, 0.0, 0.0))
-    return sim
+    main_sim.save_state()
 
-  main_sim = make_sim_fn()
-  robot_idx = main_sim.find_robot_index(robot)
+    input_sequence = np.zeros((dof_count, self.episode_len))
+    obs = np.zeros(
+        (value_estimator.get_observation_size(), self.episode_len + 1),
+        order='f')
+    rewards = np.zeros(self.episode_len)
+    for j in range(self.episode_len):
+      optimizer.update()
+      input_sequence[:,j] = optimizer.input_sequence[:,0]
+      optimizer.advance(1)
 
-  dof_count = main_sim.get_robot_dof_count(robot_idx)
-  value_estimator = rd.FCValueEstimator(main_sim, robot_idx, 'cpu', 64, 3, 6)
-  objective_fn = rd.SumOfSquaresObjective()
-  objective_fn.base_vel_ref = np.array([0.0, 0.0, 0.0, 1.0, 0.0, 0.0])
-  objective_fn.base_vel_weight = np.full(6, 1.0)
-  objective_fn.power_weight = 0.0001
-  opt_seed = random.getrandbits(32)
-  print("Optimization seed:", opt_seed)
-  optimizer = rd.MPPIOptimizer(100.0, discount_factor, dof_count, interval,
-                               horizon, 128, thread_count, opt_seed,
-                               make_sim_fn, objective_fn, value_estimator)
-  for _ in range(10):
-    optimizer.update()
+      value_estimator.get_observation(main_sim, obs[:,j])
+      rewards[j] = 0.0;
+      for i in range(self.interval):
+        main_sim.set_joint_target_positions(robot_idx, input_sequence[:,j])
+        main_sim.step()
+        rewards[j] += objective_fn(main_sim)
+    value_estimator.get_observation(main_sim, obs[:,-1])
 
-  main_sim.save_state()
+    return rewards.sum() / self.episode_len
 
-  input_sequence = np.zeros((dof_count, episode_len))
-  obs = np.zeros((value_estimator.get_observation_size(), episode_len + 1),
-                 order='f')
-  rewards = np.zeros(episode_len)
-  for j in range(episode_len):
-    optimizer.update()
-    input_sequence[:,j] = optimizer.input_sequence[:,0]
-    optimizer.advance(1)
+  def get_key(self, state):
+    return hash(state[0])
 
-    value_estimator.get_observation(main_sim, obs[:,j])
-    rewards[j] = 0.0;
-    for i in range(interval):
-      main_sim.set_joint_target_positions(robot_idx, input_sequence[:,j])
-      main_sim.step()
-      rewards[j] += objective_fn(main_sim)
-  value_estimator.get_observation(main_sim, obs[:,-1])
+def main():
+  parser = argparse.ArgumentParser(description="Robot design search demo.")
+  parser.add_argument("grammar_file", type=str, help="Grammar file (.dot)")
+  parser.add_argument("-s", "--seed", type=int, default=None,
+                      help="Random seed")
+  parser.add_argument("-j", "--jobs", type=int, required=True,
+                      help="Number of jobs/threads")
+  parser.add_argument("-i", "--iterations", type=int, required=True,
+                      help="Number of MCTS iterations")
+  parser.add_argument("-l", "--log_dir", type=str, default='',
+                      help="Log directory")
+  args = parser.parse_args()
 
-  result = rewards.sum() / episode_len
-  print("Result:", result)
-  return result
+  graphs = rd.load_graphs(args.grammar_file)
+  rules = [rd.create_rule_from_graph(g) for g in graphs]
+  env = RobotDesignEnv(rules, args.seed)
+  tree_search = mcts.TreeSearch(env)
 
-robot_design_env = Env(initial_state=(initial_robot_graph, []),
-                       get_available_moves=get_available_moves,
-                       get_next_state=get_next_state,
-                       evaluate=evaluate)
+  os.makedirs(args.log_dir, exist_ok=True)
 
-tree = make_initial_tree(robot_design_env)
-for i in range(250):
-  print("Iteration:", i)
+  log_path = os.path.join(args.log_dir,
+                          f'mcts_{datetime.datetime.now():%Y%m%d_%H%M%S}.csv')
+  print(f"Logging to '{log_path}'")
 
-  run_mcts_iteration(tree, robot_design_env)
+  with open(log_path, 'a', newline='') as log_file:
+    fieldnames = ['iteration', 'rule_seq', 'result']
+    writer = csv.DictWriter(log_file, fieldnames=fieldnames)
+    writer.writeheader()
+    log_file.flush()
 
-  # Print the best rule sequence found so far
-  node = tree
-  while node.children:
-    node = max(node.children, key=lambda child: child.visit_count)
-  print("Best branch:", i, [rules.index(rule) for rule in node.state[1]])
+    for i in range(args.iterations):
+      states, actions, result = tree_search.run_iteration()
 
-  # Save the search tree
-  with open('trees/tree_{:04d}.json'.format(i), 'w') as tree_file:
-    tree_file.write(DictEncoder().encode(tree))
+      # Last action is always None
+      rule_seq = [rules.index(rule) for rule in actions[:-1]]
+      writer.writerow({'iteration': i, 'rule_seq': rule_seq, 'result': result})
+      log_file.flush()
+
+if __name__ == '__main__':
+  main()

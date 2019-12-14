@@ -1,60 +1,105 @@
-from collections import namedtuple
+from abc import ABC
+from collections import defaultdict
 from math import log, sqrt
 import random
 
 class TreeNode(object):
-  def __init__(self, state, parent, children):
+  def __init__(self, state):
     self.state = state
     self.visit_count = 0
     self.result_sum = 0
-    self.sq_result_sum = 0
-    self.parent = parent
-    self.children = children
+    self.action_visit_counts = defaultdict(int)
+    self.action_result_sums = defaultdict(float)
 
-Env = namedtuple(
-    "Env", "initial_state get_available_moves get_next_state evaluate")
+class Env(ABC):
+  @property
+  def initial_state(self):
+    """Return the initial state, which should always be the same."""
+    raise NotImplementedError
 
-def uct_score(node, ucb_weight=sqrt(2.0)):
-  if node.visit_count == 0:
-    return float('inf')
-  else:
-    return (node.result_sum / node.visit_count +
-            ucb_weight * sqrt(log(node.parent.visit_count) / node.visit_count))
+  def get_available_actions(self, state):
+    """Return an iterable containing all actions that can be taken from the
+    given state."""
+    raise NotImplementedError
 
-def select_node(tree, score_fn):
-  node = tree
-  while node.children:
-    node = max(node.children, key=score_fn)
-  return node
+  def get_next_state(self, state, action):
+    """Take the action from the given state and return the resulting state."""
+    raise NotImplementedError
 
-def expand_node(node, moves, get_next_state, score_fn):
-  assert not node.children
-  node.children = [TreeNode(state=get_next_state(node.state, move),
-                            parent=node, children=[]) for move in moves]
-  return max(node.children, key=score_fn)
+  def get_result(self, state):
+    """Return the result of a playout ending in the given state. Will only be
+    called on states for which no actions are available."""
+    raise NotImplementedError
 
-def simulate(state, env):
-  available_moves = env.get_available_moves(state)
-  while available_moves:
-    state = env.get_next_state(state, random.choice(available_moves))
-    available_moves = env.get_available_moves(state)
-  return env.evaluate(state)
+  def get_key(self, state):
+    """Return a key identifying the given state. The key may not be unique, as
+    long as collisions are very unlikely."""
+    raise NotImplementedError
 
-def backpropagate_node(node, result):
-  sq_result = result * result
-  while node:
+class TreeSearch(object):
+  def __init__(self, env):
+    self.env = env
+    self.nodes = dict() # Mapping from state keys to nodes
+    self.nodes[env.get_key(env.initial_state)] = TreeNode(env.initial_state)
+
+  def uct_score(self, node, action):
+    action_visit_count = node.action_visit_counts[action]
+    action_result_sum = node.action_result_sums[action]
+    if action_visit_count > 0:
+      return (action_result_sum / action_visit_count +
+              sqrt(2.0 * log(node.visit_count) / action_visit_count))
+    else:
+      return float('inf')
+
+  def select_action(self, state):
+    available_actions = list(self.env.get_available_actions(state))
+    if available_actions:
+      try:
+        # Follow tree policy
+        node = self.nodes[self.env.get_key(state)]
+        return max(available_actions,
+                   key=lambda action: self.uct_score(node, action))
+      except KeyError:
+        # State was not visited yet, follow default policy
+        return random.choice(available_actions)
+    else:
+      return None
+
+  def update_node(self, node, action, result):
     node.visit_count += 1
     node.result_sum += result
-    node.sq_result_sum += sq_result
-    node = node.parent
+    if action:
+      node.action_visit_counts[action] += 1
+      node.action_result_sums[action] += result
 
-def make_initial_tree(env):
-  return TreeNode(state=env.initial_state, parent=None, children=[])
+  def run_iteration(self):
+    states = []
+    actions = []
 
-def run_mcts_iteration(tree, env, score_fn=uct_score):
-  node = select_node(tree, score_fn)
-  available_moves = env.get_available_moves(node.state)
-  if available_moves:
-    node = expand_node(node, available_moves, env.get_next_state, score_fn)
-  result = simulate(node.state, env)
-  backpropagate_node(node, result)
+    # Selection and simulation
+    state = self.env.initial_state
+    action = self.select_action(state)
+    states.append(state)
+    actions.append(action)
+    while action:
+      state = self.env.get_next_state(state, action)
+      action = self.select_action(state)
+      states.append(state)
+      actions.append(action)
+    # No more actions available (simulation finished)
+    result = self.env.get_result(state)
+
+    # Update tree nodes (includes expansion step)
+    for state, action in zip(states, actions):
+      try:
+        node = self.nodes[self.env.get_key(state)]
+        self.update_node(node, action, result)
+      except KeyError:
+        # Node does not exist yet, create one
+        node = TreeNode(state)
+        self.update_node(node, action, result)
+        self.nodes[self.env.get_key(state)] = node
+        # Create at most one new node per simulation
+        break;
+
+    return states, actions, result
