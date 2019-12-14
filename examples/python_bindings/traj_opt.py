@@ -20,6 +20,7 @@ for r in rule_sequence:
 robot = rd.build_robot(robot_graph)
 
 floor = rd.Prop(0.0, 0.9, [10.0, 1.0, 10.0])
+bump = rd.Prop(0.0, 0.9, [0.05, 0.05, 10.0])
 
 time_step = 1.0 / 240
 discount_factor = 0.99
@@ -43,6 +44,7 @@ y_offset = find_y_offset(robot)
 def make_sim_fn():
   sim = rd.BulletSimulation(time_step)
   sim.add_prop(floor, [0.0, -1.0, 0.0], rd.Quaterniond(1.0, 0.0, 0.0, 0.0))
+  sim.add_prop(bump, [0.5, 0.0, 0.0], rd.Quaterniond(1.0, 0.0, 0.0, 0.0))
   # Rotate 180 degrees around the y axis, so the base points to the right
   sim.add_robot(robot, [0.0, y_offset, 0.0],
                 rd.Quaterniond(0.0, 0.0, 1.0, 0.0))
