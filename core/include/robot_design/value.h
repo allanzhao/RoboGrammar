@@ -19,6 +19,17 @@ constexpr torch::Dtype SCALAR_DTYPE =
 // Torch dtype used internally
 constexpr torch::Dtype TORCH_DTYPE = torch::kFloat32;
 
+class ValueEstimator {
+public:
+  virtual ~ValueEstimator() {}
+  virtual int getObservationSize() const = 0;
+  virtual void getObservation(
+      const Simulation &sim, Ref<VectorX> obs) const = 0;
+  virtual void estimateValue(
+      const MatrixX &obs, Ref<VectorX> value_est) const = 0;
+  virtual void train(const MatrixX &obs, const Ref<const VectorX> &value) = 0;
+};
+
 struct FCValueNet : torch::nn::Module {
   FCValueNet(int obs_size, int hidden_layer_count, int hidden_layer_size);
   torch::Tensor forward(torch::Tensor x);
@@ -26,15 +37,21 @@ struct FCValueNet : torch::nn::Module {
   std::vector<torch::nn::Linear> layers_;
 };
 
-class FCValueEstimator {
+class FCValueEstimator : public ValueEstimator {
 public:
   FCValueEstimator(const Simulation &sim, Index robot_idx,
                    const torch::Device &device, int batch_size = 32,
                    int epoch_count = 4, int ensemble_size = 6);
-  int getObservationSize() const;
-  void getObservation(const Simulation &sim, Ref<VectorX> obs) const;
-  void estimateValue(const MatrixX &obs, Ref<VectorX> value_est) const;
-  void train(const MatrixX &obs, const Ref<const VectorX> &value);
+  virtual ~FCValueEstimator() {}
+  FCValueEstimator(const FCValueEstimator &other) = delete;
+  FCValueEstimator &operator=(const FCValueEstimator &other) = delete;
+  virtual int getObservationSize() const override;
+  virtual void getObservation(
+      const Simulation &sim, Ref<VectorX> obs) const override;
+  virtual void estimateValue(
+      const MatrixX &obs, Ref<VectorX> value_est) const override;
+  virtual void train(
+      const MatrixX &obs, const Ref<const VectorX> &value) override;
 
 private:
   torch::Tensor torchTensorFromEigenMatrix(const Ref<const MatrixX> &mat) const;

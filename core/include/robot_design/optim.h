@@ -21,7 +21,7 @@ public:
                 int interval, int horizon, int sample_count, int thread_count,
                 unsigned int seed, const MakeSimFunction &make_sim_fn,
                 const ObjectiveFunction &objective_fn,
-                const std::shared_ptr<const FCValueEstimator> &value_estimator);
+                const std::shared_ptr<const ValueEstimator> &value_estimator);
   void update();
   void advance(int step_count);
 
@@ -41,7 +41,7 @@ private:
   int sample_count_;
   unsigned int seed_;
   ObjectiveFunction objective_fn_;
-  std::shared_ptr<const FCValueEstimator> value_estimator_;
+  std::shared_ptr<const ValueEstimator> value_estimator_;
   std::vector<std::shared_ptr<Simulation>> sim_instances_;
   MatrixX final_obs_;
   ThreadPool thread_pool_;

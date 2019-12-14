@@ -7,7 +7,7 @@ MPPIOptimizer::MPPIOptimizer(
     Scalar kappa, Scalar discount_factor, int dof_count, int interval,
     int horizon, int sample_count, int thread_count, unsigned int seed,
     const MakeSimFunction &make_sim_fn, const ObjectiveFunction &objective_fn,
-    const std::shared_ptr<const FCValueEstimator> &value_estimator)
+    const std::shared_ptr<const ValueEstimator> &value_estimator)
     : kappa_(kappa), discount_factor_(discount_factor), dof_count_(dof_count),
       interval_(interval), horizon_(horizon), sample_count_(sample_count),
       seed_(seed), objective_fn_(objective_fn),
