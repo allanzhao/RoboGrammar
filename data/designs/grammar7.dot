@@ -7,7 +7,7 @@ digraph start_body {
     head [shape=capsule, length=0.1, base=true];
     body_section [label="body_section"];
     body_rest [label="body_rest"];
-    head -> body_section [type=hinge, joint_axis="0 1 0"];
+    head -> body_section;
     body_section -> body_rest;
   }
 }
@@ -28,12 +28,12 @@ digraph extend_body {
 digraph end_body {
   subgraph L {
     body_rest [label="body_rest"];
-    prev -> body_rest [id="prev_edges"];
+    prev -> body_rest;
   }
 
   subgraph R {
     tail [shape=capsule, length=0.1];
-    prev -> tail [id="prev_edges"];
+    prev -> tail [type=hinge, joint_axis="0 1 0"];
   }
 }
 
