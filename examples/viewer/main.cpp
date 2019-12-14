@@ -1,4 +1,6 @@
+#include <Eigen/Geometry>
 #include <args.hxx>
+#include <cmath>
 #include <cstddef>
 #include <cstring>
 #include <iostream>
@@ -125,7 +127,9 @@ int main(int argc, char **argv) {
     std::shared_ptr<BulletSimulation> sim =
         std::make_shared<BulletSimulation>(time_step);
     sim->addProp(floor, Vector3{0.0, -1.0, 0.0}, Quaternion::Identity());
-    sim->addRobot(robot, Vector3{0.0, y_offset, 0.0}, Quaternion::Identity());
+    // Rotate 180 degrees around the y axis, so the base points to the right
+    sim->addRobot(robot, Vector3{0.0, y_offset, 0.0},
+                  Quaternion(Eigen::AngleAxis<Scalar>(M_PI, Vector3::UnitY())));
     return sim;
   };
 
@@ -234,8 +238,8 @@ int main(int argc, char **argv) {
       std::memcpy(&rgba_flipped[i * fb_width * 4],
                   &rgba[(fb_height - i - 1) * fb_width * 4], fb_width * 4);
     }
-    unsigned int error = lodepng::encode(
-        save_image_path, rgba_flipped.get(), fb_width, fb_height);
+    unsigned int error = lodepng::encode(save_image_path, rgba_flipped.get(),
+                                         fb_width, fb_height);
     if (error) {
       std::cerr << "Failed to save image: " << lodepng_error_text(error)
                 << std::endl;

@@ -72,8 +72,9 @@ class RobotDesignEnv(mcts.Env):
     def make_sim_fn():
       sim = rd.BulletSimulation(self.time_step)
       sim.add_prop(floor, [0.0, -1.0, 0.0], rd.Quaterniond(1.0, 0.0, 0.0, 0.0))
+      # Rotate 180 degrees around the y axis, so the base points to the right
       sim.add_robot(robot, [0.0, y_offset, 0.0],
-                    rd.Quaterniond(1.0, 0.0, 0.0, 0.0))
+                    rd.Quaterniond(0.0, 0.0, 1.0, 0.0))
       return sim
 
     main_sim = make_sim_fn()
