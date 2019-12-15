@@ -136,7 +136,7 @@ digraph long_link {
   }
 
   subgraph R {
-    link [shape=capsule, length=0.25];
+    link [shape=capsule, length=0.3];
     prev -> link [id="prev_edges"];
     link -> next [id="next_edges"];
   }
@@ -159,5 +159,15 @@ digraph lift_joint {
 
   subgraph R {
     prev -> next [type=hinge, joint_axis="0 0 1", axis_angle="0 0 1 60"];
+  }
+}
+
+digraph roll_joint {
+  subgraph L {
+    prev -> next [label="appendage_joint"];
+  }
+
+  subgraph R {
+    prev -> next [type=hinge, joint_axis="1 0 0", color="0.5 0 0.5"];
   }
 }
