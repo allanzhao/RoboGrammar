@@ -30,6 +30,23 @@ public:
   virtual void train(const MatrixX &obs, const Ref<const VectorX> &value) = 0;
 };
 
+class NullValueEstimator : public ValueEstimator {
+public:
+  NullValueEstimator() {}
+  virtual ~NullValueEstimator() {}
+  NullValueEstimator(const NullValueEstimator &other) = delete;
+  NullValueEstimator &operator=(const NullValueEstimator &other) = delete;
+  virtual int getObservationSize() const override { return 0; }
+  virtual void getObservation(
+      const Simulation &sim, Ref<VectorX> obs) const override {}
+  virtual void estimateValue(
+      const MatrixX &obs, Ref<VectorX> value_est) const override {
+    value_est = VectorX::Zero(obs.cols());
+  }
+  virtual void train(
+      const MatrixX &obs, const Ref<const VectorX> &value) override {}
+};
+
 struct FCValueNet : torch::nn::Module {
   FCValueNet(int obs_size, int hidden_layer_count, int hidden_layer_size);
   torch::Tensor forward(torch::Tensor x);

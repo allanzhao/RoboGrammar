@@ -54,7 +54,7 @@ main_sim = make_sim_fn()
 robot_idx = main_sim.find_robot_index(robot)
 
 dof_count = main_sim.get_robot_dof_count(robot_idx)
-value_estimator = rd.FCValueEstimator(main_sim, robot_idx, 'cpu', 64, 3, 6)
+value_estimator = rd.NullValueEstimator()
 objective_fn = rd.SumOfSquaresObjective()
 objective_fn.base_vel_ref = np.array([0.0, 0.0, 0.0, 1.0, 0.0, 0.0])
 objective_fn.base_vel_weight = np.array([0.0, 0.0, 0.0, 1.0, 0.0, 0.0])

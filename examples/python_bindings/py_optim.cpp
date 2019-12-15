@@ -13,7 +13,7 @@ void initOptim(py::module &m) {
       .def(py::init<rd::Scalar, rd::Scalar, int, int, int, int, int,
                     unsigned int, const rd::MakeSimFunction &,
                     const rd::SumOfSquaresObjective &,
-                    const std::shared_ptr<const rd::FCValueEstimator> &>())
+                    const std::shared_ptr<const rd::ValueEstimator> &>())
       .def("update", &rd::MPPIOptimizer::update,
            py::call_guard<py::gil_scoped_release>())
       .def("advance", &rd::MPPIOptimizer::advance,
