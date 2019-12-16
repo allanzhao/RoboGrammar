@@ -624,11 +624,6 @@ void GLFWRenderer::render(const Simulation &sim, int width, int height,
   glfwPollEvents();
 }
 
-void GLFWRenderer::readPixels(int x, int y, int width, int height,
-                              unsigned char *data) const {
-  glReadPixels(x, y, width, height, GL_RGBA, GL_UNSIGNED_BYTE, data);
-}
-
 void GLFWRenderer::getFramebufferSize(int &width, int &height) const {
   width = framebuffer_width_;
   height = framebuffer_height_;

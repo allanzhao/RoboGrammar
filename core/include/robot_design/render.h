@@ -314,8 +314,6 @@ public:
   void update(double dt);
   void render(const Simulation &sim, int width = -1, int height = -1,
               const Framebuffer *target_framebuffer = nullptr);
-  void readPixels(int x, int y, int width, int height,
-                  unsigned char *data) const;
   void getFramebufferSize(int &width, int &height) const;
   bool shouldClose() const;
   static void errorCallback(int error, const char *description);

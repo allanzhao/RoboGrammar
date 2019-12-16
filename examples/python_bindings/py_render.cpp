@@ -28,7 +28,6 @@ void initRender(py::module &m) {
       .def("update", &rd::GLFWRenderer::update)
       .def("render", [](rd::GLFWRenderer *self,
                         const rd::Simulation &sim) { self->render(sim); })
-      .def("read_pixels", &rd::GLFWRenderer::readPixels)
       .def("get_framebuffer_size", &rd::GLFWRenderer::getFramebufferSize)
       .def("should_close", &rd::GLFWRenderer::shouldClose)
       .def_readwrite("camera_controller",
