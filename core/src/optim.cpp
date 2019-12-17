@@ -71,8 +71,11 @@ void MPPIOptimizer::advance(int step_count) {
     futures[k].get();
   }
 
-  input_sequence_.leftCols(horizon_ - step_count) =
-      input_sequence_.rightCols(horizon_ - step_count);
+  // Shift the contents of input_sequence_ to the left by step_count
+  for (int j = 0; j < horizon_ - step_count; ++j) {
+    input_sequence_.col(j) = input_sequence_.col(j + step_count);
+  }
+  // Fill in the remaining values with zeroes
   input_sequence_.rightCols(step_count) = MatrixX::Zero(dof_count_, step_count);
 }
 
