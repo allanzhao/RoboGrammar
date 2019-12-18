@@ -4,6 +4,7 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <array>
+#include <cmath>
 #include <memory>
 #include <robot_design/sim.h>
 #include <string>
@@ -162,29 +163,35 @@ struct Framebuffer {
   GLuint framebuffer_;
 };
 
+struct CameraParameters {
+  Eigen::Matrix4f getProjMatrix() const;
+  Eigen::Matrix4f getViewMatrix() const;
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+
+  float aspect_ratio_ = 1.0f;
+  float z_near_ = 0.1f;
+  float z_far_ = 100.0f;
+  float fov_ = M_PI / 3;
+  Eigen::Vector3f position_ = Eigen::Vector3f::Zero();
+  float yaw_ = 0.0f;
+  float pitch_ = 0.0f;
+  float distance_ = 1.0f;
+};
+
 class FPSCameraController {
 public:
-  FPSCameraController(const Eigen::Vector3f &position = Eigen::Vector3f::Zero(),
-                      float yaw = 0.0f, float pitch = 0.0f,
-                      float distance = 1.0f, float move_speed = 2.0f,
-                      float mouse_sensitivity = 0.005f,
+  FPSCameraController(float move_speed = 2.0f, float mouse_sensitivity = 0.005f,
                       float scroll_sensitivity = 0.1f)
-      : position_(position), yaw_(yaw), pitch_(pitch), distance_(distance),
-        move_speed_(move_speed), mouse_sensitivity_(mouse_sensitivity),
+      : move_speed_(move_speed), mouse_sensitivity_(mouse_sensitivity),
         scroll_sensitivity_(scroll_sensitivity), cursor_x_(0), cursor_y_(0),
-        last_cursor_x_(0), last_cursor_y_(0), action_flags_(),
-        key_bindings_(DEFAULT_KEY_BINDINGS) {}
+        last_cursor_x_(0), last_cursor_y_(0), scroll_y_offset_(0),
+        action_flags_(), key_bindings_(DEFAULT_KEY_BINDINGS) {}
   void handleKey(int key, int scancode, int action, int mods);
   void handleMouseButton(int button, int action, int mods);
   void handleCursorPosition(double xpos, double ypos);
   void handleScroll(double xoffset, double yoffset);
-  void update(double dt);
-  void getViewMatrix(Ref<Eigen::Matrix4f> view_matrix) const;
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+  void update(CameraParameters &camera_params, double dt);
 
-  Eigen::Vector3f position_;
-  float yaw_, pitch_;
-  float distance_;
   float move_speed_;
   float mouse_sensitivity_;
   float scroll_sensitivity_;
@@ -203,6 +210,7 @@ private:
   static const std::array<int, ACTION_COUNT> DEFAULT_KEY_BINDINGS;
   double cursor_x_, cursor_y_;
   double last_cursor_x_, last_cursor_y_;
+  double scroll_y_offset_;
   std::array<bool, ACTION_COUNT> action_flags_;
   std::array<int, ACTION_COUNT> key_bindings_;
 };
@@ -329,6 +337,7 @@ public:
                              double yoffset);
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
+  CameraParameters camera_params_;
   FPSCameraController camera_controller_;
 
 private:
@@ -352,17 +361,11 @@ private:
   void drawText(const Eigen::Matrix4f &transform, float half_height,
                 const Program &program, ProgramState &program_state,
                 const std::string &str) const;
-  void updateProjectionMatrix();
   static std::string loadString(const std::string &path);
 
   GLFWwindow *window_;
-  float z_near_;
-  float z_far_;
-  float fov_;
   int framebuffer_width_;
   int framebuffer_height_;
-  Eigen::Matrix4f proj_matrix_;
-  Eigen::Matrix4f view_matrix_;
   std::shared_ptr<Program> default_program_;
   std::shared_ptr<Program> depth_program_;
   std::shared_ptr<Program> msdf_program_;

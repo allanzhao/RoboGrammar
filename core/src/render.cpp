@@ -1,4 +1,3 @@
-#include <cmath>
 #include <cstddef>
 #include <cstdlib>
 #include <fstream>
@@ -259,6 +258,21 @@ void Framebuffer::attachDepthTextureLayer(const Texture3D &depth_texture,
                             depth_texture.texture_, 0, layer);
 }
 
+Eigen::Matrix4f CameraParameters::getProjMatrix() const {
+  Eigen::Matrix4f proj_matrix;
+  makePerspectiveProjection(aspect_ratio_, z_near_, z_far_, fov_, proj_matrix);
+  return proj_matrix;
+}
+
+Eigen::Matrix4f CameraParameters::getViewMatrix() const {
+  Eigen::Affine3f view_transform(
+      Eigen::Translation3f(0.0f, 0.0f, -distance_) *
+      Eigen::AngleAxisf(-pitch_, Eigen::Vector3f::UnitX()) *
+      Eigen::AngleAxisf(-yaw_, Eigen::Vector3f::UnitY()) *
+      Eigen::Translation3f(-position_));
+  return view_transform.matrix();
+}
+
 const std::array<int, FPSCameraController::ACTION_COUNT>
     FPSCameraController::DEFAULT_KEY_BINDINGS = {GLFW_KEY_W,
                                                  GLFW_KEY_A,
@@ -292,10 +306,10 @@ void FPSCameraController::handleCursorPosition(double xpos, double ypos) {
 }
 
 void FPSCameraController::handleScroll(double xoffset, double yoffset) {
-  distance_ *= std::pow(1.0 - scroll_sensitivity_, yoffset);
+  scroll_y_offset_ += yoffset;
 }
 
-void FPSCameraController::update(double dt) {
+void FPSCameraController::update(CameraParameters &camera_params, double dt) {
   Eigen::Vector3f offset = Eigen::Vector3f::Zero();
   float pan = 0.0f;
   float tilt = 0.0f;
@@ -323,21 +337,15 @@ void FPSCameraController::update(double dt) {
     tilt -= (cursor_y_ - last_cursor_y_) * mouse_sensitivity_;
   }
 
-  position_ += Eigen::AngleAxisf(yaw_, Eigen::Vector3f::UnitY()) * offset;
-  yaw_ += pan;
-  pitch_ += tilt;
+  camera_params.position_ +=
+      Eigen::AngleAxisf(camera_params.yaw_, Eigen::Vector3f::UnitY()) * offset;
+  camera_params.yaw_ += pan;
+  camera_params.pitch_ += tilt;
+  camera_params.distance_ *=
+      std::pow(1.0 - scroll_sensitivity_, scroll_y_offset_);
   last_cursor_x_ = cursor_x_;
   last_cursor_y_ = cursor_y_;
-}
-
-void FPSCameraController::getViewMatrix(
-    Ref<Eigen::Matrix4f> view_matrix) const {
-  Eigen::Affine3f view_transform(
-      Eigen::Translation3f(0.0f, 0.0f, -distance_) *
-      Eigen::AngleAxisf(-pitch_, Eigen::Vector3f::UnitX()) *
-      Eigen::AngleAxisf(-yaw_, Eigen::Vector3f::UnitY()) *
-      Eigen::Translation3f(-position_));
-  view_matrix = view_transform.matrix();
+  scroll_y_offset_ = 0;
 }
 
 DirectionalLight::DirectionalLight(const Eigen::Vector3f &color,
@@ -465,8 +473,7 @@ void ProgramState::updateUniforms(const Program &program) {
   dir_light_sm_cascade_splits_.dirty_ = false;
 }
 
-GLFWRenderer::GLFWRenderer(bool hidden)
-    : z_near_(0.1f), z_far_(100.0f), fov_(M_PI / 3) {
+GLFWRenderer::GLFWRenderer(bool hidden) {
   glfwSetErrorCallback(errorCallback);
 
   if (!glfwInit()) {
@@ -535,9 +542,8 @@ GLFWRenderer::GLFWRenderer(bool hidden)
   glfwSetCursorPosCallback(window_, cursorPositionCallback);
   glfwSetScrollCallback(window_, scrollCallback);
 
-  // Initialize projection matrix
+  // Get initial framebuffer size
   glfwGetFramebufferSize(window_, &framebuffer_width_, &framebuffer_height_);
-  updateProjectionMatrix();
 
   // Enable depth test
   glEnable(GL_DEPTH_TEST);
@@ -548,8 +554,8 @@ GLFWRenderer::GLFWRenderer(bool hidden)
   glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
 
   // Set default camera parameters
-  camera_controller_.pitch_ = -M_PI / 6;
-  camera_controller_.distance_ = 2.0;
+  camera_params_.pitch_ = -M_PI / 6;
+  camera_params_.distance_ = 2.0;
 }
 
 GLFWRenderer::~GLFWRenderer() {
@@ -558,8 +564,7 @@ GLFWRenderer::~GLFWRenderer() {
 }
 
 void GLFWRenderer::update(double dt) {
-  camera_controller_.update(dt);
-  camera_controller_.getViewMatrix(view_matrix_);
+  camera_controller_.update(camera_params_, dt);
 }
 
 void GLFWRenderer::render(const Simulation &sim, int width, int height,
@@ -570,8 +575,12 @@ void GLFWRenderer::render(const Simulation &sim, int width, int height,
     height = framebuffer_height_;
   }
   float aspect_ratio = static_cast<float>(width) / height;
-  dir_light_->updateViewMatricesAndSplits(view_matrix_, aspect_ratio, z_near_,
-                                          z_far_, fov_);
+  camera_params_.aspect_ratio_ = aspect_ratio;
+  Eigen::Matrix4f proj_matrix = camera_params_.getProjMatrix();
+  Eigen::Matrix4f view_matrix = camera_params_.getViewMatrix();
+  dir_light_->updateViewMatricesAndSplits(
+      view_matrix, aspect_ratio, camera_params_.z_near_, camera_params_.z_far_,
+      camera_params_.fov_);
 
   // Render shadow maps
   dir_light_->sm_framebuffer_->bind();
@@ -602,8 +611,8 @@ void GLFWRenderer::render(const Simulation &sim, int width, int height,
   glDisable(GL_POLYGON_OFFSET_FILL);
   default_program_->use();
   ProgramState default_program_state;
-  default_program_state.setProjectionMatrix(proj_matrix_);
-  default_program_state.setViewMatrix(view_matrix_);
+  default_program_state.setProjectionMatrix(proj_matrix);
+  default_program_state.setViewMatrix(view_matrix);
   default_program_state.setDirectionalLight(*dir_light_);
   dir_light_->sm_depth_array_texture_->bind();
   drawOpaque(sim, *default_program_, default_program_state);
@@ -613,8 +622,8 @@ void GLFWRenderer::render(const Simulation &sim, int width, int height,
   glDepthMask(GL_FALSE);
   msdf_program_->use();
   ProgramState msdf_program_state;
-  msdf_program_state.setProjectionMatrix(proj_matrix_);
-  msdf_program_state.setViewMatrix(view_matrix_);
+  msdf_program_state.setProjectionMatrix(proj_matrix);
+  msdf_program_state.setViewMatrix(view_matrix);
   font_->page_textures_.at(0)->bind();
   drawLabels(sim, *msdf_program_, msdf_program_state);
   glDepthMask(GL_TRUE);
@@ -660,8 +669,8 @@ void GLFWRenderer::drawOpaque(const Simulation &sim, const Program &program,
 
       // Draw the link's joint
       program_state.setObjectColor(link.joint_color_);
-      Matrix3 joint_axis_rotation(Quaternion::FromTwoVectors(link.joint_axis_,
-                                                             Vector3::UnitX()));
+      Matrix3 joint_axis_rotation(
+          Quaternion::FromTwoVectors(link.joint_axis_, Vector3::UnitX()));
       Matrix4 joint_transform =
           (Affine3(link_transform) * Translation3(-link.length_ / 2, 0, 0) *
            Affine3(joint_axis_rotation))
@@ -844,7 +853,6 @@ void GLFWRenderer::framebufferSizeCallback(GLFWwindow *window, int width,
       static_cast<GLFWRenderer *>(glfwGetWindowUserPointer(window));
   renderer->framebuffer_width_ = width;
   renderer->framebuffer_height_ = height;
-  renderer->updateProjectionMatrix();
 }
 
 void GLFWRenderer::keyCallback(GLFWwindow *window, int key, int scancode,
@@ -876,12 +884,6 @@ void GLFWRenderer::scrollCallback(GLFWwindow *window, double xoffset,
   GLFWRenderer *renderer =
       static_cast<GLFWRenderer *>(glfwGetWindowUserPointer(window));
   renderer->camera_controller_.handleScroll(xoffset, yoffset);
-}
-
-void GLFWRenderer::updateProjectionMatrix() {
-  float aspect_ratio =
-      static_cast<float>(framebuffer_width_) / framebuffer_height_;
-  makePerspectiveProjection(aspect_ratio, z_near_, z_far_, fov_, proj_matrix_);
 }
 
 std::string GLFWRenderer::loadString(const std::string &path) {

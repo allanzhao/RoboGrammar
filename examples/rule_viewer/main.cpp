@@ -145,7 +145,7 @@ int main(int argc, char **argv) {
   std::string save_image_path = args::get(save_image_flag);
   if (!save_image_path.empty()) {
     GLFWRenderer renderer(/*hidden=*/true);
-    renderer.camera_controller_.distance_ = 1.0;
+    renderer.camera_params_.distance_ = 1.0;
     int fb_width, fb_height;
     renderer.getFramebufferSize(fb_width, fb_height);
     Texture2D color_texture(
@@ -182,7 +182,7 @@ int main(int argc, char **argv) {
   if (args::get(render_flag)) {
     // Render to a window
     GLFWRenderer renderer;
-    renderer.camera_controller_.distance_ = 1.0;
+    renderer.camera_params_.distance_ = 1.0;
     double sim_time = glfwGetTime();
     while (!renderer.shouldClose()) {
       double current_time = glfwGetTime();
