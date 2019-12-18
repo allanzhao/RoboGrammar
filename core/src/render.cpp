@@ -488,7 +488,7 @@ GLFWRenderer::GLFWRenderer(bool hidden) {
   if (hidden) {
     glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
   }
-  window_ = glfwCreateWindow(640, 480, "GLFW Renderer", NULL, NULL);
+  window_ = glfwCreateWindow(1280, 720, "Robot Design Viewer", NULL, NULL);
   if (!window_) {
     throw std::runtime_error("Could not create GLFW window");
   }
