@@ -113,16 +113,16 @@ print('Total reward: {:f}'.format(rewards.sum()))
 
 main_sim.restore_state()
 
-renderer = rd.GLFWRenderer()
+viewer = rd.GLFWViewer()
 sim_time = time.time()
 i = 0
 j = 0
-while not renderer.should_close():
+while not viewer.should_close():
   current_time = time.time()
   while sim_time < current_time:
     main_sim.set_joint_target_positions(robot_idx, input_sequence[:,j])
     main_sim.step()
-    renderer.update(time_step)
+    viewer.update(time_step)
     sim_time += time_step
     i += 1
     if i >= interval:
@@ -132,4 +132,4 @@ while not renderer.should_close():
       i = 0
       j = 0
       main_sim.restore_state()
-  renderer.render(main_sim)
+  viewer.render(main_sim)

@@ -212,9 +212,9 @@ int main(int argc, char **argv) {
 
   std::string save_image_path = args::get(save_image_flag);
   if (!save_image_path.empty()) {
-    GLFWRenderer renderer(/*hidden=*/true);
+    GLFWViewer viewer(/*hidden=*/true);
     int fb_width, fb_height;
-    renderer.getFramebufferSize(fb_width, fb_height);
+    viewer.getFramebufferSize(fb_width, fb_height);
     Texture2D color_texture(
         /*target=*/GL_TEXTURE_2D, /*level=*/0, /*internal_format=*/GL_RGBA,
         /*width=*/fb_width, /*height=*/fb_height, /*format=*/GL_RGBA,
@@ -227,8 +227,8 @@ int main(int argc, char **argv) {
     Framebuffer offscreen_fb;
     offscreen_fb.attachColorTexture(color_texture);
     offscreen_fb.attachDepthTexture(depth_texture);
-    renderer.update(time_step);
-    renderer.render(*main_sim, fb_width, fb_height, &offscreen_fb);
+    viewer.update(time_step);
+    viewer.render(*main_sim, fb_width, fb_height, &offscreen_fb);
     std::unique_ptr<unsigned char[]> rgba(
         new unsigned char[4 * fb_width * fb_height]);
     color_texture.getImage(rgba.get());
@@ -247,16 +247,16 @@ int main(int argc, char **argv) {
   }
 
   if (args::get(render_flag)) {
-    // Render the trajectory
-    GLFWRenderer renderer;
+    // View the trajectory
+    GLFWViewer viewer;
     double sim_time = glfwGetTime();
     int i = 0, j = 0;
-    while (!renderer.shouldClose()) {
+    while (!viewer.shouldClose()) {
       double current_time = glfwGetTime();
       while (sim_time < current_time) {
         main_sim->setJointTargetPositions(robot_idx, input_sequence.col(j));
         main_sim->step();
-        renderer.update(time_step);
+        viewer.update(time_step);
         sim_time += time_step;
         ++i;
         if (i >= interval) {
@@ -269,7 +269,7 @@ int main(int argc, char **argv) {
           main_sim->restoreState();
         }
       }
-      renderer.render(*main_sim);
+      viewer.render(*main_sim);
     }
   }
 }

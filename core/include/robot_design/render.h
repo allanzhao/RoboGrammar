@@ -70,9 +70,7 @@ struct Program {
   void setShadowMapTextureUnit(GLint unit) const {
     glUniform1i(shadow_map_index_, unit);
   }
-  void setMSDFTextureUnit(GLint unit) const {
-    glUniform1i(msdf_index_, unit);
-  }
+  void setMSDFTextureUnit(GLint unit) const { glUniform1i(msdf_index_, unit); }
   void setCascadeFarSplits(const Eigen::Vector4f &far_splits) const {
     glUniform4fv(cascade_far_splits_index_, 1, far_splits.data());
   }
@@ -313,12 +311,12 @@ struct ProgramState {
   ProgramParameter<Eigen::VectorXf> dir_light_sm_cascade_splits_;
 };
 
-class GLFWRenderer {
+class GLFWViewer {
 public:
-  GLFWRenderer(bool hidden = false);
-  virtual ~GLFWRenderer();
-  GLFWRenderer(const GLFWRenderer &other) = delete;
-  GLFWRenderer &operator=(const GLFWRenderer &other) = delete;
+  GLFWViewer(bool hidden = false);
+  virtual ~GLFWViewer();
+  GLFWViewer(const GLFWViewer &other) = delete;
+  GLFWViewer &operator=(const GLFWViewer &other) = delete;
   void update(double dt);
   void render(const Simulation &sim, int width = -1, int height = -1,
               const Framebuffer *target_framebuffer = nullptr);

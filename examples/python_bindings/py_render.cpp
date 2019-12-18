@@ -29,15 +29,15 @@ void initRender(py::module &m) {
       .def_readwrite("scroll_sensitivity",
                      &rd::FPSCameraController::scroll_sensitivity_);
 
-  py::class_<rd::GLFWRenderer>(m, "GLFWRenderer")
+  py::class_<rd::GLFWViewer>(m, "GLFWViewer")
       .def(py::init<>())
       .def(py::init<bool>())
-      .def("update", &rd::GLFWRenderer::update)
-      .def("render", [](rd::GLFWRenderer *self,
+      .def("update", &rd::GLFWViewer::update)
+      .def("render", [](rd::GLFWViewer *self,
                         const rd::Simulation &sim) { self->render(sim); })
-      .def("get_framebuffer_size", &rd::GLFWRenderer::getFramebufferSize)
-      .def("should_close", &rd::GLFWRenderer::shouldClose)
-      .def_readwrite("camera_params", &rd::GLFWRenderer::camera_params_)
+      .def("get_framebuffer_size", &rd::GLFWViewer::getFramebufferSize)
+      .def("should_close", &rd::GLFWViewer::shouldClose)
+      .def_readwrite("camera_params", &rd::GLFWViewer::camera_params_)
       .def_readwrite("camera_controller",
-                     &rd::GLFWRenderer::camera_controller_);
+                     &rd::GLFWViewer::camera_controller_);
 }

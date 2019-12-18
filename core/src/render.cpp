@@ -473,7 +473,7 @@ void ProgramState::updateUniforms(const Program &program) {
   dir_light_sm_cascade_splits_.dirty_ = false;
 }
 
-GLFWRenderer::GLFWRenderer(bool hidden) {
+GLFWViewer::GLFWViewer(bool hidden) {
   glfwSetErrorCallback(errorCallback);
 
   if (!glfwInit()) {
@@ -558,17 +558,17 @@ GLFWRenderer::GLFWRenderer(bool hidden) {
   camera_params_.distance_ = 2.0;
 }
 
-GLFWRenderer::~GLFWRenderer() {
+GLFWViewer::~GLFWViewer() {
   glfwDestroyWindow(window_);
   glfwTerminate();
 }
 
-void GLFWRenderer::update(double dt) {
+void GLFWViewer::update(double dt) {
   camera_controller_.update(camera_params_, dt);
 }
 
-void GLFWRenderer::render(const Simulation &sim, int width, int height,
-                          const Framebuffer *target_framebuffer) {
+void GLFWViewer::render(const Simulation &sim, int width, int height,
+                        const Framebuffer *target_framebuffer) {
   if (width < 0 || height < 0) {
     // Use default framebuffer size
     width = framebuffer_width_;
@@ -633,17 +633,15 @@ void GLFWRenderer::render(const Simulation &sim, int width, int height,
   glfwPollEvents();
 }
 
-void GLFWRenderer::getFramebufferSize(int &width, int &height) const {
+void GLFWViewer::getFramebufferSize(int &width, int &height) const {
   width = framebuffer_width_;
   height = framebuffer_height_;
 }
 
-bool GLFWRenderer::shouldClose() const {
-  return glfwWindowShouldClose(window_);
-}
+bool GLFWViewer::shouldClose() const { return glfwWindowShouldClose(window_); }
 
-void GLFWRenderer::drawOpaque(const Simulation &sim, const Program &program,
-                              ProgramState &program_state) const {
+void GLFWViewer::drawOpaque(const Simulation &sim, const Program &program,
+                            ProgramState &program_state) const {
   // Draw robots
   for (Index robot_idx = 0; robot_idx < sim.getRobotCount(); ++robot_idx) {
     const Robot &robot = *sim.getRobot(robot_idx);
@@ -705,8 +703,8 @@ void GLFWRenderer::drawOpaque(const Simulation &sim, const Program &program,
   }
 }
 
-void GLFWRenderer::drawLabels(const Simulation &sim, const Program &program,
-                              ProgramState &program_state) const {
+void GLFWViewer::drawLabels(const Simulation &sim, const Program &program,
+                            ProgramState &program_state) const {
   // Draw robot labels
   for (Index robot_idx = 0; robot_idx < sim.getRobotCount(); ++robot_idx) {
     const Robot &robot = *sim.getRobot(robot_idx);
@@ -733,10 +731,10 @@ void GLFWRenderer::drawLabels(const Simulation &sim, const Program &program,
   }
 }
 
-void GLFWRenderer::drawBox(const Eigen::Matrix4f &transform,
-                           const Eigen::Vector3f &half_extents,
-                           const Program &program,
-                           ProgramState &program_state) const {
+void GLFWViewer::drawBox(const Eigen::Matrix4f &transform,
+                         const Eigen::Vector3f &half_extents,
+                         const Program &program,
+                         ProgramState &program_state) const {
   Eigen::Affine3f model_transform =
       Eigen::Affine3f(transform) * Eigen::Scaling(half_extents);
   box_mesh_->bind();
@@ -745,27 +743,27 @@ void GLFWRenderer::drawBox(const Eigen::Matrix4f &transform,
   box_mesh_->draw();
 }
 
-void GLFWRenderer::drawCapsule(const Eigen::Matrix4f &transform,
-                               float half_length, float radius,
-                               const Program &program,
-                               ProgramState &program_state) const {
+void GLFWViewer::drawCapsule(const Eigen::Matrix4f &transform,
+                             float half_length, float radius,
+                             const Program &program,
+                             ProgramState &program_state) const {
   drawTubeBasedShape(transform, half_length, radius, program, program_state,
                      *capsule_end_mesh_);
 }
 
-void GLFWRenderer::drawCylinder(const Eigen::Matrix4f &transform,
-                                float half_length, float radius,
-                                const Program &program,
-                                ProgramState &program_state) const {
+void GLFWViewer::drawCylinder(const Eigen::Matrix4f &transform,
+                              float half_length, float radius,
+                              const Program &program,
+                              ProgramState &program_state) const {
   drawTubeBasedShape(transform, half_length, radius, program, program_state,
                      *cylinder_end_mesh_);
 }
 
-void GLFWRenderer::drawTubeBasedShape(const Eigen::Matrix4f &transform,
-                                      float half_length, float radius,
-                                      const Program &program,
-                                      ProgramState &program_state,
-                                      const Mesh &end_mesh) const {
+void GLFWViewer::drawTubeBasedShape(const Eigen::Matrix4f &transform,
+                                    float half_length, float radius,
+                                    const Program &program,
+                                    ProgramState &program_state,
+                                    const Mesh &end_mesh) const {
   Eigen::Affine3f right_end_model_transform =
       Eigen::Affine3f(transform) * Eigen::Translation3f(half_length, 0, 0) *
       Eigen::Scaling(radius, radius, radius);
@@ -790,9 +788,9 @@ void GLFWRenderer::drawTubeBasedShape(const Eigen::Matrix4f &transform,
   tube_mesh_->draw();
 }
 
-void GLFWRenderer::drawText(const Eigen::Matrix4f &transform, float half_height,
-                            const Program &program, ProgramState &program_state,
-                            const std::string &str) const {
+void GLFWViewer::drawText(const Eigen::Matrix4f &transform, float half_height,
+                          const Program &program, ProgramState &program_state,
+                          const std::string &str) const {
   std::vector<float> positions;
   std::vector<float> tex_coords;
   std::vector<int> indices;
@@ -843,50 +841,50 @@ void GLFWRenderer::drawText(const Eigen::Matrix4f &transform, float half_height,
   text_mesh_->draw();
 }
 
-void GLFWRenderer::errorCallback(int error, const char *description) {
+void GLFWViewer::errorCallback(int error, const char *description) {
   std::cerr << "GLFW error: " << description << std::endl;
 }
 
-void GLFWRenderer::framebufferSizeCallback(GLFWwindow *window, int width,
-                                           int height) {
-  GLFWRenderer *renderer =
-      static_cast<GLFWRenderer *>(glfwGetWindowUserPointer(window));
-  renderer->framebuffer_width_ = width;
-  renderer->framebuffer_height_ = height;
+void GLFWViewer::framebufferSizeCallback(GLFWwindow *window, int width,
+                                         int height) {
+  GLFWViewer *viewer =
+      static_cast<GLFWViewer *>(glfwGetWindowUserPointer(window));
+  viewer->framebuffer_width_ = width;
+  viewer->framebuffer_height_ = height;
 }
 
-void GLFWRenderer::keyCallback(GLFWwindow *window, int key, int scancode,
-                               int action, int mods) {
-  GLFWRenderer *renderer =
-      static_cast<GLFWRenderer *>(glfwGetWindowUserPointer(window));
+void GLFWViewer::keyCallback(GLFWwindow *window, int key, int scancode,
+                             int action, int mods) {
+  GLFWViewer *viewer =
+      static_cast<GLFWViewer *>(glfwGetWindowUserPointer(window));
   if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
     glfwSetWindowShouldClose(window, GL_TRUE);
   }
-  renderer->camera_controller_.handleKey(key, scancode, action, mods);
+  viewer->camera_controller_.handleKey(key, scancode, action, mods);
 }
 
-void GLFWRenderer::mouseButtonCallback(GLFWwindow *window, int button,
-                                       int action, int mods) {
-  GLFWRenderer *renderer =
-      static_cast<GLFWRenderer *>(glfwGetWindowUserPointer(window));
-  renderer->camera_controller_.handleMouseButton(button, action, mods);
+void GLFWViewer::mouseButtonCallback(GLFWwindow *window, int button, int action,
+                                     int mods) {
+  GLFWViewer *viewer =
+      static_cast<GLFWViewer *>(glfwGetWindowUserPointer(window));
+  viewer->camera_controller_.handleMouseButton(button, action, mods);
 }
 
-void GLFWRenderer::cursorPositionCallback(GLFWwindow *window, double xpos,
-                                          double ypos) {
-  GLFWRenderer *renderer =
-      static_cast<GLFWRenderer *>(glfwGetWindowUserPointer(window));
-  renderer->camera_controller_.handleCursorPosition(xpos, ypos);
+void GLFWViewer::cursorPositionCallback(GLFWwindow *window, double xpos,
+                                        double ypos) {
+  GLFWViewer *viewer =
+      static_cast<GLFWViewer *>(glfwGetWindowUserPointer(window));
+  viewer->camera_controller_.handleCursorPosition(xpos, ypos);
 }
 
-void GLFWRenderer::scrollCallback(GLFWwindow *window, double xoffset,
-                                  double yoffset) {
-  GLFWRenderer *renderer =
-      static_cast<GLFWRenderer *>(glfwGetWindowUserPointer(window));
-  renderer->camera_controller_.handleScroll(xoffset, yoffset);
+void GLFWViewer::scrollCallback(GLFWwindow *window, double xoffset,
+                                double yoffset) {
+  GLFWViewer *viewer =
+      static_cast<GLFWViewer *>(glfwGetWindowUserPointer(window));
+  viewer->camera_controller_.handleScroll(xoffset, yoffset);
 }
 
-std::string GLFWRenderer::loadString(const std::string &path) {
+std::string GLFWViewer::loadString(const std::string &path) {
   std::ifstream ifs(path);
   if (!ifs.is_open()) {
     throw std::runtime_error("Could not open file \"" + path + "\"");
