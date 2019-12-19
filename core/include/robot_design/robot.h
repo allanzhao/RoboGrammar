@@ -58,7 +58,7 @@ struct Robot {
         friction_(friction), motor_kp_(motor_kp), motor_kd_(motor_kd),
         links_() {}
 
-  Scalar link_density_ = 1.0; // Mass of links per unit of length
+  Scalar link_density_ = 0.5; // Mass of links per unit of length
   Scalar link_radius_ = 0.05;
   Scalar friction_ = 0.9;
   Scalar motor_kp_ = 2.0;
