@@ -2,7 +2,6 @@
 
 #include <Eigen/Dense>
 #include <GL/glew.h>
-#include <GLFW/glfw3.h>
 #include <array>
 #include <cmath>
 #include <memory>
@@ -176,43 +175,6 @@ struct CameraParameters {
   float distance_ = 1.0f;
 };
 
-class FPSCameraController {
-public:
-  FPSCameraController(float move_speed = 2.0f, float mouse_sensitivity = 0.005f,
-                      float scroll_sensitivity = 0.1f)
-      : move_speed_(move_speed), mouse_sensitivity_(mouse_sensitivity),
-        scroll_sensitivity_(scroll_sensitivity), cursor_x_(0), cursor_y_(0),
-        last_cursor_x_(0), last_cursor_y_(0), scroll_y_offset_(0),
-        action_flags_(), key_bindings_(DEFAULT_KEY_BINDINGS) {}
-  void handleKey(int key, int scancode, int action, int mods);
-  void handleMouseButton(int button, int action, int mods);
-  void handleCursorPosition(double xpos, double ypos);
-  void handleScroll(double xoffset, double yoffset);
-  void update(CameraParameters &camera_params, double dt);
-
-  float move_speed_;
-  float mouse_sensitivity_;
-  float scroll_sensitivity_;
-
-private:
-  enum Action {
-    ACTION_MOVE_FORWARD,
-    ACTION_MOVE_LEFT,
-    ACTION_MOVE_BACKWARD,
-    ACTION_MOVE_RIGHT,
-    ACTION_MOVE_UP,
-    ACTION_MOVE_DOWN,
-    ACTION_PAN_TILT,
-    ACTION_COUNT
-  };
-  static const std::array<int, ACTION_COUNT> DEFAULT_KEY_BINDINGS;
-  double cursor_x_, cursor_y_;
-  double last_cursor_x_, last_cursor_y_;
-  double scroll_y_offset_;
-  std::array<bool, ACTION_COUNT> action_flags_;
-  std::array<int, ACTION_COUNT> key_bindings_;
-};
-
 struct DirectionalLight {
   DirectionalLight() {}
   DirectionalLight(const Eigen::Vector3f &color, const Eigen::Vector3f &dir,
@@ -351,40 +313,6 @@ private:
   std::shared_ptr<Mesh> text_mesh_;
   std::shared_ptr<DirectionalLight> dir_light_;
   std::shared_ptr<BitmapFont> font_;
-};
-
-class GLFWViewer {
-public:
-  explicit GLFWViewer(bool hidden = false);
-  virtual ~GLFWViewer();
-  GLFWViewer(const GLFWViewer &other) = delete;
-  GLFWViewer &operator=(const GLFWViewer &other) = delete;
-  void update(double dt);
-  void render(const Simulation &sim, int width = -1, int height = -1,
-              const Framebuffer *target_framebuffer = nullptr);
-  void getFramebufferSize(int &width, int &height) const;
-  bool shouldClose() const;
-  static void errorCallback(int error, const char *description);
-  static void framebufferSizeCallback(GLFWwindow *window, int width,
-                                      int height);
-  static void keyCallback(GLFWwindow *window, int key, int scancode, int action,
-                          int mods);
-  static void mouseButtonCallback(GLFWwindow *window, int button, int action,
-                                  int mods);
-  static void cursorPositionCallback(GLFWwindow *window, double xpos,
-                                     double ypos);
-  static void scrollCallback(GLFWwindow *window, double xoffset,
-                             double yoffset);
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
-
-  CameraParameters camera_params_;
-  FPSCameraController camera_controller_;
-
-private:
-  GLFWwindow *window_;
-  int framebuffer_width_;
-  int framebuffer_height_;
-  std::shared_ptr<GLRenderer> renderer_;
 };
 
 void makeOrthographicProjection(float aspect_ratio, float z_near, float z_far,

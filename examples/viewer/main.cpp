@@ -7,6 +7,7 @@
 #include <lodepng.h>
 #include <memory>
 #include <random>
+#include <robot_design/glfw_viewer.h>
 #include <robot_design/graph.h>
 #include <robot_design/optim.h>
 #include <robot_design/render.h>

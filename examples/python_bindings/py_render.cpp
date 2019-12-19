@@ -1,5 +1,6 @@
 #include <pybind11/eigen.h>
 #include <pybind11/pybind11.h>
+#include <robot_design/glfw_viewer.h>
 #include <robot_design/render.h>
 
 namespace py = pybind11;

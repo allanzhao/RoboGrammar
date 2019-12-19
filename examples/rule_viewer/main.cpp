@@ -4,6 +4,7 @@
 #include <iostream>
 #include <lodepng.h>
 #include <memory>
+#include <robot_design/glfw_viewer.h>
 #include <robot_design/graph.h>
 #include <robot_design/render.h>
 #include <robot_design/robot.h>
