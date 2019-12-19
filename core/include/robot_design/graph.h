@@ -2,6 +2,7 @@
 
 #include <Eigen/Dense>
 #include <cstddef>
+#include <functional>
 #include <ostream>
 #include <robot_design/eigen_hash.h>
 #include <robot_design/robot.h>

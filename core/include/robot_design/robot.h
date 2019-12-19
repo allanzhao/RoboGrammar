@@ -2,7 +2,9 @@
 
 #include <Eigen/Dense>
 #include <Eigen/StdVector>
+#include <functional>
 #include <robot_design/types.h>
+#include <type_traits>
 #include <vector>
 
 namespace robot_design {
@@ -65,3 +67,23 @@ struct Robot {
 };
 
 } // namespace drbs
+
+namespace std {
+
+template <>
+struct hash<robot_design::LinkShape> {
+  std::size_t operator()(const robot_design::LinkShape &link_shape) const {
+    using type = typename std::underlying_type<robot_design::LinkShape>::type;
+    return std::hash<type>()(static_cast<type>(link_shape));
+  }
+};
+
+template <>
+struct hash<robot_design::JointType> {
+  std::size_t operator()(const robot_design::JointType &joint_type) const {
+    using type = typename std::underlying_type<robot_design::JointType>::type;
+    return std::hash<type>()(static_cast<type>(joint_type));
+  }
+};
+
+} // namespace std
