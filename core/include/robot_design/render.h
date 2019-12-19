@@ -311,9 +311,51 @@ struct ProgramState {
   ProgramParameter<Eigen::VectorXf> dir_light_sm_cascade_splits_;
 };
 
+class GLRenderer {
+public:
+  GLRenderer();
+  void render(const Simulation &sim, const CameraParameters &camera_params,
+              int width, int height,
+              const Framebuffer *target_framebuffer = nullptr);
+
+private:
+  void drawOpaque(const Simulation &sim, const Program &program,
+                  ProgramState &program_state) const;
+  void drawLabels(const Simulation &sim, const Program &program,
+                  ProgramState &program_state) const;
+  void drawBox(const Eigen::Matrix4f &transform,
+               const Eigen::Vector3f &half_extents, const Program &program,
+               ProgramState &program_state) const;
+  void drawCapsule(const Eigen::Matrix4f &transform, float half_length,
+                   float radius, const Program &program,
+                   ProgramState &program_state) const;
+  void drawCylinder(const Eigen::Matrix4f &transform, float half_length,
+                    float radius, const Program &program,
+                    ProgramState &program_state) const;
+  void drawTubeBasedShape(const Eigen::Matrix4f &transform, float half_length,
+                          float radius, const Program &program,
+                          ProgramState &program_state,
+                          const Mesh &end_mesh) const;
+  void drawText(const Eigen::Matrix4f &transform, float half_height,
+                const Program &program, ProgramState &program_state,
+                const std::string &str) const;
+  static std::string loadString(const std::string &path);
+
+  std::shared_ptr<Program> default_program_;
+  std::shared_ptr<Program> depth_program_;
+  std::shared_ptr<Program> msdf_program_;
+  std::shared_ptr<Mesh> box_mesh_;
+  std::shared_ptr<Mesh> tube_mesh_;
+  std::shared_ptr<Mesh> capsule_end_mesh_;
+  std::shared_ptr<Mesh> cylinder_end_mesh_;
+  std::shared_ptr<Mesh> text_mesh_;
+  std::shared_ptr<DirectionalLight> dir_light_;
+  std::shared_ptr<BitmapFont> font_;
+};
+
 class GLFWViewer {
 public:
-  GLFWViewer(bool hidden = false);
+  explicit GLFWViewer(bool hidden = false);
   virtual ~GLFWViewer();
   GLFWViewer(const GLFWViewer &other) = delete;
   GLFWViewer &operator=(const GLFWViewer &other) = delete;
@@ -339,41 +381,10 @@ public:
   FPSCameraController camera_controller_;
 
 private:
-  void drawOpaque(const Simulation &sim, const Program &program,
-                  ProgramState &program_state) const;
-  void drawLabels(const Simulation &sim, const Program &program,
-                  ProgramState &program_state) const;
-  void drawBox(const Eigen::Matrix4f &transform,
-               const Eigen::Vector3f &half_extents, const Program &program,
-               ProgramState &program_state) const;
-  void drawCapsule(const Eigen::Matrix4f &transform, float half_length,
-                   float radius, const Program &program,
-                   ProgramState &program_state) const;
-  void drawCylinder(const Eigen::Matrix4f &transform, float half_length,
-                    float radius, const Program &program,
-                    ProgramState &program_state) const;
-  void drawTubeBasedShape(const Eigen::Matrix4f &transform, float half_length,
-                          float radius, const Program &program,
-                          ProgramState &program_state,
-                          const Mesh &end_mesh) const;
-  void drawText(const Eigen::Matrix4f &transform, float half_height,
-                const Program &program, ProgramState &program_state,
-                const std::string &str) const;
-  static std::string loadString(const std::string &path);
-
   GLFWwindow *window_;
   int framebuffer_width_;
   int framebuffer_height_;
-  std::shared_ptr<Program> default_program_;
-  std::shared_ptr<Program> depth_program_;
-  std::shared_ptr<Program> msdf_program_;
-  std::shared_ptr<Mesh> box_mesh_;
-  std::shared_ptr<Mesh> tube_mesh_;
-  std::shared_ptr<Mesh> capsule_end_mesh_;
-  std::shared_ptr<Mesh> cylinder_end_mesh_;
-  std::shared_ptr<Mesh> text_mesh_;
-  std::shared_ptr<DirectionalLight> dir_light_;
-  std::shared_ptr<BitmapFont> font_;
+  std::shared_ptr<GLRenderer> renderer_;
 };
 
 void makeOrthographicProjection(float aspect_ratio, float z_near, float z_far,

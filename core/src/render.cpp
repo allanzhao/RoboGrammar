@@ -473,31 +473,7 @@ void ProgramState::updateUniforms(const Program &program) {
   dir_light_sm_cascade_splits_.dirty_ = false;
 }
 
-GLFWViewer::GLFWViewer(bool hidden) {
-  glfwSetErrorCallback(errorCallback);
-
-  if (!glfwInit()) {
-    throw std::runtime_error("Could not initialize GLFW");
-  }
-
-  // Require OpenGL 3.2 or higher
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
-  // Enable 4x MSAA
-  glfwWindowHint(GLFW_SAMPLES, 4);
-  if (hidden) {
-    glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
-  }
-  window_ = glfwCreateWindow(1280, 720, "Robot Design Viewer", NULL, NULL);
-  if (!window_) {
-    throw std::runtime_error("Could not create GLFW window");
-  }
-
-  glfwMakeContextCurrent(window_);
-  // Load all available extensions even if they are not in the extensions string
-  glewExperimental = GL_TRUE;
-  glewInit();
-
+GLRenderer::GLRenderer() {
   // Create default shader program
   std::string default_vs_source = loadString("data/shaders/default.vert.glsl");
   std::string default_fs_source = loadString("data/shaders/default.frag.glsl");
@@ -533,18 +509,6 @@ GLFWViewer::GLFWViewer(bool hidden) {
   font_ = std::make_shared<BitmapFont>("data/fonts/OpenSans-Regular.fnt",
                                        "data/fonts");
 
-  // Set up callbacks
-  // Allow accessing "this" from static callbacks
-  glfwSetWindowUserPointer(window_, this);
-  glfwSetFramebufferSizeCallback(window_, framebufferSizeCallback);
-  glfwSetKeyCallback(window_, keyCallback);
-  glfwSetMouseButtonCallback(window_, mouseButtonCallback);
-  glfwSetCursorPosCallback(window_, cursorPositionCallback);
-  glfwSetScrollCallback(window_, scrollCallback);
-
-  // Get initial framebuffer size
-  glfwGetFramebufferSize(window_, &framebuffer_width_, &framebuffer_height_);
-
   // Enable depth test
   glEnable(GL_DEPTH_TEST);
 
@@ -552,35 +516,16 @@ GLFWViewer::GLFWViewer(bool hidden) {
   glEnable(GL_BLEND);
   // Use premultiplied alpha
   glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
-
-  // Set default camera parameters
-  camera_params_.pitch_ = -M_PI / 6;
-  camera_params_.distance_ = 2.0;
 }
 
-GLFWViewer::~GLFWViewer() {
-  glfwDestroyWindow(window_);
-  glfwTerminate();
-}
-
-void GLFWViewer::update(double dt) {
-  camera_controller_.update(camera_params_, dt);
-}
-
-void GLFWViewer::render(const Simulation &sim, int width, int height,
-                        const Framebuffer *target_framebuffer) {
-  if (width < 0 || height < 0) {
-    // Use default framebuffer size
-    width = framebuffer_width_;
-    height = framebuffer_height_;
-  }
-  float aspect_ratio = static_cast<float>(width) / height;
-  camera_params_.aspect_ratio_ = aspect_ratio;
-  Eigen::Matrix4f proj_matrix = camera_params_.getProjMatrix();
-  Eigen::Matrix4f view_matrix = camera_params_.getViewMatrix();
+void GLRenderer::render(const Simulation &sim,
+                        const CameraParameters &camera_params, int width,
+                        int height, const Framebuffer *target_framebuffer) {
+  Eigen::Matrix4f proj_matrix = camera_params.getProjMatrix();
+  Eigen::Matrix4f view_matrix = camera_params.getViewMatrix();
   dir_light_->updateViewMatricesAndSplits(
-      view_matrix, aspect_ratio, camera_params_.z_near_, camera_params_.z_far_,
-      camera_params_.fov_);
+      view_matrix, camera_params.aspect_ratio_, camera_params.z_near_,
+      camera_params.z_far_, camera_params.fov_);
 
   // Render shadow maps
   dir_light_->sm_framebuffer_->bind();
@@ -628,19 +573,9 @@ void GLFWViewer::render(const Simulation &sim, int width, int height,
   drawLabels(sim, *msdf_program_, msdf_program_state);
   glDepthMask(GL_TRUE);
   glEnable(GL_DEPTH_TEST);
-
-  glfwSwapBuffers(window_);
-  glfwPollEvents();
 }
 
-void GLFWViewer::getFramebufferSize(int &width, int &height) const {
-  width = framebuffer_width_;
-  height = framebuffer_height_;
-}
-
-bool GLFWViewer::shouldClose() const { return glfwWindowShouldClose(window_); }
-
-void GLFWViewer::drawOpaque(const Simulation &sim, const Program &program,
+void GLRenderer::drawOpaque(const Simulation &sim, const Program &program,
                             ProgramState &program_state) const {
   // Draw robots
   for (Index robot_idx = 0; robot_idx < sim.getRobotCount(); ++robot_idx) {
@@ -703,7 +638,7 @@ void GLFWViewer::drawOpaque(const Simulation &sim, const Program &program,
   }
 }
 
-void GLFWViewer::drawLabels(const Simulation &sim, const Program &program,
+void GLRenderer::drawLabels(const Simulation &sim, const Program &program,
                             ProgramState &program_state) const {
   // Draw robot labels
   for (Index robot_idx = 0; robot_idx < sim.getRobotCount(); ++robot_idx) {
@@ -731,7 +666,7 @@ void GLFWViewer::drawLabels(const Simulation &sim, const Program &program,
   }
 }
 
-void GLFWViewer::drawBox(const Eigen::Matrix4f &transform,
+void GLRenderer::drawBox(const Eigen::Matrix4f &transform,
                          const Eigen::Vector3f &half_extents,
                          const Program &program,
                          ProgramState &program_state) const {
@@ -743,7 +678,7 @@ void GLFWViewer::drawBox(const Eigen::Matrix4f &transform,
   box_mesh_->draw();
 }
 
-void GLFWViewer::drawCapsule(const Eigen::Matrix4f &transform,
+void GLRenderer::drawCapsule(const Eigen::Matrix4f &transform,
                              float half_length, float radius,
                              const Program &program,
                              ProgramState &program_state) const {
@@ -751,7 +686,7 @@ void GLFWViewer::drawCapsule(const Eigen::Matrix4f &transform,
                      *capsule_end_mesh_);
 }
 
-void GLFWViewer::drawCylinder(const Eigen::Matrix4f &transform,
+void GLRenderer::drawCylinder(const Eigen::Matrix4f &transform,
                               float half_length, float radius,
                               const Program &program,
                               ProgramState &program_state) const {
@@ -759,7 +694,7 @@ void GLFWViewer::drawCylinder(const Eigen::Matrix4f &transform,
                      *cylinder_end_mesh_);
 }
 
-void GLFWViewer::drawTubeBasedShape(const Eigen::Matrix4f &transform,
+void GLRenderer::drawTubeBasedShape(const Eigen::Matrix4f &transform,
                                     float half_length, float radius,
                                     const Program &program,
                                     ProgramState &program_state,
@@ -788,7 +723,7 @@ void GLFWViewer::drawTubeBasedShape(const Eigen::Matrix4f &transform,
   tube_mesh_->draw();
 }
 
-void GLFWViewer::drawText(const Eigen::Matrix4f &transform, float half_height,
+void GLRenderer::drawText(const Eigen::Matrix4f &transform, float half_height,
                           const Program &program, ProgramState &program_state,
                           const std::string &str) const {
   std::vector<float> positions;
@@ -841,6 +776,93 @@ void GLFWViewer::drawText(const Eigen::Matrix4f &transform, float half_height,
   text_mesh_->draw();
 }
 
+std::string GLRenderer::loadString(const std::string &path) {
+  std::ifstream ifs(path);
+  if (!ifs.is_open()) {
+    throw std::runtime_error("Could not open file \"" + path + "\"");
+  }
+  std::stringstream ss;
+  ss << ifs.rdbuf();
+  return ss.str();
+}
+
+GLFWViewer::GLFWViewer(bool hidden) {
+  glfwSetErrorCallback(errorCallback);
+
+  if (!glfwInit()) {
+    throw std::runtime_error("Could not initialize GLFW");
+  }
+
+  // Require OpenGL 3.2 or higher
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
+  // Enable 4x MSAA
+  glfwWindowHint(GLFW_SAMPLES, 4);
+  if (hidden) {
+    glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+  }
+  window_ = glfwCreateWindow(1280, 720, "Robot Design Viewer", NULL, NULL);
+  if (!window_) {
+    throw std::runtime_error("Could not create GLFW window");
+  }
+
+  glfwMakeContextCurrent(window_);
+  // Load all available extensions even if they are not in the extensions string
+  glewExperimental = GL_TRUE;
+  glewInit();
+
+  // Create renderer (holder for OpenGL resources)
+  renderer_ = std::make_shared<GLRenderer>();
+
+  // Set up callbacks
+  // Allow accessing "this" from static callbacks
+  glfwSetWindowUserPointer(window_, this);
+  glfwSetFramebufferSizeCallback(window_, framebufferSizeCallback);
+  glfwSetKeyCallback(window_, keyCallback);
+  glfwSetMouseButtonCallback(window_, mouseButtonCallback);
+  glfwSetCursorPosCallback(window_, cursorPositionCallback);
+  glfwSetScrollCallback(window_, scrollCallback);
+
+  // Get initial framebuffer size
+  glfwGetFramebufferSize(window_, &framebuffer_width_, &framebuffer_height_);
+
+  // Set default camera parameters
+  camera_params_.pitch_ = -M_PI / 6;
+  camera_params_.distance_ = 2.0;
+}
+
+GLFWViewer::~GLFWViewer() {
+  glfwDestroyWindow(window_);
+  glfwTerminate();
+}
+
+void GLFWViewer::update(double dt) {
+  camera_controller_.update(camera_params_, dt);
+}
+
+void GLFWViewer::render(const Simulation &sim, int width, int height,
+                        const Framebuffer *target_framebuffer) {
+  if (width < 0 || height < 0) {
+    // Use default framebuffer size
+    width = framebuffer_width_;
+    height = framebuffer_height_;
+  }
+  float aspect_ratio = static_cast<float>(width) / height;
+  camera_params_.aspect_ratio_ = aspect_ratio;
+
+  renderer_->render(sim, camera_params_, width, height, target_framebuffer);
+
+  glfwSwapBuffers(window_);
+  glfwPollEvents();
+}
+
+void GLFWViewer::getFramebufferSize(int &width, int &height) const {
+  width = framebuffer_width_;
+  height = framebuffer_height_;
+}
+
+bool GLFWViewer::shouldClose() const { return glfwWindowShouldClose(window_); }
+
 void GLFWViewer::errorCallback(int error, const char *description) {
   std::cerr << "GLFW error: " << description << std::endl;
 }
@@ -882,16 +904,6 @@ void GLFWViewer::scrollCallback(GLFWwindow *window, double xoffset,
   GLFWViewer *viewer =
       static_cast<GLFWViewer *>(glfwGetWindowUserPointer(window));
   viewer->camera_controller_.handleScroll(xoffset, yoffset);
-}
-
-std::string GLFWViewer::loadString(const std::string &path) {
-  std::ifstream ifs(path);
-  if (!ifs.is_open()) {
-    throw std::runtime_error("Could not open file \"" + path + "\"");
-  }
-  std::stringstream ss;
-  ss << ifs.rdbuf();
-  return ss.str();
 }
 
 void makeOrthographicProjection(float aspect_ratio, float z_near, float z_far,
