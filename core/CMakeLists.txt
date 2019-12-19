@@ -42,6 +42,8 @@ add_subdirectory(${TINYXML2_ROOT} ${CMAKE_BINARY_DIR}/tinyxml2)
 
 add_library(${LIBRARY_NAME}
     src/bitmap_font.cpp
+    src/gl_renderer.cpp
+    src/glfw_viewer.cpp
     src/graph_build.cpp
     src/graph_io.cpp
     src/graph_rewrite.cpp
