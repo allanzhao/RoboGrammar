@@ -58,8 +58,6 @@ public:
   virtual void setFramebufferSize(int width, int height) override;
   bool shouldClose() const;
   static void errorCallback(int error, const char *description);
-  static void framebufferSizeCallback(GLFWwindow *window, int width,
-                                      int height);
   static void keyCallback(GLFWwindow *window, int key, int scancode, int action,
                           int mods);
   static void mouseButtonCallback(GLFWwindow *window, int button, int action,
@@ -74,9 +72,7 @@ public:
   FPSCameraController camera_controller_;
 
 private:
-  GLFWwindow *window_;
-  int framebuffer_width_;
-  int framebuffer_height_;
+  GLFWwindow *window_ = nullptr;
   std::shared_ptr<GLRenderer> renderer_;
 };
 

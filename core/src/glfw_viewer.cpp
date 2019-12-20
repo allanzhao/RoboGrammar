@@ -1,7 +1,5 @@
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
-#include <GL/glew.h>
-#include <GLFW/glfw3.h>
 #include <cmath>
 #include <iostream>
 #include <robot_design/glfw_viewer.h>
@@ -106,6 +104,7 @@ GLFWViewer::GLFWViewer(bool hidden) {
   }
 
   glfwMakeContextCurrent(window_);
+
   // Load all available extensions even if they are not in the extensions string
   glewExperimental = GL_TRUE;
   glewInit();
@@ -116,18 +115,10 @@ GLFWViewer::GLFWViewer(bool hidden) {
   // Set up callbacks
   // Allow accessing "this" from static callbacks
   glfwSetWindowUserPointer(window_, this);
-  glfwSetFramebufferSizeCallback(window_, framebufferSizeCallback);
   glfwSetKeyCallback(window_, keyCallback);
   glfwSetMouseButtonCallback(window_, mouseButtonCallback);
   glfwSetCursorPosCallback(window_, cursorPositionCallback);
   glfwSetScrollCallback(window_, scrollCallback);
-
-  // Get initial framebuffer size
-  glfwGetFramebufferSize(window_, &framebuffer_width_, &framebuffer_height_);
-
-  // Set default camera parameters
-  camera_params_.pitch_ = -M_PI / 6;
-  camera_params_.distance_ = 2.0;
 }
 
 GLFWViewer::~GLFWViewer() {
@@ -140,8 +131,8 @@ void GLFWViewer::update(double dt) {
 }
 
 void GLFWViewer::render(const Simulation &sim) {
-  int width = framebuffer_width_;
-  int height = framebuffer_height_;
+  int width, height;
+  getFramebufferSize(width, height);
   float aspect_ratio = static_cast<float>(width) / height;
   camera_params_.aspect_ratio_ = aspect_ratio;
 
@@ -152,14 +143,14 @@ void GLFWViewer::render(const Simulation &sim) {
 }
 
 void GLFWViewer::getImage(unsigned char *pixels) const {
+  int width, height;
+  getFramebufferSize(width, height);
   glReadBuffer(GL_FRONT);
-  glReadPixels(0, 0, framebuffer_width_, framebuffer_height_, GL_RGBA,
-               GL_UNSIGNED_BYTE, pixels);
+  glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
 }
 
 void GLFWViewer::getFramebufferSize(int &width, int &height) const {
-  width = framebuffer_width_;
-  height = framebuffer_height_;
+  glfwGetFramebufferSize(window_, &width, &height);
 }
 
 void GLFWViewer::setFramebufferSize(int width, int height) {
@@ -170,14 +161,6 @@ bool GLFWViewer::shouldClose() const { return glfwWindowShouldClose(window_); }
 
 void GLFWViewer::errorCallback(int error, const char *description) {
   std::cerr << "GLFW error: " << description << std::endl;
-}
-
-void GLFWViewer::framebufferSizeCallback(GLFWwindow *window, int width,
-                                         int height) {
-  GLFWViewer *viewer =
-      static_cast<GLFWViewer *>(glfwGetWindowUserPointer(window));
-  viewer->framebuffer_width_ = width;
-  viewer->framebuffer_height_ = height;
 }
 
 void GLFWViewer::keyCallback(GLFWwindow *window, int key, int scancode,

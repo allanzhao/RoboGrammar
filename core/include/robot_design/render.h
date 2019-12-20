@@ -171,8 +171,8 @@ struct CameraParameters {
   float fov_ = M_PI / 3;
   Eigen::Vector3f position_ = Eigen::Vector3f::Zero();
   float yaw_ = 0.0f;
-  float pitch_ = 0.0f;
-  float distance_ = 1.0f;
+  float pitch_ = -M_PI / 6;
+  float distance_ = 2.0f;
 };
 
 struct DirectionalLight {
