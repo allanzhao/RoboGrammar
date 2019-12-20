@@ -55,4 +55,11 @@ struct SumOfSquaresObjective {
   Scalar power_weight_ = 0.0;
 };
 
+struct DotProductObjective {
+  Scalar operator()(const Simulation &sim) const;
+
+  Vector3 base_dir_weight_ = Vector3::Zero();
+  Vector3 base_vel_weight_ = Vector3::Zero();
+};
+
 } // namespace robot_design

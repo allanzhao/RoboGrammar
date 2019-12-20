@@ -143,4 +143,21 @@ Scalar SumOfSquaresObjective::operator()(const Simulation &sim) const {
   return -cost * sim.getTimeStep();
 }
 
+Scalar DotProductObjective::operator()(const Simulation &sim) const {
+  Scalar reward = 0.0;
+  for (Index robot_idx = 0; robot_idx < sim.getRobotCount(); ++robot_idx) {
+    Matrix4 base_transform;
+    sim.getLinkTransform(robot_idx, 0, base_transform);
+    Vector6 base_vel;
+    sim.getLinkVelocity(robot_idx, 0, base_vel);
+    // Base direction term
+    Vector3 base_dir = base_transform.block<3, 1>(0, 0);
+    reward += base_dir.dot(base_dir_weight_);
+    // Base velocity term
+    reward += base_vel.tail<3>().dot(base_vel_weight_);
+  }
+  // Make the reward time step invariant
+  return reward * sim.getTimeStep();
+}
+
 } // namespace robot_design

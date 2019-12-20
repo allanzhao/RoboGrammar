@@ -9,10 +9,15 @@ namespace rd = robot_design;
 void initOptim(py::module &m) {
   py::class_<rd::MPPIOptimizer, std::shared_ptr<rd::MPPIOptimizer>>(
       m, "MPPIOptimizer")
-      // Only SumOfSquaresObjective is supported for now
+      // Only SumOfSquaresObjective and DotProductObjective are supported by the
+      // Python bindings for now
       .def(py::init<rd::Scalar, rd::Scalar, int, int, int, int, int,
                     unsigned int, const rd::MakeSimFunction &,
                     const rd::SumOfSquaresObjective &,
+                    const std::shared_ptr<const rd::ValueEstimator> &>())
+      .def(py::init<rd::Scalar, rd::Scalar, int, int, int, int, int,
+                    unsigned int, const rd::MakeSimFunction &,
+                    const rd::DotProductObjective &,
                     const std::shared_ptr<const rd::ValueEstimator> &>())
       .def("update", &rd::MPPIOptimizer::update,
            py::call_guard<py::gil_scoped_release>())
@@ -27,4 +32,12 @@ void initOptim(py::module &m) {
       .def_readwrite("base_vel_weight",
                      &rd::SumOfSquaresObjective::base_vel_weight_)
       .def_readwrite("power_weight", &rd::SumOfSquaresObjective::power_weight_);
+
+  py::class_<rd::DotProductObjective>(m, "DotProductObjective")
+      .def(py::init<>())
+      .def("__call__", &rd::DotProductObjective::operator())
+      .def_readwrite("base_dir_weight",
+                     &rd::DotProductObjective::base_dir_weight_)
+      .def_readwrite("base_vel_weight",
+                     &rd::DotProductObjective::base_vel_weight_);
 }
