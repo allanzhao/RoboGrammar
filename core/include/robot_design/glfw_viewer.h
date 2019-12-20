@@ -45,16 +45,17 @@ private:
   std::array<int, ACTION_COUNT> key_bindings_;
 };
 
-class GLFWViewer {
+class GLFWViewer : public Viewer {
 public:
   explicit GLFWViewer(bool hidden = false);
   virtual ~GLFWViewer();
   GLFWViewer(const GLFWViewer &other) = delete;
   GLFWViewer &operator=(const GLFWViewer &other) = delete;
-  void update(double dt);
-  void render(const Simulation &sim, int width = -1, int height = -1,
-              const Framebuffer *target_framebuffer = nullptr);
-  void getFramebufferSize(int &width, int &height) const;
+  virtual void update(double dt) override;
+  virtual void render(const Simulation &sim) override;
+  virtual void getImage(unsigned char *pixels) const override;
+  virtual void getFramebufferSize(int &width, int &height) const override;
+  virtual void setFramebufferSize(int width, int height) override;
   bool shouldClose() const;
   static void errorCallback(int error, const char *description);
   static void framebufferSizeCallback(GLFWwindow *window, int width,

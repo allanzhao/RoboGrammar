@@ -139,25 +139,31 @@ void GLFWViewer::update(double dt) {
   camera_controller_.update(camera_params_, dt);
 }
 
-void GLFWViewer::render(const Simulation &sim, int width, int height,
-                        const Framebuffer *target_framebuffer) {
-  if (width < 0 || height < 0) {
-    // Use default framebuffer size
-    width = framebuffer_width_;
-    height = framebuffer_height_;
-  }
+void GLFWViewer::render(const Simulation &sim) {
+  int width = framebuffer_width_;
+  int height = framebuffer_height_;
   float aspect_ratio = static_cast<float>(width) / height;
   camera_params_.aspect_ratio_ = aspect_ratio;
 
-  renderer_->render(sim, camera_params_, width, height, target_framebuffer);
+  renderer_->render(sim, camera_params_, width, height);
 
   glfwSwapBuffers(window_);
   glfwPollEvents();
 }
 
+void GLFWViewer::getImage(unsigned char *pixels) const {
+  glReadBuffer(GL_FRONT);
+  glReadPixels(0, 0, framebuffer_width_, framebuffer_height_, GL_RGBA,
+               GL_UNSIGNED_BYTE, pixels);
+}
+
 void GLFWViewer::getFramebufferSize(int &width, int &height) const {
   width = framebuffer_width_;
   height = framebuffer_height_;
+}
+
+void GLFWViewer::setFramebufferSize(int width, int height) {
+  glfwSetWindowSize(window_, width, height);
 }
 
 bool GLFWViewer::shouldClose() const { return glfwWindowShouldClose(window_); }

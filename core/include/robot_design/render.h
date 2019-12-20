@@ -315,6 +315,16 @@ private:
   std::shared_ptr<BitmapFont> font_;
 };
 
+class Viewer {
+public:
+  virtual ~Viewer() {}
+  virtual void update(double dt) = 0;
+  virtual void render(const Simulation &sim) = 0;
+  virtual void getImage(unsigned char *pixels) const = 0;
+  virtual void getFramebufferSize(int &width, int &height) const = 0;
+  virtual void setFramebufferSize(int width, int height) = 0;
+};
+
 void makeOrthographicProjection(float aspect_ratio, float z_near, float z_far,
                                 Ref<Eigen::Matrix4f> matrix);
 

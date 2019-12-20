@@ -145,35 +145,23 @@ int main(int argc, char **argv) {
 
   std::string save_image_path = args::get(save_image_flag);
   if (!save_image_path.empty()) {
-    GLFWViewer viewer(/*hidden=*/true);
+    GLFWViewer viewer(/*hidden=*/false);
     viewer.camera_params_.distance_ = 1.0;
+    viewer.update(time_step);
+    viewer.render(*main_sim);
     int fb_width, fb_height;
     viewer.getFramebufferSize(fb_width, fb_height);
-    Texture2D color_texture(
-        /*target=*/GL_TEXTURE_2D, /*level=*/0, /*internal_format=*/GL_RGBA,
-        /*width=*/fb_width, /*height=*/fb_height, /*format=*/GL_RGBA,
-        /*type=*/GL_UNSIGNED_BYTE, /*data=*/nullptr);
-    Texture2D depth_texture(
-        /*target=*/GL_TEXTURE_2D, /*level=*/0,
-        /*internal_format=*/GL_DEPTH_COMPONENT, /*width=*/fb_width,
-        /*height=*/fb_height, /*format=*/GL_DEPTH_COMPONENT, /*type=*/GL_FLOAT,
-        /*data=*/nullptr);
-    Framebuffer offscreen_fb;
-    offscreen_fb.attachColorTexture(color_texture);
-    offscreen_fb.attachDepthTexture(depth_texture);
-    viewer.update(time_step);
-    viewer.render(*main_sim, fb_width, fb_height, &offscreen_fb);
     std::unique_ptr<unsigned char[]> rgba(
         new unsigned char[4 * fb_width * fb_height]);
-    color_texture.getImage(rgba.get());
+    viewer.getImage(rgba.get());
     std::unique_ptr<unsigned char[]> rgba_flipped(
         new unsigned char[4 * fb_width * fb_height]);
     for (int i = 0; i < fb_height; ++i) {
       std::memcpy(&rgba_flipped[i * fb_width * 4],
                   &rgba[(fb_height - i - 1) * fb_width * 4], fb_width * 4);
     }
-    unsigned int error = lodepng::encode(
-        save_image_path, rgba_flipped.get(), fb_width, fb_height);
+    unsigned int error = lodepng::encode(save_image_path, rgba_flipped.get(),
+                                         fb_width, fb_height);
     if (error) {
       std::cerr << "Failed to save image: " << lodepng_error_text(error)
                 << std::endl;
