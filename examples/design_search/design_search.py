@@ -92,6 +92,7 @@ class RobotDesignEnv(mcts.Env):
         [10.0, 10.0, 10.0, 100.0, 0.0, 10.0])
     objective_fn.power_weight = 0.0 # Ignore power consumption
     opt_seed = self.rng.getrandbits(32)
+    self.latest_opt_seed = opt_seed
     optimizer = rd.MPPIOptimizer(100.0, self.discount_factor, dof_count,
                                  self.interval, self.horizon, 128,
                                  self.thread_count, opt_seed,
@@ -149,7 +150,7 @@ def main():
   print(f"Logging to '{log_path}'")
 
   with open(log_path, 'a', newline='') as log_file:
-    fieldnames = ['iteration', 'rule_seq', 'result']
+    fieldnames = ['iteration', 'rule_seq', 'opt_seed', 'result']
     writer = csv.DictWriter(log_file, fieldnames=fieldnames)
     writer.writeheader()
     log_file.flush()
@@ -159,7 +160,8 @@ def main():
 
       # Last action is always None
       rule_seq = [rules.index(rule) for rule in actions[:-1]]
-      writer.writerow({'iteration': i, 'rule_seq': rule_seq, 'result': result})
+      writer.writerow({'iteration': i, 'rule_seq': rule_seq,
+                       'opt_seed': env.latest_opt_seed, 'result': result})
       log_file.flush()
 
 if __name__ == '__main__':
