@@ -124,6 +124,8 @@ void updateEdgeAttributes(
     } else if (key == "scale") {
       std::istringstream in(value);
       in >> edge_attrs.scale_;
+    } else if (key == "mirror") {
+      edge_attrs.mirror_ = parseDOTBool(value);
     } else if (key == "color") {
       std::istringstream in(value);
       Color &color = edge_attrs.color_;

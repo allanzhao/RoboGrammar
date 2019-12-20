@@ -44,6 +44,7 @@ void initGraph(py::module &m) {
       .def_readwrite("joint_upper_limit",
                      &rd::EdgeAttributes::joint_upper_limit_)
       .def_readwrite("scale", &rd::EdgeAttributes::scale_)
+      .def_readwrite("mirror", &rd::EdgeAttributes::mirror_)
       .def_readwrite("color", &rd::EdgeAttributes::color_);
 
   py::class_<rd::Edge>(m, "Edge")

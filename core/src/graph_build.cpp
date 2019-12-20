@@ -23,6 +23,8 @@ Robot buildRobot(const Graph &graph) {
     std::string joint_label_;
     // Cumulative scaling factor
     Scalar scale_;
+    // Mirror subsequent links/joints across the xy plane
+    bool mirror_;
   };
 
   assert(!graph.nodes_.empty());
@@ -58,16 +60,24 @@ Robot buildRobot(const Graph &graph) {
       /*node=*/root_node, /*parent_link=*/-1, /*joint_type=*/JointType::FREE,
       /*joint_pos=*/0.0, /*joint_rot=*/Quaternion::Identity(),
       /*joint_axis=*/Vector3::Zero(), /*joint_color=*/Color::Zero(),
-      /*joint_label=*/"", /*scale=*/1.0}};
+      /*joint_label=*/"", /*scale=*/1.0, /*mirror=*/false}};
   while (!entries_to_expand.empty()) {
     NodeEntry &entry = entries_to_expand.front();
     const Node &node = graph.nodes_[entry.node_];
     // Add a link corresponding to this node
     Index link_index = robot.links_.size();
+    Quaternion joint_rot = entry.joint_rot_;
+    Vector3 joint_axis = entry.joint_axis_;
+    if (entry.mirror_) {
+      // Mirror parameters across xy plane
+      joint_rot.x() = -joint_rot.x();
+      joint_rot.y() = -joint_rot.y();
+      joint_axis(2) = -joint_axis(2);
+    }
     robot.links_.emplace_back(
         /*parent=*/entry.parent_link_, /*joint_type=*/entry.joint_type_,
-        /*joint_pos=*/entry.joint_pos_, /*joint_rot=*/entry.joint_rot_,
-        /*joint_axis=*/entry.joint_axis_, /*shape=*/node.attrs_.shape_,
+        /*joint_pos=*/entry.joint_pos_, /*joint_rot=*/joint_rot,
+        /*joint_axis=*/joint_axis, /*shape=*/node.attrs_.shape_,
         /*length=*/node.attrs_.length_, /*color=*/node.attrs_.color_,
         /*joint_color=*/entry.joint_color_, /*label=*/node.attrs_.label_,
         /*joint_label=*/entry.joint_label_);
@@ -83,7 +93,8 @@ Robot buildRobot(const Graph &graph) {
              /*joint_axis=*/edge.attrs_.joint_axis_,
              /*joint_color=*/edge.attrs_.color_,
              /*joint_label=*/edge.attrs_.label_,
-             /*scale=*/entry.scale_ * edge.attrs_.scale_});
+             /*scale=*/entry.scale_ * edge.attrs_.scale_,
+             /*mirror=*/entry.mirror_ != edge.attrs_.mirror_});
       }
     }
 

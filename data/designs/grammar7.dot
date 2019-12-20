@@ -51,7 +51,7 @@ digraph symmetric_appendages {
     prev -> body_link [id="prev_edges"];
     body_link -> next [id="next_edges"];
     body_link -> side_link [offset=0.5, axis_angle="0 1 0 90"];
-    body_link -> side_link [offset=0.5, axis_angle="0 1 0 -90", mirror=true];
+    body_link -> side_link [offset=0.5, axis_angle="0 1 0 90", mirror=true];
     side_link -> appendage_rest [label="appendage_joint"];
   }
 }

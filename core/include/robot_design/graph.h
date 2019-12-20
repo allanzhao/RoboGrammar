@@ -52,6 +52,7 @@ struct EdgeAttributes {
   Scalar joint_lower_limit_ = 0.0;
   Scalar joint_upper_limit_ = 0.0;
   Scalar scale_ = 1.0;
+  bool mirror_ = false;
   Color color_ = {1.0f, 0.5f, 0.3f}; // Coral
 
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
@@ -173,6 +174,7 @@ struct hash<robot_design::EdgeAttributes> {
     hashCombine(seed, edge_attrs.joint_lower_limit_);
     hashCombine(seed, edge_attrs.joint_upper_limit_);
     hashCombine(seed, edge_attrs.scale_);
+    hashCombine(seed, edge_attrs.mirror_);
     hashCombine(seed, edge_attrs.color_);
     return seed;
   }
