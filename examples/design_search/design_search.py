@@ -86,10 +86,11 @@ class RobotDesignEnv(mcts.Env):
 
     dof_count = main_sim.get_robot_dof_count(robot_idx)
     value_estimator = rd.NullValueEstimator()
-    objective_fn = rd.DotProductObjective()
-    # Base starts out pointing in the negative x direction
-    objective_fn.base_dir_weight = np.array([-10.0, 0.0, 0.0])
-    objective_fn.base_vel_weight = np.array([100.0, 0.0, 0.0])
+    objective_fn = rd.SumOfSquaresObjective()
+    objective_fn.base_vel_ref = np.array([0.0, 0.0, 0.0, 2.0, 0.0, 0.0])
+    objective_fn.base_vel_weight = np.array(
+        [10.0, 10.0, 10.0, 100.0, 0.0, 10.0])
+    objective_fn.power_weight = 0.0 # Ignore power consumption
     opt_seed = self.rng.getrandbits(32)
     optimizer = rd.MPPIOptimizer(100.0, self.discount_factor, dof_count,
                                  self.interval, self.horizon, 128,
