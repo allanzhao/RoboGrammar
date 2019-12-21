@@ -40,7 +40,7 @@ set(BUILD_TESTS OFF CACHE BOOL "Build TinyXML2 test programs")
 set(TINYXML2_ROOT ${PROJECT_SOURCE_DIR}/extern/tinyxml2)
 add_subdirectory(${TINYXML2_ROOT} ${CMAKE_BINARY_DIR}/tinyxml2)
 
-add_library(${LIBRARY_NAME}
+set(ROBOTDESIGN_SOURCES
     src/bitmap_font.cpp
     src/gl_renderer.cpp
     src/glfw_viewer.cpp
@@ -51,8 +51,12 @@ add_library(${LIBRARY_NAME}
     src/render.cpp
     src/sim.cpp
     src/value.cpp
+)
+
+add_library(${LIBRARY_NAME}
     ${BULLET_SOURCES}
     ${LODEPNG_SOURCES}
+    ${ROBOTDESIGN_SOURCES}
 )
 
 target_include_directories(${LIBRARY_NAME} PUBLIC
