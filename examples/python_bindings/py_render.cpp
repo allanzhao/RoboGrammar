@@ -1,4 +1,5 @@
 #include <pybind11/eigen.h>
+#include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
 #include <robot_design/glfw_viewer.h>
 #include <robot_design/render.h>
@@ -30,13 +31,23 @@ void initRender(py::module &m) {
       .def_readwrite("scroll_sensitivity",
                      &rd::FPSCameraController::scroll_sensitivity_);
 
-  py::class_<rd::GLFWViewer>(m, "GLFWViewer")
+  py::class_<rd::Viewer>(m, "Viewer")
+      .def("update", &rd::Viewer::update)
+      .def("render", &rd::Viewer::render)
+      .def("get_image", [](const rd::Viewer *self) {
+        int fb_width, fb_height;
+        self->getFramebufferSize(fb_width, fb_height);
+        // Each pixel has 4 color components (RGBA)
+        auto result = py::array_t<unsigned char>({fb_height, fb_width, 4});
+        self->getImage(result.mutable_data());
+        return result;
+      })
+      .def("get_framebuffer_size", &rd::Viewer::getFramebufferSize)
+      .def("set_framebuffer_size", &rd::Viewer::setFramebufferSize);
+
+  py::class_<rd::GLFWViewer, rd::Viewer>(m, "GLFWViewer")
       .def(py::init<>())
       .def(py::init<bool>())
-      .def("update", &rd::GLFWViewer::update)
-      .def("render", [](rd::GLFWViewer *self,
-                        const rd::Simulation &sim) { self->render(sim); })
-      .def("get_framebuffer_size", &rd::GLFWViewer::getFramebufferSize)
       .def("should_close", &rd::GLFWViewer::shouldClose)
       .def_readwrite("camera_params", &rd::GLFWViewer::camera_params_)
       .def_readwrite("camera_controller",
