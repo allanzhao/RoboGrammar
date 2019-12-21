@@ -1,5 +1,4 @@
 import argparse
-import contextlib
 import csv
 import datetime
 import mcts
@@ -7,6 +6,7 @@ import numpy as np
 import os
 import pyrobotdesign as rd
 import random
+import tasks
 
 def get_applicable_matches(rule, graph):
   """Generates all applicable matches for rule in graph."""
@@ -27,8 +27,9 @@ class RobotDesignEnv(mcts.Env):
   """Robot design environment where states are (graph, rule sequence) pairs and
   actions are rule applications."""
 
-  def __init__(self, rules, seed, time_step=1.0/240, discount_factor=0.99,
+  def __init__(self, task, rules, seed, time_step=1.0/240, discount_factor=0.99,
                interval=4, horizon=64, thread_count=16, episode_len=250):
+    self.task = task
     self.rules = rules
     self.rng = random.Random(seed)
     self.time_step = time_step
@@ -66,16 +67,11 @@ class RobotDesignEnv(mcts.Env):
     graph, rule_seq = state
 
     robot = rd.build_robot(graph)
-    floor = rd.Prop(0.0, 0.9, [10.0, 1.0, 10.0])
-    bump = rd.Prop(0.0, 0.9, [0.05, 0.10, 10.0])
     y_offset = find_y_offset(robot)
 
     def make_sim_fn():
       sim = rd.BulletSimulation(self.time_step)
-      sim.add_prop(floor, [0.0, -1.0, 0.0], rd.Quaterniond(1.0, 0.0, 0.0, 0.0))
-      for i in range(15):
-        sim.add_prop(bump, [0.5 + 0.5 * i, 0.0, 0.0],
-                     rd.Quaterniond(1.0, 0.0, 0.0, 0.0))
+      self.task.add_terrain(sim)
       # Rotate 180 degrees around the y axis, so the base points to the right
       sim.add_robot(robot, [0.0, y_offset, 0.0],
                     rd.Quaterniond(0.0, 0.0, 1.0, 0.0))
@@ -86,11 +82,7 @@ class RobotDesignEnv(mcts.Env):
 
     dof_count = main_sim.get_robot_dof_count(robot_idx)
     value_estimator = rd.NullValueEstimator()
-    objective_fn = rd.SumOfSquaresObjective()
-    objective_fn.base_vel_ref = np.array([0.0, 0.0, 0.0, 2.0, 0.0, 0.0])
-    objective_fn.base_vel_weight = np.array(
-        [10.0, 10.0, 10.0, 100.0, 0.0, 10.0])
-    objective_fn.power_weight = 0.0 # Ignore power consumption
+    objective_fn = self.task.get_objective_fn()
     opt_seed = self.rng.getrandbits(32)
     self.latest_opt_seed = opt_seed
     optimizer = rd.MPPIOptimizer(100.0, self.discount_factor, dof_count,
@@ -127,6 +119,7 @@ class RobotDesignEnv(mcts.Env):
 
 def main():
   parser = argparse.ArgumentParser(description="Robot design search demo.")
+  parser.add_argument("task", type=str, help="Task (Python class name)")
   parser.add_argument("grammar_file", type=str, help="Grammar file (.dot)")
   parser.add_argument("-s", "--seed", type=int, default=None,
                       help="Random seed")
@@ -138,9 +131,11 @@ def main():
                       help="Log directory")
   args = parser.parse_args()
 
+  task_class = getattr(tasks, args.task)
+  task = task_class()
   graphs = rd.load_graphs(args.grammar_file)
   rules = [rd.create_rule_from_graph(g) for g in graphs]
-  env = RobotDesignEnv(rules, args.seed)
+  env = RobotDesignEnv(task, rules, args.seed)
   tree_search = mcts.TreeSearch(env)
 
   os.makedirs(args.log_dir, exist_ok=True)
