@@ -32,7 +32,7 @@ digraph end_body {
   }
 
   subgraph R {
-    tail [shape=capsule, length=0.1];
+    tail [shape=capsule, length=0.2];
     prev -> tail [type=hinge, joint_axis="0 1 0"];
   }
 }
@@ -46,7 +46,7 @@ digraph symmetric_appendages {
 
   subgraph R {
     body_link [shape=capsule, length=0.25];
-    side_link [shape=capsule, length=0.1];
+    side_link [shape=capsule, length=0.15];
     appendage_rest [label="appendage_rest"];
     prev -> body_link [id="prev_edges"];
     body_link -> next [id="next_edges"];
@@ -152,22 +152,43 @@ digraph swing_joint {
   }
 }
 
+digraph bent_swing_joint {
+  subgraph L {
+    prev -> next [label="appendage_joint"];
+  }
+
+  subgraph R {
+    prev -> next [type=hinge, joint_axis="0 1 0", axis_angle="0 0 1 90",
+                  color="0 0.8 0"];
+  }
+}
+
 digraph lift_joint {
   subgraph L {
     prev -> next [label="appendage_joint"];
   }
 
   subgraph R {
-    prev -> next [type=hinge, joint_axis="0 0 1", axis_angle="0 0 1 60"];
+    prev -> next [type=hinge, joint_axis="0 0 1", axis_angle="0 0 1 30"];
   }
 }
 
-digraph roll_joint {
+digraph left_lift_joint {
   subgraph L {
     prev -> next [label="appendage_joint"];
   }
 
   subgraph R {
-    prev -> next [type=hinge, joint_axis="1 0 0", color="0.5 0 0.5"];
+    prev -> next [type=hinge, joint_axis="0 0 1", axis_angle="0 1 0 30"];
+  }
+}
+
+digraph right_lift_joint {
+  subgraph L {
+    prev -> next [label="appendage_joint"];
+  }
+
+  subgraph R {
+    prev -> next [type=hinge, joint_axis="0 0 1", axis_angle="0 1 0 -30"];
   }
 }
