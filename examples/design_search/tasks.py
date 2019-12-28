@@ -5,11 +5,11 @@ import pyrobotdesign as rd
 class Task(ABC):
   @abstractmethod
   def add_terrain(self, sim):
-    raise NotImplementedError
+    pass
 
   @abstractmethod
   def get_objective_fn(self):
-    raise NotImplementedError
+    pass
 
 class RidgedTerrainTask(Task):
   """
