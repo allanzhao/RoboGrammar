@@ -2,6 +2,7 @@
 #include <cstddef>
 #include <limits>
 #include <robot_design/sim.h>
+#include <robot_design/types.h>
 #include <robot_design/utils.h>
 #include <stdexcept>
 
@@ -42,17 +43,16 @@ Index BulletSimulation::addRobot(std::shared_ptr<const Robot> robot,
     std::shared_ptr<btCollisionShape> col_shape;
     switch (link.shape_) {
     case LinkShape::CAPSULE:
-      col_shape =
-          std::make_shared<btCapsuleShapeX>(robot->link_radius_, link.length_);
+      col_shape = std::make_shared<btCapsuleShapeX>(link.radius_, link.length_);
       break;
     case LinkShape::CYLINDER:
-      col_shape = std::make_shared<btCylinderShapeX>(btVector3{
-          0.5 * link.length_, robot->link_radius_, robot->link_radius_});
+      col_shape = std::make_shared<btCylinderShapeX>(
+          btVector3{0.5 * link.length_, link.radius_, link.radius_});
       break;
     default:
       throw std::runtime_error("Unexpected link shape");
     }
-    Scalar link_mass = link.length_ * robot->link_density_;
+    Scalar link_mass = link.length_ * link.density_;
     btVector3 link_inertia;
     col_shape->calculateLocalInertia(link_mass, link_inertia);
 
@@ -110,8 +110,20 @@ Index BulletSimulation::addRobot(std::shared_ptr<const Robot> robot,
   wrapper.multi_body_->setLinearDamping(0.0);
   wrapper.multi_body_->setAngularDamping(0.0);
 
-  // Initialize joint target positions and velocities, motor torques
   int dof_count = wrapper.multi_body_->getNumDofs();
+  wrapper.joint_kp_.resize(dof_count);
+  wrapper.joint_kd_.resize(dof_count);
+  int dof_idx = 0;
+  // The base link (index 0) has no actuated degrees of freedom
+  for (std::size_t i = 1; i < robot->links_.size(); ++i) {
+    // The first non-base link in Bullet has index 0
+    const btMultibodyLink &link = wrapper.multi_body_->getLink(i - 1);
+    for (int j = 0; j < link.m_dofCount; ++j) {
+      wrapper.joint_kp_(dof_idx) = robot->links_[i].joint_kp_;
+      wrapper.joint_kd_(dof_idx) = robot->links_[i].joint_kd_;
+      ++dof_idx;
+    }
+  }
   wrapper.joint_target_pos_ = VectorX::Zero(dof_count);
   wrapper.joint_target_vel_ = VectorX::Zero(dof_count);
   wrapper.joint_motor_torques_ = VectorX::Zero(dof_count);
@@ -120,9 +132,9 @@ Index BulletSimulation::addRobot(std::shared_ptr<const Robot> robot,
   wrapper.colliders_.resize(wrapper.col_shapes_.size());
   for (std::size_t i = 0; i < wrapper.col_shapes_.size(); ++i) {
     auto collider = std::make_shared<btMultiBodyLinkCollider>(
-        wrapper.multi_body_.get(), i - 1);
+        wrapper.multi_body_.get(), static_cast<int>(i) - 1);
     collider->setCollisionShape(wrapper.col_shapes_[i].get());
-    collider->setFriction(robot->friction_);
+    collider->setFriction(robot->links_[i].friction_);
     world_->addCollisionObject(collider.get(),
                                /*collisionFilterGroup=*/1,
                                /*collisionFilterMask=*/3);
@@ -365,9 +377,7 @@ void BulletSimulation::getRobotWorldAABB(Index robot_idx, Ref<Vector3> lower,
   }
 }
 
-Scalar BulletSimulation::getTimeStep() const {
-  return time_step_;
-}
+Scalar BulletSimulation::getTimeStep() const { return time_step_; }
 
 Vector3 BulletSimulation::getGravity() const {
   return eigenVector3FromBullet(world_->getGravity());
@@ -413,8 +423,9 @@ void BulletSimulation::step() {
     getJointVelocities(robot_idx, joint_vel);
     VectorX joint_pos_error = wrapper.joint_target_pos_ - joint_pos;
     VectorX joint_vel_error = wrapper.joint_target_vel_ - joint_vel;
-    wrapper.joint_motor_torques_ = wrapper.robot_->motor_kp_ * joint_pos_error +
-                                   wrapper.robot_->motor_kd_ * joint_vel_error;
+    wrapper.joint_motor_torques_ =
+        wrapper.joint_kp_.asDiagonal() * joint_pos_error +
+        wrapper.joint_kd_.asDiagonal() * joint_vel_error;
     // TODO: make the torque limits depend on gear ratio
     wrapper.joint_motor_torques_ =
         wrapper.joint_motor_torques_.array().max(-5.0).min(5.0);

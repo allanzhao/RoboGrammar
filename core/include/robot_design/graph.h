@@ -27,6 +27,9 @@ struct NodeAttributes {
   std::string label_ = "";
   LinkShape shape_ = LinkShape::NONE;
   Scalar length_ = 1.0;
+  Scalar radius_ = 0.05;
+  Scalar density_ = 0.5;
+  Scalar friction_ = 0.9;
   bool base_ = false;
   Color color_ = {0.45f, 0.5f, 0.55f}; // Slate gray
 
@@ -49,6 +52,8 @@ struct EdgeAttributes {
   Scalar joint_pos_ = 1.0;
   Quaternion joint_rot_ = Quaternion::Identity();
   Vector3 joint_axis_ = Vector3::UnitZ();
+  Scalar joint_kp_ = 2.0;
+  Scalar joint_kd_ = 0.1;
   Scalar joint_lower_limit_ = 0.0;
   Scalar joint_upper_limit_ = 0.0;
   Scalar scale_ = 1.0;
@@ -139,6 +144,9 @@ struct hash<robot_design::NodeAttributes> {
     hashCombine(seed, node_attrs.label_);
     hashCombine(seed, node_attrs.shape_);
     hashCombine(seed, node_attrs.length_);
+    hashCombine(seed, node_attrs.radius_);
+    hashCombine(seed, node_attrs.density_);
+    hashCombine(seed, node_attrs.friction_);
     hashCombine(seed, node_attrs.base_);
     hashCombine(seed, node_attrs.color_);
     return seed;
@@ -171,6 +179,8 @@ struct hash<robot_design::EdgeAttributes> {
     hashCombine(seed, edge_attrs.joint_pos_);
     hashCombine(seed, edge_attrs.joint_rot_);
     hashCombine(seed, edge_attrs.joint_axis_);
+    hashCombine(seed, edge_attrs.joint_kp_);
+    hashCombine(seed, edge_attrs.joint_kd_);
     hashCombine(seed, edge_attrs.joint_lower_limit_);
     hashCombine(seed, edge_attrs.joint_upper_limit_);
     hashCombine(seed, edge_attrs.scale_);

@@ -27,6 +27,11 @@ void initRobot(py::module &m) {
       .def_readwrite("joint_axis", &rd::Link::joint_axis_)
       .def_readwrite("shape", &rd::Link::shape_)
       .def_readwrite("length", &rd::Link::length_)
+      .def_readwrite("radius", &rd::Link::radius_)
+      .def_readwrite("density", &rd::Link::density_)
+      .def_readwrite("friction", &rd::Link::friction_)
+      .def_readwrite("joint_kp", &rd::Link::joint_kp_)
+      .def_readwrite("joint_kd", &rd::Link::joint_kd_)
       .def_readwrite("color", &rd::Link::color_)
       .def_readwrite("joint_color", &rd::Link::joint_color_)
       .def_readwrite("label", &rd::Link::label_)
@@ -34,10 +39,5 @@ void initRobot(py::module &m) {
 
   py::class_<rd::Robot, std::shared_ptr<rd::Robot>>(m, "Robot")
       .def(py::init<>())
-      .def_readwrite("link_density", &rd::Robot::link_density_)
-      .def_readwrite("link_radius", &rd::Robot::link_radius_)
-      .def_readwrite("friction", &rd::Robot::friction_)
-      .def_readwrite("motor_kp", &rd::Robot::motor_kp_)
-      .def_readwrite("motor_kd", &rd::Robot::motor_kd_)
       .def_readwrite("links", &rd::Robot::links_);
 }

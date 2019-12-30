@@ -17,6 +17,9 @@ void initGraph(py::module &m) {
       .def_readwrite("label", &rd::NodeAttributes::label_)
       .def_readwrite("shape", &rd::NodeAttributes::shape_)
       .def_readwrite("length", &rd::NodeAttributes::length_)
+      .def_readwrite("radius", &rd::NodeAttributes::radius_)
+      .def_readwrite("density", &rd::NodeAttributes::density_)
+      .def_readwrite("friction", &rd::NodeAttributes::friction_)
       .def_readwrite("base", &rd::NodeAttributes::base_)
       .def_readwrite("color", &rd::NodeAttributes::color_);
 
@@ -39,6 +42,8 @@ void initGraph(py::module &m) {
       .def_readwrite("joint_pos", &rd::EdgeAttributes::joint_pos_)
       .def_readwrite("joint_rot", &rd::EdgeAttributes::joint_rot_)
       .def_readwrite("joint_axis", &rd::EdgeAttributes::joint_axis_)
+      .def_readwrite("joint_kp", &rd::EdgeAttributes::joint_kp_)
+      .def_readwrite("joint_kd", &rd::EdgeAttributes::joint_kd_)
       .def_readwrite("joint_lower_limit",
                      &rd::EdgeAttributes::joint_lower_limit_)
       .def_readwrite("joint_upper_limit",

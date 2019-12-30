@@ -17,12 +17,16 @@ struct Link {
   Link() = default;
   Link(Index parent, JointType joint_type, Scalar joint_pos,
        const Quaternion &joint_rot, const Vector3 &joint_axis, LinkShape shape,
-       Scalar length, const Color &color, const Color &joint_color,
-       const std::string &label, const std::string &joint_label)
+       Scalar length, Scalar radius, Scalar density, Scalar friction,
+       Scalar joint_kp, Scalar joint_kd, const Color &color,
+       const Color &joint_color, const std::string &label,
+       const std::string &joint_label)
       : parent_(parent), joint_type_(joint_type), joint_pos_(joint_pos),
         joint_rot_(joint_rot), joint_axis_(joint_axis), shape_(shape),
-        length_(length), color_(color), joint_color_(joint_color),
-        label_(label), joint_label_(joint_label) {}
+        length_(length), radius_(radius), density_(density),
+        friction_(friction), joint_kp_(joint_kp), joint_kd_(joint_kd),
+        color_(color), joint_color_(joint_color), label_(label),
+        joint_label_(joint_label) {}
 
   // Parent link index (-1 for base link)
   Index parent_ = -1;
@@ -38,6 +42,16 @@ struct Link {
   LinkShape shape_ = LinkShape::CAPSULE;
   // Link length
   Scalar length_ = 1.0;
+  // Link radius
+  Scalar radius_ = 0.05;
+  // Link density
+  Scalar density_ = 0.5; // Mass per unit of length
+  // Link friction
+  Scalar friction_ = 0.9;
+  // Joint spring constant
+  Scalar joint_kp_ = 2.0;
+  // Joint damping coefficient
+  Scalar joint_kd_ = 0.1;
   // Link color for rendering
   Color color_ = {0.45f, 0.5f, 0.55f}; // Slate gray
   // Joint color for rendering
@@ -51,18 +65,6 @@ struct Link {
 };
 
 struct Robot {
-  Robot() = default;
-  Robot(Scalar link_density, Scalar link_radius, Scalar friction,
-        Scalar motor_kp, Scalar motor_kd)
-      : link_density_(link_density), link_radius_(link_radius),
-        friction_(friction), motor_kp_(motor_kp), motor_kd_(motor_kd),
-        links_() {}
-
-  Scalar link_density_ = 0.5; // Mass of links per unit of length
-  Scalar link_radius_ = 0.05;
-  Scalar friction_ = 0.9;
-  Scalar motor_kp_ = 2.0;
-  Scalar motor_kd_ = 0.1;
   std::vector<Link, Eigen::aligned_allocator<Link>> links_;
 };
 
@@ -70,16 +72,14 @@ struct Robot {
 
 namespace std {
 
-template <>
-struct hash<robot_design::LinkShape> {
+template <> struct hash<robot_design::LinkShape> {
   std::size_t operator()(const robot_design::LinkShape &link_shape) const {
     using type = typename std::underlying_type<robot_design::LinkShape>::type;
     return std::hash<type>()(static_cast<type>(link_shape));
   }
 };
 
-template <>
-struct hash<robot_design::JointType> {
+template <> struct hash<robot_design::JointType> {
   std::size_t operator()(const robot_design::JointType &joint_type) const {
     using type = typename std::underlying_type<robot_design::JointType>::type;
     return std::hash<type>()(static_cast<type>(joint_type));

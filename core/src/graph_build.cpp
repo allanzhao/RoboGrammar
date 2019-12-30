@@ -19,6 +19,8 @@ Robot buildRobot(const Graph &graph) {
     Scalar joint_pos_;
     Quaternion joint_rot_;
     Vector3 joint_axis_;
+    Scalar joint_kp_;
+    Scalar joint_kd_;
     Color joint_color_;
     std::string joint_label_;
     // Cumulative scaling factor
@@ -59,8 +61,9 @@ Robot buildRobot(const Graph &graph) {
   std::deque<NodeEntry> entries_to_expand = {NodeEntry{
       /*node=*/root_node, /*parent_link=*/-1, /*joint_type=*/JointType::FREE,
       /*joint_pos=*/0.0, /*joint_rot=*/Quaternion::Identity(),
-      /*joint_axis=*/Vector3::Zero(), /*joint_color=*/Color::Zero(),
-      /*joint_label=*/"", /*scale=*/1.0, /*mirror=*/false}};
+      /*joint_axis=*/Vector3::Zero(), /*joint_kp=*/0.0, /*joint_kd=*/0.0,
+      /*joint_color=*/Color::Zero(), /*joint_label=*/"", /*scale=*/1.0,
+      /*mirror=*/false}};
   while (!entries_to_expand.empty()) {
     NodeEntry &entry = entries_to_expand.front();
     const Node &node = graph.nodes_[entry.node_];
@@ -78,9 +81,11 @@ Robot buildRobot(const Graph &graph) {
         /*parent=*/entry.parent_link_, /*joint_type=*/entry.joint_type_,
         /*joint_pos=*/entry.joint_pos_, /*joint_rot=*/joint_rot,
         /*joint_axis=*/joint_axis, /*shape=*/node.attrs_.shape_,
-        /*length=*/node.attrs_.length_, /*color=*/node.attrs_.color_,
-        /*joint_color=*/entry.joint_color_, /*label=*/node.attrs_.label_,
-        /*joint_label=*/entry.joint_label_);
+        /*length=*/node.attrs_.length_, /*radius=*/node.attrs_.radius_,
+        /*density=*/node.attrs_.density_, /*friction=*/node.attrs_.friction_,
+        /*joint_kp=*/entry.joint_kp_, /*joint_kd=*/entry.joint_kd_,
+        /*color=*/node.attrs_.color_, /*joint_color=*/entry.joint_color_,
+        /*label=*/node.attrs_.label_, /*joint_label=*/entry.joint_label_);
 
     for (const Edge &edge : graph.edges_) {
       if (edge.tail_ == entry.node_) {
@@ -91,6 +96,8 @@ Robot buildRobot(const Graph &graph) {
              /*joint_pos=*/edge.attrs_.joint_pos_,
              /*joint_rot=*/edge.attrs_.joint_rot_,
              /*joint_axis=*/edge.attrs_.joint_axis_,
+             /*joint_kp=*/edge.attrs_.joint_kp_,
+             /*joint_kd=*/edge.attrs_.joint_kd_,
              /*joint_color=*/edge.attrs_.color_,
              /*joint_label=*/edge.attrs_.label_,
              /*scale=*/entry.scale_ * edge.attrs_.scale_,

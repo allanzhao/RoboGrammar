@@ -127,11 +127,11 @@ void GLRenderer::drawOpaque(const Simulation &sim, const Program &program,
       switch (link.shape_) {
       case LinkShape::CAPSULE:
         drawCapsule(link_transform.cast<float>(), link.length_ / 2,
-                    robot.link_radius_, program, program_state);
+                    link.radius_, program, program_state);
         break;
       case LinkShape::CYLINDER:
         drawCylinder(link_transform.cast<float>(), link.length_ / 2,
-                     robot.link_radius_, program, program_state);
+                     link.radius_, program, program_state);
         break;
       default:
         throw std::runtime_error("Unexpected link shape");
@@ -150,12 +150,12 @@ void GLRenderer::drawOpaque(const Simulation &sim, const Program &program,
         // Nothing to draw
         break;
       case JointType::HINGE:
-        drawCylinder(joint_transform.cast<float>(), robot.link_radius_,
-                     robot.link_radius_, program, program_state);
+        drawCylinder(joint_transform.cast<float>(), link.radius_, link.radius_,
+                     program, program_state);
         break;
       case JointType::FIXED:
         drawBox(joint_transform.cast<float>(),
-                Eigen::Vector3f::Constant(robot.link_radius_), program,
+                Eigen::Vector3f::Constant(link.radius_), program,
                 program_state);
         break;
       default:
@@ -187,7 +187,7 @@ void GLRenderer::drawLabels(const Simulation &sim, const Program &program,
 
       // Draw the link's label, if it has one
       if (!link.label_.empty()) {
-        drawText(link_transform.cast<float>(), robot.link_radius_, program,
+        drawText(link_transform.cast<float>(), link.radius_, program,
                  program_state, link.label_);
       }
 
@@ -196,7 +196,7 @@ void GLRenderer::drawLabels(const Simulation &sim, const Program &program,
         Matrix4 joint_transform =
             (Affine3(link_transform) * Translation3(-link.length_ / 2, 0, 0))
                 .matrix();
-        drawText(joint_transform.cast<float>(), robot.link_radius_, program,
+        drawText(joint_transform.cast<float>(), link.radius_, program,
                  program_state, link.joint_label_);
       }
     }

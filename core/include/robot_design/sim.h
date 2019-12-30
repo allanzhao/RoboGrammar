@@ -69,6 +69,8 @@ struct BulletRobotWrapper {
   std::shared_ptr<btMultiBody> multi_body_;
   std::vector<std::shared_ptr<btCollisionShape>> col_shapes_;
   std::vector<std::shared_ptr<btMultiBodyLinkCollider>> colliders_;
+  VectorX joint_kp_;
+  VectorX joint_kd_;
   VectorX joint_target_pos_;
   VectorX joint_target_vel_;
   VectorX joint_motor_torques_;
