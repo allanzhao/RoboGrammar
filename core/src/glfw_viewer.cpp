@@ -1,6 +1,7 @@
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
 #include <cmath>
+#include <cstdlib>
 #include <iostream>
 #include <robot_design/glfw_viewer.h>
 #include <robot_design/render.h>
@@ -110,7 +111,12 @@ GLFWViewer::GLFWViewer(bool hidden) {
   glewInit();
 
   // Create renderer (holder for OpenGL resources)
-  renderer_ = std::make_shared<GLRenderer>();
+  const char *data_dir = std::getenv("ROBOT_DESIGN_DATA_DIR");
+  if (!data_dir) {
+    // Data directory was not provided, use the default
+    data_dir = "data/";
+  }
+  renderer_ = std::make_shared<GLRenderer>(data_dir);
 
   // Set up callbacks
   // Allow accessing "this" from static callbacks

@@ -275,7 +275,7 @@ struct ProgramState {
 
 class GLRenderer {
 public:
-  GLRenderer();
+  GLRenderer(const std::string &data_dir);
   void render(const Simulation &sim, const CameraParameters &camera_params,
               int width, int height,
               const Framebuffer *target_framebuffer = nullptr);

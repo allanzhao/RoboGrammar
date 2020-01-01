@@ -10,21 +10,24 @@
 
 namespace robot_design {
 
-GLRenderer::GLRenderer() {
+GLRenderer::GLRenderer(const std::string &data_dir) {
   // Create default shader program
-  std::string default_vs_source = loadString("data/shaders/default.vert.glsl");
-  std::string default_fs_source = loadString("data/shaders/default.frag.glsl");
+  std::string default_vs_source = loadString(data_dir +
+                                             "shaders/default.vert.glsl");
+  std::string default_fs_source = loadString(data_dir +
+                                             "shaders/default.frag.glsl");
   default_program_ =
       std::make_shared<Program>(default_vs_source, default_fs_source);
 
   // Create depth shader program
-  std::string depth_vs_source = loadString("data/shaders/depth.vert.glsl");
+  std::string depth_vs_source = loadString(data_dir +
+                                           "shaders/depth.vert.glsl");
   std::string depth_fs_source; // Empty string (no fragment shader needed)
   depth_program_ = std::make_shared<Program>(depth_vs_source, depth_fs_source);
 
   // Create MSDF text shader program
-  std::string msdf_vs_source = loadString("data/shaders/msdf.vert.glsl");
-  std::string msdf_fs_source = loadString("data/shaders/msdf.frag.glsl");
+  std::string msdf_vs_source = loadString(data_dir + "shaders/msdf.vert.glsl");
+  std::string msdf_fs_source = loadString(data_dir + "shaders/msdf.frag.glsl");
   msdf_program_ = std::make_shared<Program>(msdf_vs_source, msdf_fs_source);
 
   // Create meshes
@@ -43,8 +46,8 @@ GLRenderer::GLRenderer() {
       /*sm_width=*/2048, /*sm_height=*/2048, /*sm_cascade_count=*/5);
 
   // Load font
-  font_ = std::make_shared<BitmapFont>("data/fonts/OpenSans-Regular.fnt",
-                                       "data/fonts");
+  font_ = std::make_shared<BitmapFont>(data_dir + "fonts/OpenSans-Regular.fnt",
+                                       data_dir + "fonts");
 
   // Enable depth test
   glEnable(GL_DEPTH_TEST);
