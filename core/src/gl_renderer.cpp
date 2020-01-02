@@ -148,18 +148,18 @@ void GLRenderer::drawOpaque(const Simulation &sim, const Program &program,
           (Affine3(link_transform) * Translation3(-link.length_ / 2, 0, 0) *
            Affine3(joint_axis_rotation))
               .matrix();
+      float joint_size = 1.05 * link.radius_;
       switch (link.joint_type_) {
       case JointType::FREE:
         // Nothing to draw
         break;
       case JointType::HINGE:
-        drawCylinder(joint_transform.cast<float>(), link.radius_, link.radius_,
+        drawCylinder(joint_transform.cast<float>(), joint_size, joint_size,
                      program, program_state);
         break;
       case JointType::FIXED:
         drawBox(joint_transform.cast<float>(),
-                Eigen::Vector3f::Constant(link.radius_), program,
-                program_state);
+                Eigen::Vector3f::Constant(joint_size), program, program_state);
         break;
       default:
         throw std::runtime_error("Unexpected joint type");
