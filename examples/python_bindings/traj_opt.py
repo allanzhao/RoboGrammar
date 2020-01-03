@@ -3,7 +3,7 @@ import pyrobotdesign as rd
 import time
 import utils
 
-graphs = rd.load_graphs('data/designs/cheetah.dot')
+graphs = rd.load_graphs('data/designs/grammar_dec21.dot')
 rules = [rd.create_rule_from_graph(g) for g in graphs]
 
 n0 = rd.Node()
@@ -12,7 +12,10 @@ n0.attrs.label = 'robot'
 robot_graph = rd.Graph()
 robot_graph.nodes = [n0]
 
-rule_sequence = [0, 1, 1, 3, 6, 2, 6, 5, 5]
+preview = False
+
+#rule_sequence = [0, 2, 2, 4, 7, 3, 7, 6, 6] # Similar to MIT Cheetah
+rule_sequence = [1, 2, 2, 2, 5, 6, 5, 6, 5, 6, 7, 7, 7] # Similar to CMU snake hexapod
 for r in rule_sequence:
   matches = rd.find_matches(rules[r].lhs, robot_graph)
   if matches:
@@ -64,8 +67,9 @@ objective_fn.power_weight = 0.0 # Ignore power consumption
 optimizer = rd.MPPIOptimizer(100.0, discount_factor, dof_count, interval,
                              horizon, 128, thread_count, opt_seed, make_sim_fn,
                              objective_fn, value_estimator)
-for _ in range(10):
-  optimizer.update()
+if not preview:
+  for _ in range(10):
+    optimizer.update()
 
 main_sim.save_state()
 
@@ -73,17 +77,18 @@ input_sequence = np.zeros((dof_count, episode_len))
 obs = np.zeros((value_estimator.get_observation_size(), episode_len + 1),
                order='f')
 rewards = np.zeros(episode_len)
-for j in range(episode_len):
-  optimizer.update()
-  input_sequence[:,j] = optimizer.input_sequence[:,0]
-  optimizer.advance(1)
+if not preview:
+  for j in range(episode_len):
+    optimizer.update()
+    input_sequence[:,j] = optimizer.input_sequence[:,0]
+    optimizer.advance(1)
 
-  value_estimator.get_observation(main_sim, obs[:,j])
-  rewards[j] = 0.0;
-  for i in range(interval):
-    main_sim.set_joint_target_positions(robot_idx, input_sequence[:,j])
-    main_sim.step()
-    rewards[j] += objective_fn(main_sim)
+    value_estimator.get_observation(main_sim, obs[:,j])
+    rewards[j] = 0.0;
+    for i in range(interval):
+      main_sim.set_joint_target_positions(robot_idx, input_sequence[:,j])
+      main_sim.step()
+      rewards[j] += objective_fn(main_sim)
 value_estimator.get_observation(main_sim, obs[:,-1])
 
 print('Total reward: {:f}'.format(rewards.sum()))
