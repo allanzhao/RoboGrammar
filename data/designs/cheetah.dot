@@ -4,7 +4,7 @@ digraph body_4_legs {
   }
 
   subgraph R {
-    chassis [shape=capsule, length=0.5, base=true];
+    chassis [shape=capsule, length=0.3, base=true];
     front_leg_mount [shape=capsule, length=0.125];
     back_leg_mount [shape=capsule, length=0.125];
     front_legs_ph [label="leg_ph"];
@@ -28,7 +28,7 @@ digraph leg_3_segments {
     segment_ph_1 [label="segment_ph"];
     segment_ph_2 [label="segment_ph"];
     segment_ph_3 [label="segment_ph"];
-    foot [shape=capsule, length=0.15];
+    foot [shape=capsule, length=0.05];
     parent -> segment_ph_1 [id="parent_edges"];
     segment_ph_1 -> segment_ph_2 -> segment_ph_3 -> foot;
   }

@@ -428,7 +428,7 @@ void BulletSimulation::step() {
         wrapper.joint_kd_.asDiagonal() * joint_vel_error;
     // TODO: make the torque limits depend on gear ratio
     wrapper.joint_motor_torques_ =
-        wrapper.joint_motor_torques_.array().max(-5.0).min(5.0);
+        wrapper.joint_motor_torques_.array().max(-2.0).min(2.0);
     addJointTorques(robot_idx, wrapper.joint_motor_torques_);
   }
   world_->stepSimulation(time_step_, 0, time_step_);

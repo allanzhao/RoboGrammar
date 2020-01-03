@@ -6,7 +6,7 @@ import time
 
 random.seed(sys.argv[1])
 
-graphs = rd.load_graphs('data/designs/grammar7.dot')
+graphs = rd.load_graphs('data/designs/cheetah.dot')
 rules = [rd.create_rule_from_graph(g) for g in graphs]
 
 n0 = rd.Node()

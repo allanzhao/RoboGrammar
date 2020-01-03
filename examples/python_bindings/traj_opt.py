@@ -3,7 +3,7 @@ import pyrobotdesign as rd
 import time
 import utils
 
-graphs = rd.load_graphs('data/designs/grammar7.dot')
+graphs = rd.load_graphs('data/designs/cheetah.dot')
 rules = [rd.create_rule_from_graph(g) for g in graphs]
 
 n0 = rd.Node()
@@ -12,7 +12,7 @@ n0.attrs.label = 'robot'
 robot_graph = rd.Graph()
 robot_graph.nodes = [n0]
 
-rule_sequence = [0, 1, 1, 2, 3, 3, 3, 5, 5, 5, 7, 7, 7, 8, 8, 8, 8, 8, 8, 11, 11, 11, 10, 10, 10]
+rule_sequence = [0, 1, 1, 3, 6, 2, 6, 5, 5]
 for r in rule_sequence:
   matches = rd.find_matches(rules[r].lhs, robot_graph)
   if matches:
