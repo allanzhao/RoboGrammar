@@ -136,6 +136,7 @@ Index BulletSimulation::addRobot(std::shared_ptr<const Robot> robot,
         wrapper.multi_body_.get(), static_cast<int>(i) - 1);
     collider->setCollisionShape(wrapper.col_shapes_[i].get());
     collider->setFriction(robot->links_[i].friction_);
+    collider->setUserPointer(const_cast<Robot *>(robot.get()));
     world_->addCollisionObject(collider.get(),
                                /*collisionFilterGroup=*/1,
                                /*collisionFilterMask=*/3);
@@ -376,6 +377,28 @@ void BulletSimulation::getRobotWorldAABB(Index robot_idx, Ref<Vector3> lower,
       upper = upper.cwiseMax(eigenVector3FromBullet(link_upper));
     }
   }
+}
+
+bool BulletSimulation::robotHasCollision(Index robot_idx) const {
+  const Robot *robot = robot_wrappers_[robot_idx].robot_.get();
+  int manifold_count = dispatcher_->getNumManifolds();
+  for (int i = 0; i < manifold_count; ++i) {
+    const btPersistentManifold *manifold =
+        dispatcher_->getManifoldByIndexInternal(i);
+    if (manifold->getBody0()->getUserPointer() == robot ||
+        manifold->getBody1()->getUserPointer() == robot) {
+      // Contact involves at least one of the robot's bodies
+      int contact_count = manifold->getNumContacts();
+      for (int j = 0; j < contact_count; ++j) {
+        const btManifoldPoint &manifold_point = manifold->getContactPoint(j);
+        if (manifold_point.getDistance() < 0) {
+          // Bodies are intersecting
+          return true;
+        }
+      }
+    }
+  }
+  return false;
 }
 
 Scalar BulletSimulation::getTimeStep() const { return time_step_; }

@@ -14,14 +14,17 @@ def get_applicable_matches(rule, graph):
     if rd.check_rule_applicability(rule, graph, match):
       yield match
 
-def find_y_offset(robot):
-  """Finds an initial y offset that will place the robot on the ground."""
+def presimulate(robot):
+  """Find an initial y offset that will place the robot on the ground, and check
+  if the robot collides in its initial configuration."""
   temp_sim = rd.BulletSimulation()
   temp_sim.add_robot(robot, np.zeros(3), rd.Quaterniond(1.0, 0.0, 0.0, 0.0))
+  robot_idx = temp_sim.find_robot_index(robot)
   lower = np.zeros(3)
   upper = np.zeros(3)
-  temp_sim.get_robot_world_aabb(temp_sim.find_robot_index(robot), lower, upper)
-  return -lower[1]
+  temp_sim.get_robot_world_aabb(robot_idx, lower, upper)
+  temp_sim.step() # Needed to find collisions
+  return -lower[1], temp_sim.robot_has_collision(robot_idx)
 
 class RobotDesignEnv(mcts.Env):
   """Robot design environment where states are (graph, rule sequence) pairs and
@@ -67,7 +70,10 @@ class RobotDesignEnv(mcts.Env):
     graph, rule_seq = state
 
     robot = rd.build_robot(graph)
-    y_offset = find_y_offset(robot)
+    y_offset, has_self_collision = presimulate(robot)
+
+    if has_self_collision:
+      return 0.0
 
     def make_sim_fn():
       sim = rd.BulletSimulation(self.time_step)

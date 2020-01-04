@@ -34,16 +34,22 @@ thread_count = 16
 opt_seed = 0
 episode_len = 250
 
-# Find an initial y offset that will place the robot precisely on the ground
-def find_y_offset(robot):
+# 1) Find an initial y offset that will place the robot precisely on the ground
+# 2) Check if the robot collides in its initial configuration
+def presimulate(robot):
   temp_sim = rd.BulletSimulation(time_step)
   temp_sim.add_robot(robot, np.zeros(3), rd.Quaterniond(1.0, 0.0, 0.0, 0.0))
+  robot_idx = temp_sim.find_robot_index(robot)
   lower = np.zeros(3)
   upper = np.zeros(3)
-  temp_sim.get_robot_world_aabb(temp_sim.find_robot_index(robot), lower, upper)
-  return -lower[1]
+  temp_sim.get_robot_world_aabb(robot_idx, lower, upper)
+  temp_sim.step() # Needed to find collisions
+  return -lower[1], temp_sim.robot_has_collision(robot_idx)
 
-y_offset = find_y_offset(robot)
+y_offset, has_self_collision = presimulate(robot)
+
+if has_self_collision:
+  print("Warning: robot self-collides in its initial configuration")
 
 def make_sim_fn():
   sim = rd.BulletSimulation(time_step)

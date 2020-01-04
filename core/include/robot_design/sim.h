@@ -55,6 +55,7 @@ public:
                                const Ref<const VectorX> &torque) = 0;
   virtual void getRobotWorldAABB(Index robot_idx, Ref<Vector3> lower,
                                  Ref<Vector3> upper) const = 0;
+  virtual bool robotHasCollision(Index robot_idx) const = 0;
   virtual Scalar getTimeStep() const = 0;
   virtual Vector3 getGravity() const = 0;
   virtual void setGravity(const Ref<const Vector3> &gravity) = 0;
@@ -141,6 +142,7 @@ public:
                                const Ref<const VectorX> &torque) override;
   virtual void getRobotWorldAABB(Index robot_idx, Ref<Vector3> lower,
                                  Ref<Vector3> upper) const override;
+  virtual bool robotHasCollision(Index robot_idx) const override;
   virtual Scalar getTimeStep() const override;
   virtual Vector3 getGravity() const override;
   virtual void setGravity(const Ref<const Vector3> &gravity) override;
