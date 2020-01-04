@@ -139,8 +139,8 @@ Scalar SumOfSquaresObjective::operator()(const Simulation &sim) const {
     Scalar power = motor_torques.dot(joint_vel);
     cost += power_weight_ * power * power;
   }
-  // Negate the cost to turn it into a reward, and make it time step invariant
-  return -cost * sim.getTimeStep();
+  // Negate the cost to turn it into a reward
+  return -cost;
 }
 
 Scalar DotProductObjective::operator()(const Simulation &sim) const {
@@ -156,8 +156,7 @@ Scalar DotProductObjective::operator()(const Simulation &sim) const {
     // Base velocity term
     reward += base_vel.tail<3>().dot(base_vel_weight_);
   }
-  // Make the reward time step invariant
-  return reward * sim.getTimeStep();
+  return reward;
 }
 
 } // namespace robot_design

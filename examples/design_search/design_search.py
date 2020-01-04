@@ -73,6 +73,7 @@ class RobotDesignEnv(mcts.Env):
     y_offset, has_self_collision = presimulate(robot)
 
     if has_self_collision:
+      self.latest_opt_seed = 0
       return 0.0
 
     def make_sim_fn():
@@ -101,29 +102,22 @@ class RobotDesignEnv(mcts.Env):
     main_sim.save_state()
 
     input_sequence = np.zeros((dof_count, self.episode_len))
-    obs = np.zeros(
-        (value_estimator.get_observation_size(), self.episode_len + 1),
-        order='f')
-    rewards = np.zeros(self.episode_len)
+    rewards = np.zeros(self.episode_len * self.interval)
     for j in range(self.episode_len):
       optimizer.update()
       input_sequence[:,j] = optimizer.input_sequence[:,0]
       optimizer.advance(1)
 
-      value_estimator.get_observation(main_sim, obs[:,j])
-      rewards[j] = 0.0;
-      for i in range(self.interval):
+      for k in range(self.interval):
         main_sim.set_joint_target_positions(robot_idx, input_sequence[:,j])
         main_sim.step()
-        rewards[j] += objective_fn(main_sim)
-    value_estimator.get_observation(main_sim, obs[:,-1])
+        rewards[j * self.interval + k] = objective_fn(main_sim)
 
     # Apply normalization
     # Result should be zero for a stationary robot and one for perfect tracking
     base_vel_ref = objective_fn.base_vel_ref
     base_vel_weight = objective_fn.base_vel_weight
-    reward_scale = self.time_step * \
-                   base_vel_ref.dot(np.diag(base_vel_weight)).dot(base_vel_ref)
+    reward_scale = base_vel_ref.dot(np.diag(base_vel_weight)).dot(base_vel_ref)
     return np.mean(rewards) / reward_scale + 1.0
 
   def get_key(self, state):
@@ -142,6 +136,8 @@ def main():
   parser.add_argument("-l", "--log_dir", type=str, default='',
                       help="Log directory")
   args = parser.parse_args()
+
+  random.seed(args.seed)
 
   task_class = getattr(tasks, args.task)
   task = task_class()
