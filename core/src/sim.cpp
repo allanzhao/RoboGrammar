@@ -13,6 +13,7 @@ BulletSimulation::BulletSimulation(Scalar time_step) : time_step_(time_step) {
   dispatcher_ =
       std::make_shared<btCollisionDispatcher>(collision_config_.get());
   pair_cache_ = std::make_shared<btHashedOverlappingPairCache>();
+  pair_cache_->setOverlapFilterCallback(&overlap_filter_callback_);
   broadphase_ = std::make_shared<btDbvtBroadphase>(pair_cache_.get());
   solver_ = std::make_shared<btMultiBodyConstraintSolver>();
   world_ = std::make_shared<btMultiBodyDynamicsWorld>(
@@ -433,6 +434,34 @@ void BulletSimulation::step() {
   }
   world_->stepSimulation(time_step_, 0, time_step_);
   world_->forwardKinematics(); // Update m_cachedWorldTransform for every link
+}
+
+bool BulletSimulation::OverlapFilterCallback::needBroadphaseCollision(
+    btBroadphaseProxy *proxy0, btBroadphaseProxy *proxy1) const {
+  // Ignore collisions between links rigidly attached to the same ancestor link
+  auto *collider0 = btMultiBodyLinkCollider::upcast(
+      static_cast<btCollisionObject *>(proxy0->m_clientObject));
+  auto *collider1 = btMultiBodyLinkCollider::upcast(
+      static_cast<btCollisionObject *>(proxy1->m_clientObject));
+  if (collider0 && collider1 &&
+      collider0->m_multiBody == collider1->m_multiBody) {
+    // Both objects are links, and they are part of the same multibody
+    btMultiBody *multi_body = collider0->m_multiBody;
+    // Walk up the kinematic tree, traversing fixed joints only
+    int link0 = collider0->m_link;
+    while (link0 >= 0 &&
+           multi_body->getLink(link0).m_jointType == btMultibodyLink::eFixed) {
+      link0 = multi_body->getParent(link0);
+    }
+    int link1 = collider1->m_link;
+    while (link1 >= 0 &&
+           multi_body->getLink(link1).m_jointType == btMultibodyLink::eFixed) {
+      link1 = multi_body->getParent(link1);
+    }
+    return link0 != link1;
+  } else {
+    return true;
+  }
 }
 
 } // namespace robot_design

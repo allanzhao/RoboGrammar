@@ -149,10 +149,16 @@ public:
   virtual void step() override;
 
 private:
+  struct OverlapFilterCallback : public btOverlapFilterCallback {
+    virtual bool needBroadphaseCollision(
+        btBroadphaseProxy *proxy0, btBroadphaseProxy *proxy1) const override;
+  };
+
   void unregisterRobotWrapper(BulletRobotWrapper &robot_wrapper);
   void unregisterPropWrapper(BulletPropWrapper &prop_wrapper);
 
   Scalar time_step_;
+  OverlapFilterCallback overlap_filter_callback_;
   std::shared_ptr<btDefaultCollisionConfiguration> collision_config_;
   std::shared_ptr<btHashedOverlappingPairCache> pair_cache_;
   std::shared_ptr<btCollisionDispatcher> dispatcher_;
