@@ -38,6 +38,8 @@ void initOptim(py::module &m) {
       .def("__call__", &rd::DotProductObjective::operator())
       .def_readwrite("base_dir_weight",
                      &rd::DotProductObjective::base_dir_weight_)
+      .def_readwrite("base_up_weight",
+                     &rd::DotProductObjective::base_up_weight_)
       .def_readwrite("base_vel_weight",
                      &rd::DotProductObjective::base_vel_weight_);
 }

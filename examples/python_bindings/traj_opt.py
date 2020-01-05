@@ -66,10 +66,10 @@ robot_idx = main_sim.find_robot_index(robot)
 
 dof_count = main_sim.get_robot_dof_count(robot_idx)
 value_estimator = rd.NullValueEstimator()
-objective_fn = rd.SumOfSquaresObjective()
-objective_fn.base_vel_ref = np.array([0.0, 0.0, 0.0, 2.0, 0.0, 0.0])
-objective_fn.base_vel_weight = np.array([10.0, 10.0, 10.0, 100.0, 0.0, 10.0])
-objective_fn.power_weight = 0.0 # Ignore power consumption
+objective_fn = rd.DotProductObjective()
+objective_fn.base_dir_weight = np.array([-1.0, 0.0, 0.0])
+objective_fn.base_up_weight = np.array([0.0, 1.0, 0.0])
+objective_fn.base_vel_weight = np.array([2.0, 0.0, 0.0])
 optimizer = rd.MPPIOptimizer(100.0, discount_factor, dof_count, interval,
                              horizon, 128, thread_count, opt_seed, make_sim_fn,
                              objective_fn, value_estimator)

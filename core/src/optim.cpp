@@ -153,6 +153,9 @@ Scalar DotProductObjective::operator()(const Simulation &sim) const {
     // Base direction term
     Vector3 base_dir = base_transform.block<3, 1>(0, 0);
     reward += base_dir.dot(base_dir_weight_);
+    // Base up vector term
+    Vector3 base_up = base_transform.block<3, 1>(0, 1);
+    reward += base_up.dot(base_up_weight_);
     // Base velocity term
     reward += base_vel.tail<3>().dot(base_vel_weight_);
   }
