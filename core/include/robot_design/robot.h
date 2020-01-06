@@ -45,13 +45,13 @@ struct Link {
   // Link radius
   Scalar radius_ = 0.05;
   // Link density
-  Scalar density_ = 0.5; // Mass per unit of length
+  Scalar density_ = 1.0; // Mass per unit of length
   // Link friction
   Scalar friction_ = 0.9;
   // Joint spring constant
   Scalar joint_kp_ = 2.0;
   // Joint damping coefficient
-  Scalar joint_kd_ = 0.1;
+  Scalar joint_kd_ = 0.5;
   // Link color for rendering
   Color color_ = {0.45f, 0.5f, 0.55f}; // Slate gray
   // Joint color for rendering

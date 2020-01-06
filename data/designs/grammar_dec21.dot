@@ -4,9 +4,9 @@ digraph body_4_legs {
   }
 
   subgraph R {
-    chassis [shape=capsule, length=0.3, base=true];
-    front_leg_mount [shape=capsule, length=0.125];
-    back_leg_mount [shape=capsule, length=0.125];
+    chassis [shape=capsule, length=0.3, density=5.0, base=true];
+    front_leg_mount [shape=capsule, length=0.1, radius=0.025];
+    back_leg_mount [shape=capsule, length=0.1, radius=0.025];
     front_legs_ph [label="leg_ph"];
     back_legs_ph [label="leg_ph"];
     chassis -> front_leg_mount [offset=0.0, axis_angle="0 1 0 90"];
@@ -24,10 +24,10 @@ digraph body_6_legs {
   }
 
   subgraph R {
-    chassis [shape=capsule, length=0.3, base=true];
-    front_leg_mount [shape=capsule, length=0.125];
-    middle_leg_mount [shape=capsule, length=0.125];
-    back_leg_mount [shape=capsule, length=0.125];
+    chassis [shape=capsule, length=0.3, density=5.0, base=true];
+    front_leg_mount [shape=capsule, length=0.1, radius=0.025];
+    middle_leg_mount [shape=capsule, length=0.1, radius=0.025];
+    back_leg_mount [shape=capsule, length=0.1, radius=0.025];
     front_legs_ph [label="leg_ph"];
     middle_legs_ph [label="leg_ph"];
     back_legs_ph [label="leg_ph"];
@@ -54,7 +54,7 @@ digraph leg_3_segments {
     segment_ph_1 [label="segment_ph"];
     segment_ph_2 [label="segment_ph"];
     segment_ph_3 [label="segment_ph"];
-    foot [shape=capsule, length=0.05];
+    foot [shape=capsule, length=0.05, radius=0.025];
     parent -> segment_ph_1 [id="parent_edges"];
     segment_ph_1 -> segment_ph_2 -> segment_ph_3 -> foot;
   }
@@ -68,7 +68,7 @@ digraph left_roll_segment {
   }
 
   subgraph R {
-    link [shape=capsule, length=0.15];
+    link [shape=capsule, length=0.1, radius=0.025];
     parent -> link [type=hinge, axis_angle="0 1 0 -90", joint_axis="1 0 0"];
     link -> child [id="child_edges"];
   }
@@ -82,7 +82,7 @@ digraph right_roll_segment {
   }
 
   subgraph R {
-    link [shape=capsule, length=0.15];
+    link [shape=capsule, length=0.1, radius=0.025];
     parent -> link [type=hinge, axis_angle="0 1 0 90", joint_axis="1 0 0"];
     link -> child [id="child_edges"];
   }
@@ -96,7 +96,7 @@ digraph swing_segment {
   }
 
   subgraph R {
-    link [shape=capsule, length=0.15];
+    link [shape=capsule, length=0.1, radius=0.025];
     parent -> link [type=hinge, joint_axis="0 1 0", color="0 0.5 0"];
     link -> child [id="child_edges"];
   }
@@ -110,7 +110,7 @@ digraph bent_lift_segment {
   }
 
   subgraph R {
-    link [shape=capsule, length=0.15];
+    link [shape=capsule, length=0.15, radius=0.025];
     parent -> link [type=hinge, axis_angle="0 0 1 90", joint_axis="0 0 1"];
     link -> child [id="child_edges"];
   }
@@ -124,7 +124,7 @@ digraph straight_lift_segment {
   }
 
   subgraph R {
-    link [shape=capsule, length=0.15];
+    link [shape=capsule, length=0.15, radius=0.025];
     parent -> link [type=hinge, joint_axis="0 0 1"];
     link -> child [id="child_edges"];
   }
