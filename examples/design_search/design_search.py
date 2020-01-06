@@ -112,12 +112,7 @@ class RobotDesignEnv(mcts.Env):
         main_sim.step()
         rewards[j * self.interval + k] = objective_fn(main_sim)
 
-    # Apply normalization
-    # Result should be zero for a stationary robot and one for perfect tracking
-    base_vel_ref = objective_fn.base_vel_ref
-    base_vel_weight = objective_fn.base_vel_weight
-    reward_scale = base_vel_ref.dot(np.diag(base_vel_weight)).dot(base_vel_ref)
-    return np.mean(rewards) / reward_scale + 1.0
+    return np.mean(rewards)
 
   def get_key(self, state):
     return hash(state[0])

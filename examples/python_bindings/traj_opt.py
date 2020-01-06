@@ -68,7 +68,7 @@ value_estimator = rd.NullValueEstimator()
 objective_fn = rd.DotProductObjective()
 objective_fn.base_dir_weight = np.array([-1.0, 0.0, 0.0])
 objective_fn.base_up_weight = np.array([0.0, 1.0, 0.0])
-objective_fn.base_vel_weight = np.array([2.0, 0.0, 0.0])
+objective_fn.base_vel_weight = np.array([1.0, 0.0, 0.0])
 optimizer = rd.MPPIOptimizer(100.0, discount_factor, dof_count, interval,
                              horizon, 128, thread_count, opt_seed, make_sim_fn,
                              objective_fn, value_estimator)

@@ -20,11 +20,10 @@ class RidgedTerrainTask(Task):
     self.floor = rd.Prop(0.0, 0.9, [10.0, 1.0, 10.0])
     self.bump = rd.Prop(0.0, 0.9, [0.05, 0.10, 10.0])
 
-    self.objective_fn = rd.SumOfSquaresObjective()
-    self.objective_fn.base_vel_ref = np.array([0.0, 0.0, 0.0, 2.0, 0.0, 0.0])
-    self.objective_fn.base_vel_weight = np.array(
-        [10.0, 10.0, 10.0, 100.0, 0.0, 10.0])
-    self.objective_fn.power_weight = 0.0 # Ignore power consumption
+    self.objective_fn = rd.DotProductObjective()
+    self.objective_fn.base_dir_weight = np.array([-1.0, 0.0, 0.0])
+    self.objective_fn.base_up_weight = np.array([0.0, 1.0, 0.0])
+    self.objective_fn.base_vel_weight = np.array([1.0, 0.0, 0.0])
 
   def add_terrain(self, sim):
     sim.add_prop(self.floor, [0.0, -1.0, 0.0],
