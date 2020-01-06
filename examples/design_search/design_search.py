@@ -15,16 +15,16 @@ def get_applicable_matches(rule, graph):
       yield match
 
 def presimulate(robot):
-  """Find an initial y offset that will place the robot on the ground, and check
-  if the robot collides in its initial configuration."""
+  """Find an initial position that will place the robot on the ground behind the
+  x=0 plane, and check if the robot collides in its initial configuration."""
   temp_sim = rd.BulletSimulation()
-  temp_sim.add_robot(robot, np.zeros(3), rd.Quaterniond(1.0, 0.0, 0.0, 0.0))
+  temp_sim.add_robot(robot, np.zeros(3), rd.Quaterniond(0.0, 0.0, 1.0, 0.0))
+  temp_sim.step()
   robot_idx = temp_sim.find_robot_index(robot)
   lower = np.zeros(3)
   upper = np.zeros(3)
   temp_sim.get_robot_world_aabb(robot_idx, lower, upper)
-  temp_sim.step() # Needed to find collisions
-  return -lower[1], temp_sim.robot_has_collision(robot_idx)
+  return [-upper[0], -lower[1], 0.0], temp_sim.robot_has_collision(robot_idx)
 
 class RobotDesignEnv(mcts.Env):
   """Robot design environment where states are (graph, rule sequence) pairs and
@@ -70,7 +70,7 @@ class RobotDesignEnv(mcts.Env):
     graph, rule_seq = state
 
     robot = rd.build_robot(graph)
-    y_offset, has_self_collision = presimulate(robot)
+    robot_init_pos, has_self_collision = presimulate(robot)
 
     if has_self_collision:
       self.latest_opt_seed = 0
@@ -80,8 +80,7 @@ class RobotDesignEnv(mcts.Env):
       sim = rd.BulletSimulation(self.time_step)
       self.task.add_terrain(sim)
       # Rotate 180 degrees around the y axis, so the base points to the right
-      sim.add_robot(robot, [0.0, y_offset, 0.0],
-                    rd.Quaterniond(0.0, 0.0, 1.0, 0.0))
+      sim.add_robot(robot, robot_init_pos, rd.Quaterniond(0.0, 0.0, 1.0, 0.0))
       return sim
 
     main_sim = make_sim_fn()
