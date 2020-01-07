@@ -28,7 +28,7 @@ struct NodeAttributes {
   LinkShape shape_ = LinkShape::NONE;
   Scalar length_ = 1.0;
   Scalar radius_ = 0.05;
-  Scalar density_ = 0.5;
+  Scalar density_ = 1.0;
   Scalar friction_ = 0.9;
   bool base_ = false;
   Color color_ = {0.45f, 0.5f, 0.55f}; // Slate gray
@@ -53,7 +53,7 @@ struct EdgeAttributes {
   Quaternion joint_rot_ = Quaternion::Identity();
   Vector3 joint_axis_ = Vector3::UnitZ();
   Scalar joint_kp_ = 2.0;
-  Scalar joint_kd_ = 0.1;
+  Scalar joint_kd_ = 0.02;
   Scalar joint_lower_limit_ = 0.0;
   Scalar joint_upper_limit_ = 0.0;
   Scalar scale_ = 1.0;

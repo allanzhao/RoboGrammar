@@ -51,7 +51,7 @@ struct Link {
   // Joint spring constant
   Scalar joint_kp_ = 2.0;
   // Joint damping coefficient
-  Scalar joint_kd_ = 0.5;
+  Scalar joint_kd_ = 0.02;
   // Link color for rendering
   Color color_ = {0.45f, 0.5f, 0.55f}; // Slate gray
   // Joint color for rendering
