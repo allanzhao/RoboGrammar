@@ -112,6 +112,11 @@ class RobotDesignEnv(mcts.Env):
         main_sim.step()
         rewards[j * self.interval + k] = objective_fn(main_sim)
 
+    # FIXME: Workaround for unstable simulation
+    if np.mean(rewards) > 5.0:
+      # Simulation probably exploded
+      return 0.0
+
     return np.mean(rewards)
 
   def get_key(self, state):
