@@ -110,6 +110,8 @@ Index BulletSimulation::addRobot(std::shared_ptr<const Robot> robot,
   world_->addMultiBody(wrapper.multi_body_.get());
   wrapper.multi_body_->setLinearDamping(0.0);
   wrapper.multi_body_->setAngularDamping(0.0);
+  wrapper.multi_body_->clearForcesAndTorques();
+  wrapper.multi_body_->clearVelocities();
 
   int dof_count = wrapper.multi_body_->getNumDofs();
   wrapper.joint_kp_.resize(dof_count);
