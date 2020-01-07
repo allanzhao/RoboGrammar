@@ -110,7 +110,7 @@ digraph bent_lift_segment {
   }
 
   subgraph R {
-    link [shape=capsule, length=0.15, radius=0.025];
+    link [shape=capsule, length=0.1, radius=0.025];
     parent -> link [type=hinge, axis_angle="0 0 1 90", joint_axis="0 0 1"];
     link -> child [id="child_edges"];
   }
@@ -124,7 +124,7 @@ digraph straight_lift_segment {
   }
 
   subgraph R {
-    link [shape=capsule, length=0.15, radius=0.025];
+    link [shape=capsule, length=0.1, radius=0.025];
     parent -> link [type=hinge, joint_axis="0 0 1"];
     link -> child [id="child_edges"];
   }
