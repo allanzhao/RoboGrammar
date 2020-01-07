@@ -16,7 +16,14 @@ class RidgedTerrainTask(Task):
   Task where the objective is to track a target velocity over ridged terrain.
   """
 
-  def __init__(self):
+  def __init__(self, time_step=1.0/240, discount_factor=0.99, interval=4,
+               horizon=64, episode_len=250):
+    self.time_step = time_step
+    self.discount_factor = discount_factor
+    self.interval = interval
+    self.horizon = horizon
+    self.episode_len = episode_len
+
     self.floor = rd.Prop(0.0, 0.9, [10.0, 1.0, 10.0])
     self.bump = rd.Prop(0.0, 0.9, [0.05, 0.10, 10.0])
 

@@ -26,21 +26,64 @@ def presimulate(robot):
   temp_sim.get_robot_world_aabb(robot_idx, lower, upper)
   return [-upper[0], -lower[1], 0.0], temp_sim.robot_has_collision(robot_idx)
 
+def simulate(robot, task, opt_seed, thread_count):
+  """Run trajectory optimization for the robot on the given task, and return the
+  resulting input sequence and result."""
+  robot_init_pos, has_self_collision = presimulate(robot)
+
+  if has_self_collision:
+    return None, 0.0
+
+  def make_sim_fn():
+    sim = rd.BulletSimulation(task.time_step)
+    task.add_terrain(sim)
+    # Rotate 180 degrees around the y axis, so the base points to the right
+    sim.add_robot(robot, robot_init_pos, rd.Quaterniond(0.0, 0.0, 1.0, 0.0))
+    return sim
+
+  main_sim = make_sim_fn()
+  robot_idx = main_sim.find_robot_index(robot)
+
+  dof_count = main_sim.get_robot_dof_count(robot_idx)
+  value_estimator = rd.NullValueEstimator()
+  objective_fn = task.get_objective_fn()
+  optimizer = rd.MPPIOptimizer(100.0, task.discount_factor, dof_count,
+                               task.interval, task.horizon, 128, thread_count,
+                               opt_seed, make_sim_fn, objective_fn,
+                               value_estimator)
+  for _ in range(10):
+    optimizer.update()
+
+  main_sim.save_state()
+
+  input_sequence = np.zeros((dof_count, task.episode_len))
+  rewards = np.zeros(task.episode_len * task.interval)
+  for j in range(task.episode_len):
+    optimizer.update()
+    input_sequence[:,j] = optimizer.input_sequence[:,0]
+    optimizer.advance(1)
+
+    for k in range(task.interval):
+      main_sim.set_joint_target_positions(robot_idx, input_sequence[:,j])
+      main_sim.step()
+      rewards[j * task.interval + k] = objective_fn(main_sim)
+
+  # FIXME: Workaround for unstable simulation
+  if np.mean(rewards) > 5.0:
+    # Simulation probably exploded
+    return None, 0.0
+
+  return input_sequence, np.mean(rewards)
+
 class RobotDesignEnv(mcts.Env):
   """Robot design environment where states are (graph, rule sequence) pairs and
   actions are rule applications."""
 
-  def __init__(self, task, rules, seed, time_step=1.0/240, discount_factor=0.99,
-               interval=4, horizon=64, thread_count=16, episode_len=250):
+  def __init__(self, task, rules, seed, thread_count):
     self.task = task
     self.rules = rules
     self.rng = random.Random(seed)
-    self.time_step = time_step
-    self.discount_factor = discount_factor
-    self.interval = interval
-    self.horizon = horizon
     self.thread_count = thread_count
-    self.episode_len = episode_len
 
     # Create initial robot graph
     n0 = rd.Node()
@@ -68,56 +111,18 @@ class RobotDesignEnv(mcts.Env):
 
   def get_result(self, state):
     graph, rule_seq = state
-
     robot = rd.build_robot(graph)
-    robot_init_pos, has_self_collision = presimulate(robot)
-
-    if has_self_collision:
-      self.latest_opt_seed = 0
-      return 0.0
-
-    def make_sim_fn():
-      sim = rd.BulletSimulation(self.time_step)
-      self.task.add_terrain(sim)
-      # Rotate 180 degrees around the y axis, so the base points to the right
-      sim.add_robot(robot, robot_init_pos, rd.Quaterniond(0.0, 0.0, 1.0, 0.0))
-      return sim
-
-    main_sim = make_sim_fn()
-    robot_idx = main_sim.find_robot_index(robot)
-
-    dof_count = main_sim.get_robot_dof_count(robot_idx)
-    value_estimator = rd.NullValueEstimator()
-    objective_fn = self.task.get_objective_fn()
     opt_seed = self.rng.getrandbits(32)
-    self.latest_opt_seed = opt_seed
-    optimizer = rd.MPPIOptimizer(100.0, self.discount_factor, dof_count,
-                                 self.interval, self.horizon, 128,
-                                 self.thread_count, opt_seed,
-                                 make_sim_fn, objective_fn, value_estimator)
-    for _ in range(10):
-      optimizer.update()
+    input_sequence, result = simulate(robot, self.task, opt_seed,
+                                      self.thread_count)
 
-    main_sim.save_state()
+    if input_sequence is not None:
+      # Trajectory optimization was successful
+      self.latest_opt_seed = opt_seed
+    else:
+      self.latest_opt_seed = 0
 
-    input_sequence = np.zeros((dof_count, self.episode_len))
-    rewards = np.zeros(self.episode_len * self.interval)
-    for j in range(self.episode_len):
-      optimizer.update()
-      input_sequence[:,j] = optimizer.input_sequence[:,0]
-      optimizer.advance(1)
-
-      for k in range(self.interval):
-        main_sim.set_joint_target_positions(robot_idx, input_sequence[:,j])
-        main_sim.step()
-        rewards[j * self.interval + k] = objective_fn(main_sim)
-
-    # FIXME: Workaround for unstable simulation
-    if np.mean(rewards) > 5.0:
-      # Simulation probably exploded
-      return 0.0
-
-    return np.mean(rewards)
+    return result
 
   def get_key(self, state):
     return hash(state[0])
@@ -142,7 +147,7 @@ def main():
   task = task_class()
   graphs = rd.load_graphs(args.grammar_file)
   rules = [rd.create_rule_from_graph(g) for g in graphs]
-  env = RobotDesignEnv(task, rules, args.seed)
+  env = RobotDesignEnv(task, rules, args.seed, args.jobs)
   tree_search = mcts.TreeSearch(env)
 
   os.makedirs(args.log_dir, exist_ok=True)
