@@ -19,7 +19,11 @@ void initRobot(py::module &m) {
       .value("FIXED", rd::JointType::FIXED);
 
   py::class_<rd::Link>(m, "Link")
-      .def(py::init<>())
+      .def(py::init<rd::Index, rd::JointType, rd::Scalar,
+                    const rd::Quaternion &, const rd::Vector3 &, rd::LinkShape,
+                    rd::Scalar, rd::Scalar, rd::Scalar, rd::Scalar, rd::Scalar,
+                    rd::Scalar, const rd::Color &, const rd::Color &,
+                    const std::string &, const std::string &>())
       .def_readwrite("parent", &rd::Link::parent_)
       .def_readwrite("joint_type", &rd::Link::joint_type_)
       .def_readwrite("joint_pos", &rd::Link::joint_pos_)
