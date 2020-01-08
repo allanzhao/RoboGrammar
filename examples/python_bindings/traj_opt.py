@@ -1,5 +1,6 @@
 import numpy as np
 import pyrobotdesign as rd
+import random
 import time
 import utils
 
@@ -28,11 +29,11 @@ bump = rd.Prop(0.0, 0.9, [0.05, 0.10, 10.0])
 
 time_step = 1.0 / 240
 discount_factor = 0.99
-interval = 4
-horizon = 64
+interval = 16
+horizon = 16
 thread_count = 16
-opt_seed = 0
-episode_len = 250
+episode_len = 128
+opt_seed = random.getrandbits(32)
 
 # 1) Find an initial position that will place the robot on the ground behind x=0
 # 2) Check if the robot collides in its initial configuration
