@@ -82,7 +82,7 @@ main_sim.save_state()
 input_sequence = np.zeros((dof_count, episode_len))
 obs = np.zeros((value_estimator.get_observation_size(), episode_len + 1),
                order='f')
-rewards = np.zeros(episode_len)
+rewards = np.zeros(episode_len * interval)
 if not preview:
   for j in range(episode_len):
     optimizer.update()
@@ -90,14 +90,13 @@ if not preview:
     optimizer.advance(1)
 
     value_estimator.get_observation(main_sim, obs[:,j])
-    rewards[j] = 0.0;
-    for i in range(interval):
+    for k in range(interval):
       main_sim.set_joint_target_positions(robot_idx, input_sequence[:,j])
       main_sim.step()
-      rewards[j] += objective_fn(main_sim)
+      rewards[j * interval + k] = objective_fn(main_sim)
 value_estimator.get_observation(main_sim, obs[:,-1])
 
-print('Total reward: {:f}'.format(rewards.sum()))
+print('Mean reward: {:f}'.format(np.mean(rewards)))
 
 main_sim.restore_state()
 utils.view_trajectory(main_sim, robot_idx, input_sequence, time_step, interval)
