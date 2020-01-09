@@ -11,7 +11,7 @@ namespace robot_design {
 
 enum class LinkShape : Index { NONE, CAPSULE, CYLINDER };
 
-enum class JointType : Index { FREE, HINGE, FIXED };
+enum class JointType : Index { NONE, FREE, HINGE, FIXED };
 
 struct Link {
   Link(Index parent, JointType joint_type, Scalar joint_pos,

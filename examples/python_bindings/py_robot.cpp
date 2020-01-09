@@ -14,6 +14,7 @@ void initRobot(py::module &m) {
       .value("CYLINDER", rd::LinkShape::CYLINDER);
 
   py::enum_<rd::JointType>(m, "JointType")
+      .value("NONE", rd::JointType::NONE)
       .value("FREE", rd::JointType::FREE)
       .value("HINGE", rd::JointType::HINGE)
       .value("FIXED", rd::JointType::FIXED);

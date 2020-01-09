@@ -9,10 +9,12 @@ digraph body_4_legs {
     back_leg_mount [shape=capsule, length=0.1, radius=0.025];
     front_legs_ph [label="leg_ph"];
     back_legs_ph [label="leg_ph"];
-    chassis -> front_leg_mount [offset=0.0, axis_angle="0 1 0 90"];
-    chassis -> front_leg_mount [offset=0.0, axis_angle="0 1 0 90", mirror=true];
-    chassis -> back_leg_mount [offset=1.0, axis_angle="0 1 0 90"];
-    chassis -> back_leg_mount [offset=1.0, axis_angle="0 1 0 90", mirror=true];
+    chassis -> front_leg_mount [type=fixed, offset=0.0, axis_angle="0 1 0 90"];
+    chassis -> front_leg_mount [type=fixed, offset=0.0, axis_angle="0 1 0 90",
+                                mirror=true];
+    chassis -> back_leg_mount [type=fixed, offset=1.0, axis_angle="0 1 0 90"];
+    chassis -> back_leg_mount [type=fixed, offset=1.0, axis_angle="0 1 0 90",
+                               mirror=true];
     front_leg_mount -> front_legs_ph;
     back_leg_mount -> back_legs_ph;
   }
@@ -31,13 +33,15 @@ digraph body_6_legs {
     front_legs_ph [label="leg_ph"];
     middle_legs_ph [label="leg_ph"];
     back_legs_ph [label="leg_ph"];
-    chassis -> front_leg_mount [offset=0.0, axis_angle="0 1 0 90"];
-    chassis -> front_leg_mount [offset=0.0, axis_angle="0 1 0 90", mirror=true];
-    chassis -> middle_leg_mount [offset=0.5, axis_angle="0 1 0 90"];
-    chassis -> middle_leg_mount [offset=0.5, axis_angle="0 1 0 90",
+    chassis -> front_leg_mount [type=fixed, offset=0.0, axis_angle="0 1 0 90"];
+    chassis -> front_leg_mount [type=fixed, offset=0.0, axis_angle="0 1 0 90",
+                                mirror=true];
+    chassis -> middle_leg_mount [type=fixed, offset=0.5, axis_angle="0 1 0 90"];
+    chassis -> middle_leg_mount [type=fixed, offset=0.5, axis_angle="0 1 0 90",
                                  mirror=true];
-    chassis -> back_leg_mount [offset=1.0, axis_angle="0 1 0 90"];
-    chassis -> back_leg_mount [offset=1.0, axis_angle="0 1 0 90", mirror=true];
+    chassis -> back_leg_mount [type=fixed, offset=1.0, axis_angle="0 1 0 90"];
+    chassis -> back_leg_mount [type=fixed, offset=1.0, axis_angle="0 1 0 90",
+                               mirror=true];
     front_leg_mount -> front_legs_ph;
     middle_leg_mount -> middle_legs_ph;
     back_leg_mount -> back_legs_ph;
@@ -56,7 +60,8 @@ digraph leg_3_segments {
     segment_ph_3 [label="segment_ph"];
     foot [shape=capsule, length=0.05, radius=0.025];
     parent -> segment_ph_1 [id="parent_edges"];
-    segment_ph_1 -> segment_ph_2 -> segment_ph_3 -> foot;
+    segment_ph_1 -> segment_ph_2 -> segment_ph_3;
+    segment_ph_3 -> foot [type=fixed];
   }
 }
 

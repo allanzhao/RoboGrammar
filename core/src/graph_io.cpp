@@ -100,7 +100,9 @@ void updateEdgeAttributes(
     } else if (key == "label") {
       edge_attrs.label_ = value;
     } else if (key == "type") {
-      if (value == "free") {
+      if (value == "none") {
+        edge_attrs.joint_type_ = JointType::NONE;
+      } else if (value == "free") {
         edge_attrs.joint_type_ = JointType::FREE;
       } else if (value == "hinge") {
         edge_attrs.joint_type_ = JointType::HINGE;

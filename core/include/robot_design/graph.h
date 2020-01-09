@@ -48,7 +48,7 @@ struct EdgeAttributes {
 
   std::string id_ = "";
   std::string label_ = "";
-  JointType joint_type_ = JointType::FIXED;
+  JointType joint_type_ = JointType::NONE;
   Scalar joint_pos_ = 1.0;
   Quaternion joint_rot_ = Quaternion::Identity();
   Vector3 joint_axis_ = Vector3::UnitZ();
