@@ -75,6 +75,15 @@ def simulate(robot, task, opt_seed, thread_count):
 
   return input_sequence, np.mean(rewards)
 
+def make_initial_graph():
+  """Make an initial robot graph."""
+  n0 = rd.Node()
+  n0.name = 'robot'
+  n0.attrs.label = 'robot'
+  initial_graph = rd.Graph()
+  initial_graph.nodes = [n0]
+  return initial_graph
+
 class RobotDesignEnv(mcts.Env):
   """Robot design environment where states are (graph, rule sequence) pairs and
   actions are rule applications."""
@@ -84,13 +93,7 @@ class RobotDesignEnv(mcts.Env):
     self.rules = rules
     self.rng = random.Random(seed)
     self.thread_count = thread_count
-
-    # Create initial robot graph
-    n0 = rd.Node()
-    n0.name = 'robot'
-    n0.attrs.label = 'robot'
-    self.initial_graph = rd.Graph()
-    self.initial_graph.nodes = [n0]
+    self.initial_graph = make_initial_graph()
 
   @property
   def initial_state(self):
