@@ -49,7 +49,7 @@ def main():
   graphs = rd.load_graphs(args.grammar_file)
   rules = [rd.create_rule_from_graph(g) for g in graphs]
 
-  rule_sequence = [int(s) for s in args.rule_sequence]
+  rule_sequence = [int(s.strip(",")) for s in args.rule_sequence]
   if args.opt_seed is not None:
     opt_seed = args.opt_seed
   else:
