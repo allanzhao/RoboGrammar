@@ -168,9 +168,9 @@ void GLRenderer::drawOpaque(const Simulation &sim, const Program &program,
   }
 
   // Draw props
-  program_state.setObjectColor({0.8f, 0.7f, 0.6f}); // Tan
   for (Index prop_idx = 0; prop_idx < sim.getPropCount(); ++prop_idx) {
     const Prop &prop = *sim.getProp(prop_idx);
+    program_state.setObjectColor(prop.color_);
     Matrix4 prop_transform;
     sim.getPropTransform(prop_idx, prop_transform);
     drawBox(prop_transform.cast<float>(), prop.half_extents_.cast<float>(),
