@@ -115,11 +115,20 @@ void MPPIOptimizer::advanceSimulation(int sample_idx, int step_count) {
 void MPPIOptimizer::sampleInputSequence(Ref<MatrixX> rand_input_seq,
                                         unsigned int sample_seed) const {
   std::mt19937 generator(sample_seed);
-  std::normal_distribution<Scalar> distribution(0.0, 0.1);
-  rand_input_seq =
-      input_sequence_ + MatrixX::NullaryExpr(dof_count_, horizon_, [&]() {
-        return distribution(generator);
-      });
+  std::normal_distribution<Scalar> distribution(0.0, 0.2);
+  Eigen::Vector<Scalar, 5> filter_coeffs;
+  // FIR filter with passband below 2 Hz, stopband above 4 Hz at f_s = 15 Hz
+  filter_coeffs << 0.10422766377112629, 0.3239870556899027, 0.3658903830367387,
+      0.3239870556899027, 0.10422766377112629;
+  int filter_len = filter_coeffs.size();
+  MatrixX noise =
+      MatrixX::NullaryExpr(dof_count_, horizon_ + filter_len - 1,
+                           [&]() { return distribution(generator); });
+  for (int j = 0; j < horizon_; ++j) {
+    rand_input_seq.col(j) =
+        input_sequence_.col(j) +
+        noise.block(0, j, dof_count_, filter_len) * filter_coeffs;
+  }
 }
 
 Scalar SumOfSquaresObjective::operator()(const Simulation &sim) const {
