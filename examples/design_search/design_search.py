@@ -96,8 +96,6 @@ def simulate(robot, task, opt_seed, thread_count, episode_count=1):
                                        returns[:task.episode_len]))
       value_estimator.train(replay_obs, replay_returns)
 
-    print(f"Episode {episode_idx} mean reward:", np.mean(rewards))
-
   return input_sequence, np.mean(rewards)
 
 def make_initial_graph():
