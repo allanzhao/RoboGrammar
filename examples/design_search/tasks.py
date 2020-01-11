@@ -23,6 +23,21 @@ class ForwardSpeedTask(ABC):
   def add_terrain(self, sim):
     pass
 
+class FlatTerrainTask(ForwardSpeedTask):
+  """
+  Task where the objective is to move forward as quickly as possible over flat
+  terrain.
+  """
+
+  def __init__(self, **kwargs):
+    super().__init__(**kwargs)
+
+    self.floor = rd.Prop(0.0, 0.9, [10.0, 1.0, 10.0])
+
+  def add_terrain(self, sim):
+    sim.add_prop(self.floor, [0.0, -1.0, 0.0],
+                 rd.Quaterniond(1.0, 0.0, 0.0, 0.0))
+
 class RidgedTerrainTask(ForwardSpeedTask):
   """
   Task where the objective is to move forward as quickly as possible over ridged
@@ -40,6 +55,28 @@ class RidgedTerrainTask(ForwardSpeedTask):
                  rd.Quaterniond(1.0, 0.0, 0.0, 0.0))
     for i in range(15):
       sim.add_prop(self.bump, [0.5 + 0.5 * i, 0.0, 0.0],
+                   rd.Quaterniond(1.0, 0.0, 0.0, 0.0))
+
+class GapTerrainTask(ForwardSpeedTask):
+  """
+  Task where the objective is to move forward as quickly as possible over
+  terrain with several large gaps.
+  """
+
+  def __init__(self, **kwargs):
+    super().__init__(**kwargs)
+
+    self.floor = rd.Prop(0.0, 0.9, [10.0, 1.0, 10.0])
+    self.left_platform = rd.Prop(0.0, 0.9, [5.0, 1.0, 10.0])
+    self.platform = rd.Prop(0.0, 0.9, [0.35, 1.0, 10.0])
+
+  def add_terrain(self, sim):
+    sim.add_prop(self.floor, [0.0, -2.0, 0.0],
+                 rd.Quaterniond(1.0, 0.0, 0.0, 0.0))
+    sim.add_prop(self.left_platform, [-5.0, -1.0, 0.0],
+                 rd.Quaterniond(1.0, 0.0, 0.0, 0.0))
+    for i in range(10):
+      sim.add_prop(self.platform, [i, -1.0, 0.0],
                    rd.Quaterniond(1.0, 0.0, 0.0, 0.0))
 
 class FrozenLakeTask(ForwardSpeedTask):
