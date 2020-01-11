@@ -26,7 +26,7 @@ def presimulate(robot):
   temp_sim.get_robot_world_aabb(robot_idx, lower, upper)
   return [-upper[0], -lower[1], 0.0], temp_sim.robot_has_collision(robot_idx)
 
-def simulate(robot, task, opt_seed, thread_count):
+def simulate(robot, task, opt_seed, thread_count, episode_count=1):
   """Run trajectory optimization for the robot on the given task, and return the
   resulting input sequence and result."""
   robot_init_pos, has_self_collision = presimulate(robot)
@@ -45,33 +45,58 @@ def simulate(robot, task, opt_seed, thread_count):
   robot_idx = main_sim.find_robot_index(robot)
 
   dof_count = main_sim.get_robot_dof_count(robot_idx)
-  value_estimator = rd.NullValueEstimator()
+  if episode_count >= 2:
+    value_estimator = rd.FCValueEstimator(main_sim, robot_idx, 'cpu', 64, 3, 1)
+  else:
+    value_estimator = rd.NullValueEstimator()
   objective_fn = task.get_objective_fn()
-  optimizer = rd.MPPIOptimizer(100.0, task.discount_factor, dof_count,
-                               task.interval, task.horizon, 128, thread_count,
-                               opt_seed, make_sim_fn, objective_fn,
-                               value_estimator)
-  for _ in range(10):
-    optimizer.update()
 
-  main_sim.save_state()
+  replay_obs = np.zeros((value_estimator.get_observation_size(), 0))
+  replay_returns = np.zeros(0)
 
-  input_sequence = np.zeros((dof_count, task.episode_len))
-  rewards = np.zeros(task.episode_len * task.interval)
-  for j in range(task.episode_len):
-    optimizer.update()
-    input_sequence[:,j] = optimizer.input_sequence[:,0]
-    optimizer.advance(1)
+  for episode_idx in range(episode_count):
+    optimizer = rd.MPPIOptimizer(100.0, task.discount_factor, dof_count,
+                                 task.interval, task.horizon, 128, thread_count,
+                                 opt_seed + episode_idx, make_sim_fn,
+                                 objective_fn, value_estimator)
+    for _ in range(10):
+      optimizer.update()
 
-    for k in range(task.interval):
-      main_sim.set_joint_target_positions(robot_idx, input_sequence[:,j])
-      main_sim.step()
-      rewards[j * task.interval + k] = objective_fn(main_sim)
+    main_sim.save_state()
 
-  # FIXME: Workaround for unstable simulation
-  if np.mean(rewards) > 5.0:
-    # Simulation probably exploded
-    return None, 0.0
+    input_sequence = np.zeros((dof_count, task.episode_len))
+    obs = np.zeros((value_estimator.get_observation_size(), task.episode_len + 1),
+                   order='f')
+    rewards = np.zeros(task.episode_len * task.interval)
+    for j in range(task.episode_len):
+      optimizer.update()
+      input_sequence[:,j] = optimizer.input_sequence[:,0]
+      optimizer.advance(1)
+
+      value_estimator.get_observation(main_sim, obs[:,j])
+      for k in range(task.interval):
+        main_sim.set_joint_target_positions(robot_idx, input_sequence[:,j])
+        main_sim.step()
+        rewards[j * task.interval + k] = objective_fn(main_sim)
+    value_estimator.get_observation(main_sim, obs[:,-1])
+
+    main_sim.restore_state()
+
+    # Only train the value estimator if there will be another episode
+    if episode_idx < episode_count - 1:
+      returns = np.zeros(task.episode_len + 1)
+      # Bootstrap returns with value estimator
+      value_estimator.estimate_value(obs[:,task.episode_len], returns[-1:])
+      for j in reversed(range(task.episode_len)):
+        interval_reward = np.sum(
+            rewards[j * task.interval:(j + 1) * task.interval])
+        returns[j] = interval_reward + task.discount_factor * returns[j + 1]
+      replay_obs = np.hstack((replay_obs, obs[:,:task.episode_len]))
+      replay_returns = np.concatenate((replay_returns,
+                                       returns[:task.episode_len]))
+      value_estimator.train(replay_obs, replay_returns)
+
+    print(f"Episode {episode_idx} mean reward:", np.mean(rewards))
 
   return input_sequence, np.mean(rewards)
 

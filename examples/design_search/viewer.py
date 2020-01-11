@@ -40,6 +40,8 @@ def main():
                       help="Optimize a trajectory")
   parser.add_argument("-s", "--opt_seed", type=int, default=None,
                       help="Trajectory optimization seed")
+  parser.add_argument("-e", "--episodes", type=int, default=1,
+                      help="Number of optimization episodes")
   parser.add_argument("-j", "--jobs", type=int, required=True,
                       help="Number of jobs/threads")
   args = parser.parse_args()
@@ -63,7 +65,8 @@ def main():
 
   robot = rd.build_robot(graph)
   if args.optim:
-    input_sequence, result = simulate(robot, task, opt_seed, args.jobs)
+    input_sequence, result = simulate(robot, task, opt_seed, args.jobs,
+                                      args.episodes)
     print("Result:", result)
   else:
     input_sequence = None
