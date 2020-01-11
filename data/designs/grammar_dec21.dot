@@ -107,7 +107,7 @@ digraph swing_segment {
   }
 }
 
-digraph bent_lift_segment {
+digraph forward_femur_segment {
   subgraph L {
     segment_ph [label="segment_ph"];
     parent -> segment_ph;
@@ -116,12 +116,12 @@ digraph bent_lift_segment {
 
   subgraph R {
     link [shape=capsule, length=0.1, radius=0.025];
-    parent -> link [type=hinge, axis_angle="0 0 1 90", joint_axis="0 0 1"];
+    parent -> link [type=hinge, axis_angle="0 0 1 120", joint_axis="0 0 1"];
     link -> child [id="child_edges"];
   }
 }
 
-digraph straight_lift_segment {
+digraph backward_femur_segment {
   subgraph L {
     segment_ph [label="segment_ph"];
     parent -> segment_ph;
@@ -130,7 +130,35 @@ digraph straight_lift_segment {
 
   subgraph R {
     link [shape=capsule, length=0.1, radius=0.025];
-    parent -> link [type=hinge, joint_axis="0 0 1"];
+    parent -> link [type=hinge, axis_angle="0 0 1 60", joint_axis="0 0 1"];
+    link -> child [id="child_edges"];
+  }
+}
+
+digraph forward_tibia_segment {
+  subgraph L {
+    segment_ph [label="segment_ph"];
+    parent -> segment_ph;
+    segment_ph -> child [id="child_edges"];
+  }
+
+  subgraph R {
+    link [shape=capsule, length=0.1, radius=0.025];
+    parent -> link [type=hinge, axis_angle="0 0 1 -60", joint_axis="0 0 1"];
+    link -> child [id="child_edges"];
+  }
+}
+
+digraph backward_tibia_segment {
+  subgraph L {
+    segment_ph [label="segment_ph"];
+    parent -> segment_ph;
+    segment_ph -> child [id="child_edges"];
+  }
+
+  subgraph R {
+    link [shape=capsule, length=0.1, radius=0.025];
+    parent -> link [type=hinge, axis_angle="0 0 1 60", joint_axis="0 0 1"];
     link -> child [id="child_edges"];
   }
 }
