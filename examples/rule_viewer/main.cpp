@@ -85,6 +85,13 @@ int main(int argc, char **argv) {
     if (node.attrs_.shape_ == LinkShape::NONE) {
       node.attrs_.shape_ = LinkShape::CAPSULE;
       node.attrs_.length_ = 0.2;
+      node.attrs_.radius_ = 0.025;
+    }
+  }
+  // Provide placeholder attributes for nonterminal edges
+  for (Edge &edge : robot_graph.edges_) {
+    if (edge.attrs_.joint_type_ == JointType::NONE) {
+      edge.attrs_.joint_type_ = JointType::FIXED;
     }
   }
   // Color nodes and edges which are added or removed
