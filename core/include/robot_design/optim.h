@@ -61,6 +61,7 @@ struct DotProductObjective {
   Vector3 base_dir_weight_ = Vector3::Zero();
   Vector3 base_up_weight_ = Vector3::Zero();
   Vector3 base_vel_weight_ = Vector3::Zero();
+  Scalar power_weight_ = 0.0;
 };
 
 } // namespace robot_design

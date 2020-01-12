@@ -41,5 +41,6 @@ void initOptim(py::module &m) {
       .def_readwrite("base_up_weight",
                      &rd::DotProductObjective::base_up_weight_)
       .def_readwrite("base_vel_weight",
-                     &rd::DotProductObjective::base_vel_weight_);
+                     &rd::DotProductObjective::base_vel_weight_)
+      .def_readwrite("power_weight", &rd::DotProductObjective::power_weight_);
 }

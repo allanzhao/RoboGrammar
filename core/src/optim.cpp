@@ -155,10 +155,15 @@ Scalar SumOfSquaresObjective::operator()(const Simulation &sim) const {
 Scalar DotProductObjective::operator()(const Simulation &sim) const {
   Scalar reward = 0.0;
   for (Index robot_idx = 0; robot_idx < sim.getRobotCount(); ++robot_idx) {
+    int dof_count = sim.getRobotDofCount(robot_idx);
     Matrix4 base_transform;
     sim.getLinkTransform(robot_idx, 0, base_transform);
     Vector6 base_vel;
     sim.getLinkVelocity(robot_idx, 0, base_vel);
+    VectorX joint_vel(dof_count);
+    sim.getJointVelocities(robot_idx, joint_vel);
+    VectorX motor_torques(dof_count);
+    sim.getJointMotorTorques(robot_idx, motor_torques);
     // Base direction term
     Vector3 base_dir = base_transform.block<3, 1>(0, 0);
     reward += base_dir.dot(base_dir_weight_);
@@ -167,6 +172,9 @@ Scalar DotProductObjective::operator()(const Simulation &sim) const {
     reward += base_up.dot(base_up_weight_);
     // Base velocity term
     reward += base_vel.tail<3>().dot(base_vel_weight_);
+    // Power consumption term
+    Scalar power = motor_torques.dot(joint_vel);
+    reward += power_weight_ * power;
   }
   return reward;
 }
