@@ -17,7 +17,8 @@ def view_trajectory(sim, robot_idx, input_sequence, time_step, interval):
     current_time = time.time()
     while sim_time < current_time:
       if input_sequence is not None:
-        sim.set_joint_target_positions(robot_idx, input_sequence[:,j])
+        sim.set_joint_target_positions(robot_idx,
+                                       input_sequence[:,j].reshape(-1, 1))
       sim.step()
       viewer.update(time_step)
       sim_time += time_step
