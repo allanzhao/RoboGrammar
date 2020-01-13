@@ -31,8 +31,8 @@ class Env(ABC):
 
   @abstractmethod
   def get_result(self, state):
-    """Return the result of a playout ending in the given state. Will only be
-    called on states for which no actions are available."""
+    """Return the result of a playout ending in the given state (None if the
+    result is unknown)."""
     pass
 
   @abstractmethod
@@ -46,6 +46,7 @@ class TreeSearch(object):
     self.env = env
     self.nodes = dict() # Mapping from state keys to nodes
     self.nodes[env.get_key(env.initial_state)] = TreeNode(env.initial_state)
+    self.blocked_state_keys = set() # Keys of states that should not be visited
 
   def uct_score(self, node, action):
     action_visit_count = node.action_visit_counts[action]
@@ -57,7 +58,13 @@ class TreeSearch(object):
       return float('inf')
 
   def select_action(self, state):
-    available_actions = list(self.env.get_available_actions(state))
+    available_actions = list()
+    for action in self.env.get_available_actions(state):
+      # Filter out actions that lead to a blocked state
+      next_state = self.env.get_next_state(state, action)
+      if self.env.get_key(next_state) not in self.blocked_state_keys:
+        available_actions.append(action)
+
     if available_actions:
       try:
         # Follow tree policy
@@ -78,21 +85,29 @@ class TreeSearch(object):
       node.action_result_sums[action] += result
 
   def run_iteration(self):
-    states = []
-    actions = []
+    result = None
+    # Retry until we get a valid result
+    while result is None:
+      states = []
+      actions = []
 
-    # Selection and simulation
-    state = self.env.initial_state
-    action = self.select_action(state)
-    states.append(state)
-    actions.append(action)
-    while action:
-      state = self.env.get_next_state(state, action)
+      # Selection and simulation
+      state = self.env.initial_state
       action = self.select_action(state)
       states.append(state)
       actions.append(action)
-    # No more actions available (simulation finished)
-    result = self.env.get_result(state)
+      result = self.env.get_result(state)
+      # Stop when the result is known or no more actions are possible
+      while result is None and action is not None:
+        state = self.env.get_next_state(state, action)
+        action = self.select_action(state)
+        states.append(state)
+        actions.append(action)
+        result = self.env.get_result(state)
+
+      if result is None and action is None:
+        # Last state is a dead end, block it from being visited again
+        self.blocked_state_keys.add(self.env.get_key(state))
 
     # Update tree nodes (includes expansion step)
     for state, action in zip(states, actions):
@@ -105,6 +120,6 @@ class TreeSearch(object):
         self.update_node(node, action, result)
         self.nodes[self.env.get_key(state)] = node
         # Create at most one new node per simulation
-        break;
+        break
 
     return states, actions, result

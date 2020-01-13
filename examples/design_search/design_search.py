@@ -14,6 +14,17 @@ def get_applicable_matches(rule, graph):
     if rd.check_rule_applicability(rule, graph, match):
       yield match
 
+def has_nonterminals(graph):
+  """Returns True if the graph contains nonterminal nodes/edges, and False
+  otherwise."""
+  for node in graph.nodes:
+    if node.attrs.shape == rd.LinkShape.NONE:
+      return True
+  for edge in graph.edges:
+    if edge.attrs.joint_type == rd.JointType.NONE:
+      return True
+  return False
+
 def presimulate(robot):
   """Find an initial position that will place the robot on the ground behind the
   x=0 plane, and check if the robot collides in its initial configuration."""
@@ -32,7 +43,7 @@ def simulate(robot, task, opt_seed, thread_count, episode_count=1):
   robot_init_pos, has_self_collision = presimulate(robot)
 
   if has_self_collision:
-    return None, 0.0
+    return None, None
 
   def make_sim_fn():
     sim = rd.BulletSimulation(task.time_step)
@@ -138,6 +149,9 @@ class RobotDesignEnv(mcts.Env):
 
   def get_result(self, state):
     graph, rule_seq = state
+    if has_nonterminals(graph):
+      # Graph is incomplete
+      return None
     robot = rd.build_robot(graph)
     opt_seed = self.rng.getrandbits(32)
     input_sequence, result = simulate(robot, self.task, opt_seed,
