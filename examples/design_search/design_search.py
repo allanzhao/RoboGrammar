@@ -66,7 +66,7 @@ def simulate(robot, task, opt_seed, thread_count, episode_count=1):
   replay_returns = np.zeros(0)
 
   for episode_idx in range(episode_count):
-    optimizer = rd.MPPIOptimizer(100.0, task.discount_factor, dof_count,
+    optimizer = rd.MPPIOptimizer(1.0, task.discount_factor, dof_count,
                                  task.interval, task.horizon, 128, thread_count,
                                  opt_seed + episode_idx, make_sim_fn,
                                  objective_fn, value_estimator)
