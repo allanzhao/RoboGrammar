@@ -20,6 +20,8 @@ MPPIOptimizer::MPPIOptimizer(
 
   input_sequence_ = MatrixX::Zero(dof_count, horizon);
   final_obs_.resize(value_estimator->getObservationSize(), sample_count);
+  history_.resize(dof_count, horizon_);
+  total_step_count_ = 0;
 }
 
 void MPPIOptimizer::update() {
@@ -70,13 +72,20 @@ void MPPIOptimizer::advance(int step_count) {
   for (int k = 0; k < sample_count_; ++k) {
     futures[k].get();
   }
-
+  // Shift the contents of history_ to the left by step_count
+  for (int j = 0; j < history_.cols() - step_count; ++j) {
+    history_.col(j) = history_.col(j + step_count);
+  }
+  // Copy the inputs applied to the simulation into history_
+  history_.rightCols(step_count) = input_sequence_.leftCols(step_count);
   // Shift the contents of input_sequence_ to the left by step_count
   for (int j = 0; j < horizon_ - step_count; ++j) {
     input_sequence_.col(j) = input_sequence_.col(j + step_count);
   }
   // Fill in the remaining values with zeroes
   input_sequence_.rightCols(step_count) = MatrixX::Zero(dof_count_, step_count);
+
+  total_step_count_ += step_count;
 }
 
 Scalar MPPIOptimizer::runSimulation(unsigned int sample_seed, int sample_idx) {
@@ -115,8 +124,20 @@ void MPPIOptimizer::advanceSimulation(int sample_idx, int step_count) {
 void MPPIOptimizer::sampleInputSequence(Ref<MatrixX> rand_input_seq,
                                         unsigned int sample_seed,
                                         int sample_idx) const {
+  Scalar std_dev;
+  // Half of the samples are based on repeating past motion ("history")
+  if (total_step_count_ >= horizon_ && sample_idx < sample_count_ / 2) {
+    // The repetition period should range from (horizon_ / 2 + 1) to horizon_
+    int repeat_len = sample_idx % (horizon_ / 2) + horizon_ / 2 + 1;
+    rand_input_seq = history_.rightCols(repeat_len).replicate(1, horizon_)
+        .leftCols(horizon_);
+    std_dev = 0.05;
+  } else {
+    rand_input_seq = input_sequence_;
+    std_dev = 0.2;
+  }
   std::mt19937 generator(sample_seed + sample_idx);
-  std::normal_distribution<Scalar> distribution(0.0, 0.2);
+  std::normal_distribution<Scalar> distribution(0.0, std_dev);
   Eigen::Vector<Scalar, 5> filter_coeffs;
   // FIR filter with passband below 2 Hz, stopband above 4 Hz at f_s = 15 Hz
   filter_coeffs << 0.10422766377112629, 0.3239870556899027, 0.3658903830367387,
@@ -126,8 +147,7 @@ void MPPIOptimizer::sampleInputSequence(Ref<MatrixX> rand_input_seq,
       MatrixX::NullaryExpr(dof_count_, horizon_ + filter_len - 1,
                            [&]() { return distribution(generator); });
   for (int j = 0; j < horizon_; ++j) {
-    rand_input_seq.col(j) =
-        input_sequence_.col(j) +
+    rand_input_seq.col(j) +=
         noise.block(0, j, dof_count_, filter_len) * filter_coeffs;
   }
 }

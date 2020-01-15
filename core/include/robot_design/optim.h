@@ -44,6 +44,8 @@ private:
   std::shared_ptr<const ValueEstimator> value_estimator_;
   std::vector<std::shared_ptr<Simulation>> sim_instances_;
   MatrixX final_obs_;
+  MatrixX history_;
+  int total_step_count_;
   ThreadPool thread_pool_;
 };
 
