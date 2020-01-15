@@ -14,7 +14,7 @@ class ForwardSpeedTask(ABC):
     self.objective_fn = rd.DotProductObjective()
     self.objective_fn.base_dir_weight = np.array([-1.0, 0.0, 0.0])
     self.objective_fn.base_up_weight = np.array([0.0, 1.0, 0.0])
-    self.objective_fn.base_vel_weight = np.array([2.0, 0.0, 0.0])
+    self.objective_fn.base_vel_weight = np.array([1.0, 0.0, 0.0])
 
     # Maximum reasonable result (designs achieving higher results are rejected)
     self.result_bound = 10.0
@@ -51,13 +51,13 @@ class RidgedTerrainTask(ForwardSpeedTask):
     super().__init__(**kwargs)
 
     self.floor = rd.Prop(0.0, 0.9, [10.0, 1.0, 10.0])
-    self.bump = rd.Prop(0.0, 0.9, [0.05, 0.10, 10.0])
+    self.bump = rd.Prop(0.0, 0.9, [0.1, 0.1, 10.0])
 
   def add_terrain(self, sim):
     sim.add_prop(self.floor, [0.0, -1.0, 0.0],
                  rd.Quaterniond(1.0, 0.0, 0.0, 0.0))
-    for i in range(15):
-      sim.add_prop(self.bump, [0.5 + 0.5 * i, 0.0, 0.0],
+    for i in range(10):
+      sim.add_prop(self.bump, [0.5 + i, 0.0, 0.0],
                    rd.Quaterniond(1.0, 0.0, 0.0, 0.0))
 
 class GapTerrainTask(ForwardSpeedTask):
