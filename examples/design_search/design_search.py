@@ -154,14 +154,14 @@ class RobotDesignEnv(mcts.Env):
       return None
     robot = rd.build_robot(graph)
     opt_seed = self.rng.getrandbits(32)
+    self.latest_opt_seed = opt_seed
     input_sequence, result = simulate(robot, self.task, opt_seed,
                                       self.thread_count)
 
-    if input_sequence is not None:
-      # Trajectory optimization was successful
-      self.latest_opt_seed = opt_seed
-    else:
-      self.latest_opt_seed = 0
+    # FIXME: workaround for simulation instability
+    # Simulation is invalid if the result is greater than result_bound
+    if result is not None and result > self.task.result_bound:
+      return None
 
     return result
 

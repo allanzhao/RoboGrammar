@@ -16,6 +16,9 @@ class ForwardSpeedTask(ABC):
     self.objective_fn.base_up_weight = np.array([0.0, 1.0, 0.0])
     self.objective_fn.base_vel_weight = np.array([2.0, 0.0, 0.0])
 
+    # Maximum reasonable result (designs achieving higher results are rejected)
+    self.result_bound = 10.0
+
   def get_objective_fn(self):
     return self.objective_fn
 
