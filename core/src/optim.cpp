@@ -27,8 +27,8 @@ void MPPIOptimizer::update() {
   std::vector<std::future<double>> sim_results;
   sim_results.reserve(sample_count_);
   for (int k = 0; k < sample_count_; ++k) {
-    sim_results.emplace_back(thread_pool_.enqueue(&MPPIOptimizer::runSimulation,
-                                                  this, k, seed_ + k));
+    sim_results.emplace_back(
+        thread_pool_.enqueue(&MPPIOptimizer::runSimulation, this, seed_, k));
   }
 
   // Wait on results
@@ -48,7 +48,7 @@ void MPPIOptimizer::update() {
   Scalar max_return = sim_returns.maxCoeff();
   for (int k = 0; k < sample_count_; ++k) {
     // Recreate the same input sequence used for the simulation
-    sampleInputSequence(rand_input_seq, seed_ + k);
+    sampleInputSequence(rand_input_seq, seed_, k);
     Scalar seq_weight = std::exp(kappa_ * (sim_returns(k) - max_return));
     input_sequence_sum += rand_input_seq * seq_weight;
     seq_weight_sum += seq_weight;
@@ -79,11 +79,11 @@ void MPPIOptimizer::advance(int step_count) {
   input_sequence_.rightCols(step_count) = MatrixX::Zero(dof_count_, step_count);
 }
 
-Scalar MPPIOptimizer::runSimulation(int sample_idx, unsigned int sample_seed) {
+Scalar MPPIOptimizer::runSimulation(unsigned int sample_seed, int sample_idx) {
   Simulation &sim = *sim_instances_[sample_idx];
   Index robot_idx = 0; // TODO: don't assume there is only one robot
   MatrixX rand_input_seq(dof_count_, horizon_);
-  sampleInputSequence(rand_input_seq, sample_seed);
+  sampleInputSequence(rand_input_seq, sample_seed, sample_idx);
   sim.saveState();
   Scalar sim_return = 0.0;
   Scalar discount_prod = 1.0;
@@ -113,8 +113,9 @@ void MPPIOptimizer::advanceSimulation(int sample_idx, int step_count) {
 }
 
 void MPPIOptimizer::sampleInputSequence(Ref<MatrixX> rand_input_seq,
-                                        unsigned int sample_seed) const {
-  std::mt19937 generator(sample_seed);
+                                        unsigned int sample_seed,
+                                        int sample_idx) const {
+  std::mt19937 generator(sample_seed + sample_idx);
   std::normal_distribution<Scalar> distribution(0.0, 0.2);
   Eigen::Vector<Scalar, 5> filter_coeffs;
   // FIR filter with passband below 2 Hz, stopband above 4 Hz at f_s = 15 Hz

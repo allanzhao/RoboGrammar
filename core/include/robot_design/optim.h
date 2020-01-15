@@ -28,10 +28,10 @@ public:
   MatrixX input_sequence_;
 
 private:
-  Scalar runSimulation(int sample_idx, unsigned int sample_seed);
+  Scalar runSimulation(unsigned int sample_seed, int sample_idx);
   void advanceSimulation(int sample_idx, int step_count);
   void sampleInputSequence(Ref<MatrixX> rand_input_seq,
-                           unsigned int sample_seed) const;
+                           unsigned int sample_seed, int sample_idx) const;
 
   Scalar kappa_;
   Scalar discount_factor_;
