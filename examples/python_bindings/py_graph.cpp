@@ -82,6 +82,7 @@ void initGraph(py::module &m) {
 
   py::class_<rd::Rule>(m, "Rule")
       .def(py::init<>())
+      .def_readwrite("name", &rd::Rule::name_)
       .def_readwrite("lhs", &rd::Rule::lhs_)
       .def_readwrite("rhs", &rd::Rule::rhs_)
       .def_readwrite("common", &rd::Rule::common_)

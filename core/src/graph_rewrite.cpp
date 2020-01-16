@@ -10,6 +10,7 @@ namespace robot_design {
 
 Rule createRuleFromGraph(const Graph &graph) {
   Rule rule;
+  rule.name_ = graph.name_;
 
   // Graph must have subgraphs named "L" and "R"
   const auto lhs_subgraph = std::find_if(

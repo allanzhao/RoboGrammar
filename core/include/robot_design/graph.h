@@ -94,6 +94,7 @@ struct GraphMapping {
 };
 
 struct Rule {
+  std::string name_;
   Graph lhs_;
   Graph rhs_;
   Graph common_;
