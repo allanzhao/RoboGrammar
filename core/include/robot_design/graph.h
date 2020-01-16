@@ -90,7 +90,7 @@ struct GraphMapping {
   // Node i in the domain graph maps to node_mapping_[i] in the codomain graph
   std::vector<NodeIndex> node_mapping_;
   // Edge l in the domain graph maps to edge_mapping_[l] in the codomain graph
-  std::vector<std::vector<NodeIndex>> edge_mapping_;
+  std::vector<std::vector<EdgeIndex>> edge_mapping_;
 };
 
 struct Rule {
