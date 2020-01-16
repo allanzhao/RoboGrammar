@@ -6,6 +6,7 @@ import numpy as np
 import os
 import pyrobotdesign as rd
 import random
+import signal
 import tasks
 
 def get_applicable_matches(rule, graph):
@@ -168,7 +169,13 @@ class RobotDesignEnv(mcts.Env):
   def get_key(self, state):
     return hash(state[0])
 
+def set_pdb_trace(sig, frame):
+  import pdb
+  pdb.Pdb().set_trace(frame)
+
 def main():
+  signal.signal(signal.SIGUSR1, set_pdb_trace)
+
   parser = argparse.ArgumentParser(description="Robot design search demo.")
   parser.add_argument("task", type=str, help="Task (Python class name)")
   parser.add_argument("grammar_file", type=str, help="Grammar file (.dot)")
