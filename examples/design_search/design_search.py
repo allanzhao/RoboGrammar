@@ -213,8 +213,7 @@ def main():
     for i in range(args.iterations):
       states, actions, result = tree_search.run_iteration()
 
-      # Last action is always None
-      rule_seq = [rules.index(rule) for rule in actions[:-1]]
+      rule_seq = [rules.index(rule) for rule in actions]
       writer.writerow({'iteration': i, 'rule_seq': rule_seq,
                        'opt_seed': env.latest_opt_seed, 'result': result})
       log_file.flush()

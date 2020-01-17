@@ -10,6 +10,7 @@ class TreeNode(object):
     self.result_sum = 0
     self.action_visit_counts = defaultdict(int)
     self.action_result_sums = defaultdict(float)
+    self.blocked = False
 
 class Env(ABC):
   @property
@@ -42,11 +43,11 @@ class Env(ABC):
     pass
 
 class TreeSearch(object):
-  def __init__(self, env):
+  def __init__(self, env, max_tries=100):
     self.env = env
+    self.max_tries = max_tries
     self.nodes = dict() # Mapping from state keys to nodes
     self.nodes[env.get_key(env.initial_state)] = TreeNode(env.initial_state)
-    self.blocked_state_keys = set() # Keys of states that should not be visited
 
   def uct_score(self, node, action):
     action_visit_count = node.action_visit_counts[action]
@@ -59,10 +60,12 @@ class TreeSearch(object):
 
   def select_action(self, state):
     available_actions = list()
+    # Filter out actions leading to blocked nodes
     for action in self.env.get_available_actions(state):
-      # Filter out actions that lead to a blocked state
       next_state = self.env.get_next_state(state, action)
-      if self.env.get_key(next_state) not in self.blocked_state_keys:
+      next_state_key = self.env.get_key(next_state)
+      if (next_state_key not in self.nodes or
+          not self.nodes[next_state_key].blocked):
         available_actions.append(action)
 
     if available_actions:
@@ -86,40 +89,49 @@ class TreeSearch(object):
 
   def run_iteration(self):
     result = None
-    # Retry until we get a valid result
     while result is None:
-      states = []
+      # Selection phase
+      states = [self.env.initial_state]
       actions = []
-
-      # Selection and simulation
-      state = self.env.initial_state
-      action = self.select_action(state)
-      states.append(state)
-      actions.append(action)
-      result = self.env.get_result(state)
-      # Stop when the result is known or no more actions are possible
-      while result is None and action is not None:
-        state = self.env.get_next_state(state, action)
-        action = self.select_action(state)
-        states.append(state)
+      action = self.select_action(states[-1])
+      while action is not None and self.env.get_key(states[-1]) in self.nodes:
+        states.append(self.env.get_next_state(states[-1], action))
         actions.append(action)
-        result = self.env.get_result(state)
+        action = self.select_action(states[-1])
 
-      if result is None and action is None:
-        # Last state is a dead end, block it from being visited again
-        self.blocked_state_keys.add(self.env.get_key(state))
+      # Expansion phase
+      last_state_key = self.env.get_key(states[-1])
+      if last_state_key in self.nodes:
+        last_node = self.nodes[last_state_key]
+      else:
+        last_node = TreeNode(states[-1])
+        self.nodes[last_state_key] = last_node
 
-    # Update tree nodes (includes expansion step)
-    for state, action in zip(states, actions):
+      # Simulation phase
+      for try_count in range(self.max_tries):
+        sim_states = states.copy()
+        sim_actions = actions.copy()
+        action = self.select_action(sim_states[-1])
+        while action is not None:
+          sim_states.append(self.env.get_next_state(sim_states[-1], action))
+          sim_actions.append(action)
+          action = self.select_action(sim_states[-1])
+        result = self.env.get_result(sim_states[-1])
+        if result is not None:
+          # Result is valid
+          break
+
+      if result is None:
+        # No valid simulation after max_tries tries, block the last node
+        # Next loop iteration will select a different node
+        last_node.blocked = True
+
+    # Backpropagation phase
+    for state, action in zip(sim_states, sim_actions):
       try:
         node = self.nodes[self.env.get_key(state)]
         self.update_node(node, action, result)
       except KeyError:
-        # Node does not exist yet, create one
-        node = TreeNode(state)
-        self.update_node(node, action, result)
-        self.nodes[self.env.get_key(state)] = node
-        # Create at most one new node per simulation
-        break
+        pass
 
-    return states, actions, result
+    return sim_states, sim_actions, result
