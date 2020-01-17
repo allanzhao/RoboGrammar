@@ -124,11 +124,12 @@ class RobotDesignEnv(mcts.Env):
   """Robot design environment where states are (graph, rule sequence) pairs and
   actions are rule applications."""
 
-  def __init__(self, task, rules, seed, thread_count):
+  def __init__(self, task, rules, seed, thread_count, max_rule_seq_len):
     self.task = task
     self.rules = rules
     self.rng = random.Random(seed)
     self.thread_count = thread_count
+    self.max_rule_seq_len = max_rule_seq_len
     self.initial_graph = make_initial_graph()
 
   @property
@@ -137,6 +138,9 @@ class RobotDesignEnv(mcts.Env):
 
   def get_available_actions(self, state):
     graph, rule_seq = state
+    if len(rule_seq) >= self.max_rule_seq_len:
+      # No more actions should be available
+      return
     for rule in self.rules:
       if list(get_applicable_matches(rule, graph)):
         # Rule has at least one applicable match
@@ -185,6 +189,8 @@ def main():
                       help="Number of jobs/threads")
   parser.add_argument("-i", "--iterations", type=int, required=True,
                       help="Number of MCTS iterations")
+  parser.add_argument("-d", "--depth", type=int, required=True,
+                      help="Maximum tree depth")
   parser.add_argument("-l", "--log_dir", type=str, default='',
                       help="Log directory")
   args = parser.parse_args()
@@ -195,7 +201,7 @@ def main():
   task = task_class()
   graphs = rd.load_graphs(args.grammar_file)
   rules = [rd.create_rule_from_graph(g) for g in graphs]
-  env = RobotDesignEnv(task, rules, args.seed, args.jobs)
+  env = RobotDesignEnv(task, rules, args.seed, args.jobs, args.depth)
   tree_search = mcts.TreeSearch(env)
 
   os.makedirs(args.log_dir, exist_ok=True)
