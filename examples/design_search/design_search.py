@@ -1,4 +1,5 @@
 import argparse
+import ast
 import csv
 import datetime
 import mcts
@@ -7,6 +8,7 @@ import os
 import pyrobotdesign as rd
 import random
 import signal
+import sys
 import tasks
 
 def get_applicable_matches(rule, graph):
@@ -131,6 +133,8 @@ class RobotDesignEnv(mcts.Env):
     self.thread_count = thread_count
     self.max_rule_seq_len = max_rule_seq_len
     self.initial_graph = make_initial_graph()
+    self.result_cache = dict()
+    self.result_cache_hit_count = 0
 
   @property
   def initial_state(self):
@@ -160,8 +164,13 @@ class RobotDesignEnv(mcts.Env):
     robot = rd.build_robot(graph)
     opt_seed = self.rng.getrandbits(32)
     self.latest_opt_seed = opt_seed
-    input_sequence, result = simulate(robot, self.task, opt_seed,
-                                      self.thread_count)
+    result_cache_key = (tuple(self.rules.index(rule) for rule in rule_seq),
+                        opt_seed)
+    if result_cache_key in self.result_cache:
+      result = self.result_cache[result_cache_key]
+      self.result_cache_hit_count += 1
+    else:
+      _, result = simulate(robot, self.task, opt_seed, self.thread_count)
 
     # FIXME: workaround for simulation instability
     # Simulation is invalid if the result is greater than result_bound
@@ -193,6 +202,8 @@ def main():
                       help="Maximum tree depth")
   parser.add_argument("-l", "--log_dir", type=str, default='',
                       help="Log directory")
+  parser.add_argument("-f", "--log_file", type=str,
+                      help="Existing log file, for resuming a previous run")
   args = parser.parse_args()
 
   random.seed(args.seed)
@@ -204,25 +215,52 @@ def main():
   env = RobotDesignEnv(task, rules, args.seed, args.jobs, args.depth)
   tree_search = mcts.TreeSearch(env)
 
-  os.makedirs(args.log_dir, exist_ok=True)
+  if args.log_file:
+    # Resume an existing run
+    log_path = args.log_file
+  else:
+    # Start a new run
+    os.makedirs(args.log_dir, exist_ok=True)
+    log_path = os.path.join(args.log_dir,
+                            f'mcts_{datetime.datetime.now():%Y%m%d_%H%M%S}.csv')
 
-  log_path = os.path.join(args.log_dir,
-                          f'mcts_{datetime.datetime.now():%Y%m%d_%H%M%S}.csv')
   print(f"Logging to '{log_path}'")
 
+  fieldnames = ['iteration', 'rule_seq', 'opt_seed', 'result']
+
+  # Read log file if it exists and build a cache of previous results
+  result_cache = dict()
+  try:
+    with open(log_path) as log_file:
+      reader = csv.DictReader(log_file, fieldnames=fieldnames)
+      next(reader) # Skip the header row
+      for row in reader:
+        result_cache[(tuple(ast.literal_eval(row['rule_seq'])),
+                      int(row['opt_seed']))] = float(row['result'])
+    log_file_exists = True
+  except FileNotFoundError:
+    log_file_exists = False
+  env.result_cache = result_cache
+
   with open(log_path, 'a', newline='') as log_file:
-    fieldnames = ['iteration', 'rule_seq', 'opt_seed', 'result']
     writer = csv.DictWriter(log_file, fieldnames=fieldnames)
-    writer.writeheader()
-    log_file.flush()
+    if not log_file_exists:
+      writer.writeheader()
+      log_file.flush()
 
     for i in range(args.iterations):
       states, actions, result = tree_search.run_iteration()
 
-      rule_seq = [rules.index(rule) for rule in actions]
-      writer.writerow({'iteration': i, 'rule_seq': rule_seq,
-                       'opt_seed': env.latest_opt_seed, 'result': result})
-      log_file.flush()
+      if i >= len(env.result_cache):
+        rule_seq = [rules.index(rule) for rule in actions]
+        writer.writerow({'iteration': i, 'rule_seq': rule_seq,
+                         'opt_seed': env.latest_opt_seed, 'result': result})
+        log_file.flush()
+      else:
+        # Replaying existing log entries
+        if i + 1 != env.result_cache_hit_count:
+          print("Failed to replay existing log entries, stopping")
+          sys.exit(1)
 
 if __name__ == '__main__':
   main()
