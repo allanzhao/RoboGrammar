@@ -10,6 +10,8 @@ class TreeNode(object):
     self.result_sum = 0
     self.action_visit_counts = defaultdict(int)
     self.action_result_sums = defaultdict(float)
+    self.amaf_action_visit_counts = defaultdict(int)
+    self.amaf_action_result_sums = defaultdict(float)
     self.blocked = False
 
 class Env(ABC):
@@ -49,11 +51,17 @@ class TreeSearch(object):
     self.nodes = dict() # Mapping from state keys to nodes
     self.nodes[env.get_key(env.initial_state)] = TreeNode(env.initial_state)
 
-  def uct_score(self, node, action):
+  def uct_score(self, node, action, amaf_threshold=10):
     action_visit_count = node.action_visit_counts[action]
     action_result_sum = node.action_result_sums[action]
+    amaf_action_visit_count = node.amaf_action_visit_counts[action]
+    amaf_action_result_sum = node.amaf_action_result_sums[action]
+    # AMAF and Monte Carlo values are weighted equally when the visit count is
+    # amaf_threshold
+    amaf_weight = sqrt(amaf_threshold / (3 * node.visit_count + amaf_threshold))
     if action_visit_count > 0:
-      return (action_result_sum / action_visit_count +
+      return ((1.0 - amaf_weight) * action_result_sum / action_visit_count +
+              amaf_weight * amaf_action_result_sum / amaf_action_visit_count +
               sqrt(2.0 * log(node.visit_count) / action_visit_count))
     else:
       return float('inf')
@@ -80,12 +88,15 @@ class TreeSearch(object):
     else:
       return None
 
-  def update_node(self, node, action, result):
+  def update_node(self, node, actions_after, result):
     node.visit_count += 1
     node.result_sum += result
-    if action:
-      node.action_visit_counts[action] += 1
-      node.action_result_sums[action] += result
+    node.action_visit_counts[actions_after[0]] += 1
+    node.action_result_sums[actions_after[0]] += result
+    # Update AMAF values (once for each unique action)
+    for action in set(actions_after):
+      node.amaf_action_visit_counts[action] += 1
+      node.amaf_action_result_sums[action] += result
 
   def run_iteration(self):
     result = None
@@ -127,10 +138,11 @@ class TreeSearch(object):
         last_node.blocked = True
 
     # Backpropagation phase
-    for state, action in zip(sim_states, sim_actions):
+    for i, state in enumerate(sim_states[:-1]):
+      actions_after = sim_actions[i:]
       try:
         node = self.nodes[self.env.get_key(state)]
-        self.update_node(node, action, result)
+        self.update_node(node, actions_after, result)
       except KeyError:
         pass
 
