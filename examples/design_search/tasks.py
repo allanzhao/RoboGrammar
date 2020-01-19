@@ -35,7 +35,7 @@ class FlatTerrainTask(ForwardSpeedTask):
   def __init__(self, **kwargs):
     super().__init__(**kwargs)
 
-    self.floor = rd.Prop(0.0, 0.9, [10.0, 1.0, 10.0])
+    self.floor = rd.Prop(0.0, 0.9, [20.0, 1.0, 10.0])
 
   def add_terrain(self, sim):
     sim.add_prop(self.floor, [0.0, -1.0, 0.0],
@@ -50,14 +50,14 @@ class RidgedTerrainTask(ForwardSpeedTask):
   def __init__(self, **kwargs):
     super().__init__(**kwargs)
 
-    self.floor = rd.Prop(0.0, 0.9, [10.0, 1.0, 10.0])
-    self.bump = rd.Prop(0.0, 0.9, [0.1, 0.1, 10.0])
+    self.floor = rd.Prop(0.0, 0.9, [20.0, 1.0, 10.0])
+    self.bump = rd.Prop(0.0, 0.9, [0.1, 0.2, 10.0])
 
   def add_terrain(self, sim):
     sim.add_prop(self.floor, [0.0, -1.0, 0.0],
                  rd.Quaterniond(1.0, 0.0, 0.0, 0.0))
-    for i in range(10):
-      sim.add_prop(self.bump, [0.5 + i, -0.1 + 0.02 * (i + 1), 0.0],
+    for i in range(20):
+      sim.add_prop(self.bump, [0.5 + i, -0.2 + 0.02 * (i + 1), 0.0],
                    rd.Quaterniond(1.0, 0.0, 0.0, 0.0))
 
 class GapTerrainTask(ForwardSpeedTask):
@@ -66,21 +66,27 @@ class GapTerrainTask(ForwardSpeedTask):
   terrain with several large gaps.
   """
 
-  def __init__(self, **kwargs):
+  def __init__(self, x_min=-20.0, x_max=20.0, **kwargs):
     super().__init__(**kwargs)
 
-    self.floor = rd.Prop(0.0, 0.9, [10.0, 1.0, 10.0])
-    self.left_platform = rd.Prop(0.0, 0.9, [5.0, 1.0, 10.0])
-    self.platform = rd.Prop(0.0, 0.9, [0.35, 1.0, 10.0])
+    gap_centers = np.arange(0.5, x_max, 1.0)
+    gap_widths = np.linspace(0.1, 0.9, len(gap_centers))
+    platform_x_min = np.concatenate(([x_min], gap_centers + 0.5 * gap_widths))
+    platform_x_max = np.concatenate((gap_centers - 0.5 * gap_widths, [x_max]))
+    platform_x = 0.5 * (platform_x_min + platform_x_max)
+    platform_half_widths = 0.5 * (platform_x_max - platform_x_min)
+
+    self.platform_x = platform_x
+    self.platforms = [rd.Prop(0.0, 0.9, [half_width, 1.0, 10.0]) for
+                      half_width in platform_half_widths]
+    self.floor_x = 0.5 * (x_min + x_max)
+    self.floor = rd.Prop(0.0, 0.9, [0.5 * (x_max - x_min), 1.0, 10.0])
 
   def add_terrain(self, sim):
-    sim.add_prop(self.floor, [0.0, -2.0, 0.0],
+    for x, platform in zip(self.platform_x, self.platforms):
+      sim.add_prop(platform, [x, -1.0, 0.0], rd.Quaterniond(1.0, 0.0, 0.0, 0.0))
+    sim.add_prop(self.floor, [self.floor_x, -2.0, 0.0],
                  rd.Quaterniond(1.0, 0.0, 0.0, 0.0))
-    sim.add_prop(self.left_platform, [-5.0, -1.0, 0.0],
-                 rd.Quaterniond(1.0, 0.0, 0.0, 0.0))
-    for i in range(10):
-      sim.add_prop(self.platform, [i, -1.0, 0.0],
-                   rd.Quaterniond(1.0, 0.0, 0.0, 0.0))
 
 class FrozenLakeTask(ForwardSpeedTask):
   """
@@ -91,7 +97,7 @@ class FrozenLakeTask(ForwardSpeedTask):
   def __init__(self, **kwargs):
     super().__init__(**kwargs)
 
-    self.floor = rd.Prop(0.0, 0.05, [10.0, 1.0, 10.0])
+    self.floor = rd.Prop(0.0, 0.05, [20.0, 1.0, 10.0])
     self.floor.color = [0.8, 0.9, 1.0]
 
   def add_terrain(self, sim):
