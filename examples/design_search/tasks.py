@@ -57,7 +57,7 @@ class RidgedTerrainTask(ForwardSpeedTask):
     sim.add_prop(self.floor, [0.0, -1.0, 0.0],
                  rd.Quaterniond(1.0, 0.0, 0.0, 0.0))
     for i in range(10):
-      sim.add_prop(self.bump, [0.5 + i, 0.0, 0.0],
+      sim.add_prop(self.bump, [0.5 + i, -0.1 + 0.02 * (i + 1), 0.0],
                    rd.Quaterniond(1.0, 0.0, 0.0, 0.0))
 
 class GapTerrainTask(ForwardSpeedTask):
