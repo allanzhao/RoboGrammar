@@ -182,6 +182,30 @@ class RobotDesignEnv(mcts.Env):
   def get_key(self, state):
     return hash(state[0])
 
+def min_nonterminals_policy(state, available_actions):
+  """Policy which tries to minimize the number of nonterminals in the graph."""
+  graph, _ = state
+  nonterminal_counts = list()
+  for rule in available_actions:
+    applicable_matches = list(get_applicable_matches(rule, graph))
+    new_graph = rd.apply_rule(rule, graph, applicable_matches[0])
+    nonterminal_count = 0
+    for node in new_graph.nodes:
+      if node.attrs.shape == rd.LinkShape.NONE:
+        nonterminal_count += 1
+    for edge in new_graph.edges:
+      if edge.attrs.joint_type == rd.JointType.NONE:
+        nonterminal_count += 1
+    nonterminal_counts.append(nonterminal_count)
+
+  min_nonterminal_count = min(nonterminal_counts)
+  minimizing_actions = list()
+  for action, nonterminal_count in zip(available_actions, nonterminal_counts):
+    if nonterminal_count == min_nonterminal_count:
+      minimizing_actions.append(action)
+
+  return random.choice(minimizing_actions)
+
 def set_pdb_trace(sig, frame):
   import pdb
   pdb.Pdb().set_trace(frame)
@@ -213,7 +237,7 @@ def main():
   graphs = rd.load_graphs(args.grammar_file)
   rules = [rd.create_rule_from_graph(g) for g in graphs]
   env = RobotDesignEnv(task, rules, args.seed, args.jobs, args.depth)
-  tree_search = mcts.TreeSearch(env)
+  tree_search = mcts.TreeSearch(env, default_policy=min_nonterminals_policy)
 
   if args.log_file:
     # Resume an existing run

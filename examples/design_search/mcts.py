@@ -45,11 +45,12 @@ class Env(ABC):
     pass
 
 class TreeSearch(object):
-  def __init__(self, env, max_tries=100):
+  def __init__(self, env, max_tries=100, default_policy=None):
     self.env = env
     self.max_tries = max_tries
     self.nodes = dict() # Mapping from state keys to nodes
     self.nodes[env.get_key(env.initial_state)] = TreeNode(env.initial_state)
+    self.default_policy = default_policy
 
   def uct_score(self, node, action, amaf_threshold=10):
     action_visit_count = node.action_visit_counts[action]
@@ -84,7 +85,10 @@ class TreeSearch(object):
                    key=lambda action: self.uct_score(node, action))
       except KeyError:
         # State was not visited yet, follow default policy
-        return random.choice(available_actions)
+        if self.default_policy is not None:
+          return self.default_policy(state, available_actions)
+        else:
+          return random.choice(available_actions)
     else:
       return None
 
