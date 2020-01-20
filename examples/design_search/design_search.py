@@ -237,7 +237,8 @@ def main():
   graphs = rd.load_graphs(args.grammar_file)
   rules = [rd.create_rule_from_graph(g) for g in graphs]
   env = RobotDesignEnv(task, rules, args.seed, args.jobs, args.depth)
-  tree_search = mcts.TreeSearch(env, default_policy=min_nonterminals_policy)
+  #tree_search = mcts.TreeSearch(env, default_policy=min_nonterminals_policy)
+  tree_search = mcts.TreeSearch(env)
 
   if args.log_file:
     # Resume an existing run
