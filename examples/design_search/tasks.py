@@ -88,6 +88,24 @@ class GapTerrainTask(ForwardSpeedTask):
     sim.add_prop(self.floor, [self.floor_x, -2.0, 0.0],
                  rd.Quaterniond(1.0, 0.0, 0.0, 0.0))
 
+class StairsTerrainTask(ForwardSpeedTask):
+  """
+  Task where the objective is to move forward as quickly as possible on stairs.
+  """
+
+  def __init__(self, **kwargs):
+    super().__init__(**kwargs)
+
+    self.floor = rd.Prop(0.0, 0.9, [20.0, 1.0, 10.0])
+    self.step = rd.Prop(0.0, 0.9, [0.25, 1.0, 10.0])
+
+  def add_terrain(self, sim):
+    sim.add_prop(self.floor, [0.0, -1.0, 0.0],
+                 rd.Quaterniond(1.0, 0.0, 0.0, 0.0))
+    for i in range(39):
+      sim.add_prop(self.step, [0.75 + 0.5 * i, -1.0 + 0.1 * (i + 1), 0.0],
+                   rd.Quaterniond(1.0, 0.0, 0.0, 0.0))
+
 class FrozenLakeTask(ForwardSpeedTask):
   """
   Task where the objective is to move forward as quickly as possible on a flat,
