@@ -32,7 +32,7 @@ void main() {
   float shadow_factor = computeShadowFactor(
       light_frag_pos[cascade_idx], cascade_idx);
 
-  vec3 ambient = 0.1 * light_color;
+  vec3 ambient = 0.2 * light_color;
   vec3 diffuse = max(dot(normal, view_light_dir), 0.0) * light_color *
                  shadow_factor;
   float spec_factor = pow(max(dot(view_camera_dir, reflect_dir), 0.0), 32);

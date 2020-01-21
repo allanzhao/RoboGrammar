@@ -9,10 +9,23 @@ import time
 
 def view_trajectory(sim, robot_idx, input_sequence, time_step, interval):
   sim.save_state()
+
+  # Get robot position and bounds
+  base_tf = np.zeros((4, 4), order='f')
+  lower = np.zeros(3)
+  upper = np.zeros(3)
+  sim.get_link_transform(robot_idx, 0, base_tf)
+  sim.get_robot_world_aabb(robot_idx, lower, upper)
+
   viewer = rd.GLFWViewer()
-  sim_time = time.time()
+  viewer.camera_params.position = base_tf[:3,3]
+  viewer.camera_params.yaw = 0.0
+  viewer.camera_params.pitch = -np.pi / 6
+  viewer.camera_params.distance = 2.0 * np.linalg.norm(upper - lower)
+
   i = 0
   j = 0
+  sim_time = time.time()
   while not viewer.should_close():
     current_time = time.time()
     while sim_time < current_time:
@@ -20,6 +33,11 @@ def view_trajectory(sim, robot_idx, input_sequence, time_step, interval):
         sim.set_joint_target_positions(robot_idx,
                                        input_sequence[:,j].reshape(-1, 1))
       sim.step()
+      sim.get_link_transform(robot_idx, 0, base_tf)
+      # Update camera position to track the robot smoothly
+      camera_pos = viewer.camera_params.position.copy()
+      camera_pos += 2.0 * time_step * (base_tf[:3,3] - camera_pos)
+      viewer.camera_params.position = camera_pos
       viewer.update(time_step)
       sim_time += time_step
       i += 1
@@ -30,7 +48,20 @@ def view_trajectory(sim, robot_idx, input_sequence, time_step, interval):
         i = 0
         j = 0
         sim.restore_state()
+        sim.get_link_transform(robot_idx, 0, base_tf)
+        viewer.camera_params.position = base_tf[:3,3]
     viewer.render(sim)
+
+def finalize_robot(robot):
+  for link in robot.links:
+    link.label = ""
+    link.joint_label = ""
+    if link.shape == rd.LinkShape.NONE:
+      link.shape = rd.LinkShape.CAPSULE
+      link.length = 0.1
+      link.radius = 0.025
+    if link.joint_type == rd.JointType.NONE:
+      link.joint_type = rd.JointType.FIXED
 
 def main():
   parser = argparse.ArgumentParser(description="Robot design viewer.")
@@ -65,6 +96,7 @@ def main():
       graph = rd.apply_rule(rules[r], graph, matches[0])
 
   robot = rd.build_robot(graph)
+  finalize_robot(robot)
   if args.optim:
     input_sequence, result = simulate(robot, task, opt_seed, args.jobs,
                                       args.episodes)
