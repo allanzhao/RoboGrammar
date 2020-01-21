@@ -96,14 +96,14 @@ class StairsTerrainTask(ForwardSpeedTask):
   def __init__(self, **kwargs):
     super().__init__(**kwargs)
 
-    self.floor = rd.Prop(0.0, 0.9, [20.0, 1.0, 10.0])
-    self.step = rd.Prop(0.0, 0.9, [0.5, 1.0, 10.0])
+    self.floor = rd.Prop(0.0, 0.9, [10.0, 1.0, 10.0])
+    self.step = rd.Prop(0.0, 0.9, [0.25, 1.0, 10.0])
 
   def add_terrain(self, sim):
     sim.add_prop(self.floor, [0.0, -1.0, 0.0],
                  rd.Quaterniond(1.0, 0.0, 0.0, 0.0))
-    for i in range(19):
-      sim.add_prop(self.step, [1.5 + i, -1.0 + 0.2 * (i + 1), 0.0],
+    for i in range(18):
+      sim.add_prop(self.step, [1.25 + 0.5 * i, -1.0 + 0.2 * (i + 1), 0.0],
                    rd.Quaterniond(1.0, 0.0, 0.0, 0.0))
 
 class FrozenLakeTask(ForwardSpeedTask):
