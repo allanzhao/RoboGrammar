@@ -89,7 +89,7 @@ digraph end_ext {
 digraph make_2_leg_hub {
   subgraph L {
     hub [label="hub"];
-    hub -> child1 [id="child1_edges"];
+    hub -> child1 [id="child1_edges", offset=0.0, axis_angle="0 1 0 180"];
     hub -> child2 [id="child2_edges"];
   }
 
@@ -97,7 +97,7 @@ digraph make_2_leg_hub {
     link [shape=capsule, length=0.3, density=5.0, base=true];
     limb_mount [label="limb_mount", shape=capsule, length=0.1, radius=0.025];
     limb [label="limb"];
-    link -> child1 [id="child1_edges"];
+    link -> child1 [id="child1_edges", offset=0.0, axis_angle="0 1 0 180"];
     link -> child2 [id="child2_edges"];
     link -> limb_mount [type=fixed, offset=0.5, axis_angle="0 1 0 90"];
     link -> limb_mount [type=fixed, offset=0.5, axis_angle="0 1 0 90",
@@ -109,17 +109,17 @@ digraph make_2_leg_hub {
 digraph make_4_leg_hub {
   subgraph L {
     hub [label="hub"];
-    hub -> child1 [id="child1_edges"];
+    hub -> child1 [id="child1_edges", offset=0.0, axis_angle="0 1 0 180"];
     hub -> child2 [id="child2_edges"];
   }
 
   subgraph R {
     link [shape=capsule, length=0.3, density=5.0, base=true];
-    limb_mount1 [shape=capsule, length=0.1, radius=0.025];
-    limb_mount2 [shape=capsule, length=0.1, radius=0.025];
+    limb_mount1 [label="limb_mount", shape=capsule, length=0.1, radius=0.025];
+    limb_mount2 [label="limb_mount", shape=capsule, length=0.1, radius=0.025];
     limb1 [label="limb"];
     limb2 [label="limb"];
-    link -> child1 [id="child1_edges"];
+    link -> child1 [id="child1_edges", offset=0.0, axis_angle="0 1 0 180"];
     link -> child2 [id="child2_edges"];
     link -> limb_mount1 [type=fixed, offset=0.0, axis_angle="0 1 0 90"];
     link -> limb_mount1 [type=fixed, offset=0.0, axis_angle="0 1 0 90",
