@@ -51,13 +51,13 @@ class RidgedTerrainTask(ForwardSpeedTask):
     super().__init__(**kwargs)
 
     self.floor = rd.Prop(0.0, 0.9, [20.0, 1.0, 10.0])
-    self.bump = rd.Prop(0.0, 0.9, [0.1, 0.2, 10.0])
+    self.bump = rd.Prop(0.0, 0.9, [0.1, 0.1, 10.0])
 
   def add_terrain(self, sim):
     sim.add_prop(self.floor, [0.0, -1.0, 0.0],
                  rd.Quaterniond(1.0, 0.0, 0.0, 0.0))
-    for i in range(20):
-      sim.add_prop(self.bump, [0.5 + i, -0.2 + 0.02 * (i + 1), 0.0],
+    for i in range(19):
+      sim.add_prop(self.bump, [1.5 + i, 0.1, 0.0],
                    rd.Quaterniond(1.0, 0.0, 0.0, 0.0))
 
 class GapTerrainTask(ForwardSpeedTask):
@@ -69,8 +69,8 @@ class GapTerrainTask(ForwardSpeedTask):
   def __init__(self, x_min=-20.0, x_max=20.0, **kwargs):
     super().__init__(**kwargs)
 
-    gap_centers = np.arange(0.5, x_max, 1.0)
-    gap_widths = np.linspace(0.1, 0.9, len(gap_centers))
+    gap_centers = np.arange(1.5, x_max, 1.0)
+    gap_widths = np.full(len(gap_centers), 0.5)
     platform_x_min = np.concatenate(([x_min], gap_centers + 0.5 * gap_widths))
     platform_x_max = np.concatenate((gap_centers - 0.5 * gap_widths, [x_max]))
     platform_x = 0.5 * (platform_x_min + platform_x_max)
@@ -103,7 +103,7 @@ class StairsTerrainTask(ForwardSpeedTask):
     sim.add_prop(self.floor, [0.0, -1.0, 0.0],
                  rd.Quaterniond(1.0, 0.0, 0.0, 0.0))
     for i in range(19):
-      sim.add_prop(self.step, [1.5 + i, -1.0 + 0.1 * (i + 1), 0.0],
+      sim.add_prop(self.step, [1.5 + i, -1.0 + 0.2 * (i + 1), 0.0],
                    rd.Quaterniond(1.0, 0.0, 0.0, 0.0))
 
 class FrozenLakeTask(ForwardSpeedTask):
