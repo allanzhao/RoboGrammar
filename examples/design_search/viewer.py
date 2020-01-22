@@ -60,8 +60,10 @@ def finalize_robot(robot):
       link.shape = rd.LinkShape.CAPSULE
       link.length = 0.1
       link.radius = 0.025
+      link.color = [1.0, 0.0, 1.0]
     if link.joint_type == rd.JointType.NONE:
       link.joint_type = rd.JointType.FIXED
+      link.joint_color = [1.0, 0.0, 1.0]
 
 def main():
   parser = argparse.ArgumentParser(description="Robot design viewer.")
