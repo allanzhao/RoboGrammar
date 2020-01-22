@@ -35,13 +35,15 @@ digraph make_body_with_legs {
   subgraph R {
     body_link [shape=capsule, length=0.15, radius=0.05, density=5.0];
     limb_mount [shape=capsule, length=0.1, radius=0.025];
+    limb_link [label="limb_link"];
     limb [label="limb"];
     parent -> body_link [id="parent_edges"];
     body_link -> child [id="child_edges"];
     body_link -> limb_mount [type=fixed, offset=0.5, axis_angle="0 1 0 90"];
     body_link -> limb_mount [type=fixed, offset=0.5, axis_angle="0 1 0 90",
                              mirror=true];
-    limb_mount -> limb;
+    limb_mount -> limb_link [label="limb_joint"];
+    limb_link -> limb;
   }
 }
 
@@ -90,10 +92,12 @@ digraph make_tail_limb {
   }
 
   subgraph R {
+    limb_link [label="limb_link"];
     limb [label="limb"]
     limb_mount [shape=capsule, length=0.1, radius=0.025];
     parent -> limb_mount [type=fixed, offset=1.0];
-    limb_mount -> limb;
+    limb_mount -> limb_link [label="limb_joint"];
+    limb_link -> limb;
   }
 }
 
@@ -104,10 +108,12 @@ digraph make_head_limb {
   }
 
   subgraph R {
+    limb_link [label="limb_link"];
     limb [label="limb"]
     limb_mount [shape=capsule, length=0.1, radius=0.025];
     child -> limb_mount [type=fixed, offset=0.0, axis_angle="0 1 0 180"];
-    limb_mount -> limb;
+    limb_mount -> limb_link [label="limb_joint"];
+    limb_link -> limb;
   }
 }
 
