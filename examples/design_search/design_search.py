@@ -28,6 +28,20 @@ def has_nonterminals(graph):
       return True
   return False
 
+def build_normalized_robot(graph, target_mass=3.0):
+  """Build a robot from the graph and normalize the mass of the body links."""
+  robot = rd.build_robot(graph)
+  total_body_length = 0.0
+  for link in robot.links:
+    if np.isclose(link.radius, 0.05):
+      # Link is a body link
+      total_body_length += link.length
+  body_density = target_mass / total_body_length
+  for link in robot.links:
+    if np.isclose(link.radius, 0.05):
+      link.density = body_density
+  return robot
+
 def presimulate(robot):
   """Find an initial position that will place the robot on the ground behind the
   x=0 plane, and check if the robot collides in its initial configuration."""
@@ -161,7 +175,7 @@ class RobotDesignEnv(mcts.Env):
     if has_nonterminals(graph):
       # Graph is incomplete
       return None
-    robot = rd.build_robot(graph)
+    robot = build_normalized_robot(graph)
     opt_seed = self.rng.getrandbits(32)
     self.latest_opt_seed = opt_seed
     result_cache_key = (tuple(self.rules.index(rule) for rule in rule_seq),

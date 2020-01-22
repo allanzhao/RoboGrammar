@@ -1,5 +1,5 @@
 import argparse
-from design_search import RobotDesignEnv, make_initial_graph, presimulate, simulate
+from design_search import RobotDesignEnv, build_normalized_robot, make_initial_graph, presimulate, simulate
 import mcts
 import numpy as np
 import pyrobotdesign as rd
@@ -95,7 +95,7 @@ def main():
     if matches:
       graph = rd.apply_rule(rules[r], graph, matches[0])
 
-  robot = rd.build_robot(graph)
+  robot = build_normalized_robot(graph)
   finalize_robot(robot)
   if args.optim:
     input_sequence, result = simulate(robot, task, opt_seed, args.jobs,
