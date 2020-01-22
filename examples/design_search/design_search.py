@@ -28,7 +28,7 @@ def has_nonterminals(graph):
       return True
   return False
 
-def build_normalized_robot(graph, target_mass=3.0):
+def build_normalized_robot(graph, target_mass=1.5):
   """Build a robot from the graph and normalize the mass of the body links."""
   robot = rd.build_robot(graph)
   total_body_length = 0.0
