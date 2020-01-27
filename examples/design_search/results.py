@@ -49,6 +49,51 @@ def get_robot_image(robot, task):
   viewer.render(sim) # Necessary to avoid occasional blank images
   return viewer.get_image()
 
+def save_robot_video_frames(robot, task, opt_seed, thread_count, save_image_dir,
+                            frame_interval):
+  input_sequence, _ = simulate(robot, task, opt_seed, thread_count)
+
+  sim = rd.BulletSimulation(task.time_step)
+  task.add_terrain(sim)
+  viewer = rd.GLFWViewer()
+  robot_init_pos, _ = presimulate(robot)
+  # Rotate 180 degrees around the y axis, so the base points to the right
+  sim.add_robot(robot, robot_init_pos, rd.Quaterniond(0.0, 0.0, 1.0, 0.0))
+  robot_idx = sim.find_robot_index(robot)
+
+  # Get robot position and bounds
+  base_tf = np.zeros((4, 4), order='f')
+  lower = np.zeros(3)
+  upper = np.zeros(3)
+  sim.get_link_transform(robot_idx, 0, base_tf)
+  sim.get_robot_world_aabb(robot_idx, lower, upper)
+  viewer.camera_params.position = base_tf[:3,3]
+  viewer.camera_params.yaw = np.pi / 12
+  viewer.camera_params.pitch = -np.pi / 12
+  #viewer.camera_params.yaw = np.pi / 3
+  #viewer.camera_params.pitch = -np.pi / 6
+  viewer.camera_params.distance = 2.0 * np.linalg.norm(upper - lower)
+
+  frame_index = 0
+  for j in range(input_sequence.shape[1]):
+    for k in range(task.interval):
+      sim.set_joint_target_positions(robot_idx,
+                                     input_sequence[:,j].reshape(-1, 1))
+      sim.step()
+      sim.get_link_transform(robot_idx, 0, base_tf)
+      # Update camera position to track the robot smoothly
+      camera_pos = viewer.camera_params.position.copy()
+      camera_pos += 4.0 * task.time_step * (base_tf[:3,3] - camera_pos)
+      viewer.camera_params.position = camera_pos
+      viewer.update(task.time_step)
+      if frame_index % frame_interval == 0:
+        viewer.render(sim)
+        im_data = viewer.get_image()[::-1,:,:]
+        im = Image.fromarray(im_data)
+        im.save(os.path.join(save_image_dir,
+                             f"frame_{frame_index // frame_interval:04}.png"))
+      frame_index += 1
+
 def main():
   parser = argparse.ArgumentParser(description="Process robot design search results.")
   parser.add_argument("task", type=str, help="Task (Python class name)")
@@ -58,7 +103,9 @@ def main():
   parser.add_argument("-f", "--log_file", type=str, required=True,
                       help="MCTS log file")
   parser.add_argument("-t", "--type", type=str)
-  parser.add_argument("-s", "--save_image_dir", type=str)
+  parser.add_argument("-d", "--save_image_dir", type=str)
+  parser.add_argument("-i", "--iterations", type=int, nargs="+")
+  parser.add_argument("-s", "--opt_seed", type=int)
   args = parser.parse_args()
 
   task_class = getattr(tasks, args.task)
@@ -125,6 +172,33 @@ def main():
     im = Image.fromarray(im_data)
     im.save(os.path.join(args.save_image_dir,
                          f"terrain_{args.task}.png"))
+
+  elif args.type == "simulate":
+    results_df = pd.DataFrame(columns=['task', 'log_file', 'iteration', 'result'])
+    for iteration in args.iterations:
+      row = iteration_df.ix[iteration]
+      rule_seq = ast.literal_eval(row['rule_seq'])
+      robot = make_robot_from_rule_sequence(rule_seq, rules)
+      for i in range(10):
+        _, result = simulate(robot, task, random.getrandbits(32), args.jobs)
+        results_df = results_df.append({
+            'task': args.task, 'log_file': args.log_file,
+            'iteration': iteration, 'result': result}, ignore_index=True)
+
+    with open('simulate_results.csv', 'a') as f:
+      results_df.to_csv(f, header=(f.tell() == 0))
+
+  elif args.type == "video":
+    os.makedirs(args.save_image_dir, exist_ok=True)
+    row = iteration_df.ix[args.iterations[0]]
+    rule_seq = ast.literal_eval(row['rule_seq'])
+    if args.opt_seed is not None:
+      opt_seed = args.opt_seed
+    else:
+      opt_seed = int(row['opt_seed'])
+    robot = make_robot_from_rule_sequence(rule_seq, rules)
+    save_robot_video_frames(robot, task, opt_seed, args.jobs,
+                            args.save_image_dir, frame_interval=4)
 
 if __name__ == '__main__':
   main()
