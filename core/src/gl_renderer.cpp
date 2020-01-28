@@ -118,6 +118,7 @@ void GLRenderer::render(const Simulation &sim,
 void GLRenderer::drawOpaque(const Simulation &sim, const Program &program,
                             ProgramState &program_state) const {
   // Draw robots
+  program_state.setProcTextureType(0); // No texture
   for (Index robot_idx = 0; robot_idx < sim.getRobotCount(); ++robot_idx) {
     const Robot &robot = *sim.getRobot(robot_idx);
     for (std::size_t link_idx = 0; link_idx < robot.links_.size(); ++link_idx) {
@@ -168,6 +169,7 @@ void GLRenderer::drawOpaque(const Simulation &sim, const Program &program,
   }
 
   // Draw props
+  program_state.setProcTextureType(1); // Checkerboard texture
   for (Index prop_idx = 0; prop_idx < sim.getPropCount(); ++prop_idx) {
     const Prop &prop = *sim.getProp(prop_idx);
     program_state.setObjectColor(prop.color_);

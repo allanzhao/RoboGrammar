@@ -40,12 +40,19 @@ struct Program {
   void setViewMatrix(const Eigen::Matrix4f &view_matrix) const {
     glUniformMatrix4fv(view_matrix_index_, 1, GL_FALSE, view_matrix.data());
   }
+  void setTexCoordsMatrix(const Eigen::Matrix4f &tex_coords_matrix) const {
+    glUniformMatrix4fv(tex_coords_matrix_index_, 1, GL_FALSE,
+                       tex_coords_matrix.data());
+  }
   void setModelViewMatrix(const Eigen::Matrix4f &model_view_matrix) const {
     glUniformMatrix4fv(model_view_matrix_index_, 1, GL_FALSE,
                        model_view_matrix.data());
   }
   void setNormalMatrix(const Eigen::Matrix3f &normal_matrix) const {
     glUniformMatrix3fv(normal_matrix_index_, 1, GL_FALSE, normal_matrix.data());
+  }
+  void setProcTextureType(int proc_texture_type) const {
+    glUniform1i(proc_texture_type_index_, proc_texture_type);
   }
   void setObjectColor(const Eigen::Vector3f &object_color) const {
     glUniform3fv(object_color_index_, 1, object_color.data());
@@ -79,8 +86,10 @@ struct Program {
   GLuint fragment_shader_;
   GLint proj_matrix_index_;
   GLint view_matrix_index_;
+  GLint tex_coords_matrix_index_;
   GLint model_view_matrix_index_;
   GLint normal_matrix_index_;
+  GLint proc_texture_type_index_;
   GLint object_color_index_;
   GLint world_light_dir_index_;
   GLint light_proj_matrix_index_;
@@ -244,6 +253,9 @@ struct ProgramState {
   void setModelMatrix(const Eigen::Matrix4f &model_matrix) {
     model_matrix_.setValue(model_matrix);
   }
+  void setProcTextureType(int proc_texture_type) {
+    proc_texture_type_.setValue(proc_texture_type);
+  }
   void setObjectColor(const Eigen::Vector3f &object_color) {
     object_color_.setValue(object_color);
   }
@@ -264,6 +276,7 @@ struct ProgramState {
   ProgramParameter<Eigen::Matrix4f> proj_matrix_;
   ProgramParameter<Eigen::Matrix4f> view_matrix_;
   ProgramParameter<Eigen::Matrix4f> model_matrix_;
+  ProgramParameter<int> proc_texture_type_;
   ProgramParameter<Eigen::Vector3f> object_color_;
   ProgramParameter<Eigen::Vector3f> dir_light_color_;
   ProgramParameter<Eigen::Vector3f> dir_light_dir_;

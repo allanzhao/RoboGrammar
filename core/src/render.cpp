@@ -79,9 +79,13 @@ Program::Program(const std::string &vertex_shader_source,
   // Find uniform indices
   proj_matrix_index_ = glGetUniformLocation(program_, "proj_matrix");
   view_matrix_index_ = glGetUniformLocation(program_, "view_matrix");
+  tex_coords_matrix_index_ =
+      glGetUniformLocation(program_, "tex_coords_matrix");
   model_view_matrix_index_ =
       glGetUniformLocation(program_, "model_view_matrix");
   normal_matrix_index_ = glGetUniformLocation(program_, "normal_matrix");
+  proc_texture_type_index_ =
+      glGetUniformLocation(program_, "proc_texture_type");
   object_color_index_ = glGetUniformLocation(program_, "object_color");
   world_light_dir_index_ = glGetUniformLocation(program_, "world_light_dir");
   light_proj_matrix_index_ =
@@ -352,12 +356,19 @@ void ProgramState::updateUniforms(const Program &program) {
   if (view_matrix_.dirty_) {
     program.setViewMatrix(view_matrix_.value_);
   }
+  if (model_matrix_.dirty_) {
+    // Use world position as texture coordinates
+    program.setTexCoordsMatrix(model_matrix_.value_);
+  }
   if (view_matrix_.dirty_ || model_matrix_.dirty_) {
     Eigen::Matrix4f model_view_matrix =
         view_matrix_.value_ * model_matrix_.value_;
     program.setModelViewMatrix(model_view_matrix);
     program.setNormalMatrix(
         model_view_matrix.topLeftCorner<3, 3>().inverse().transpose());
+  }
+  if (proc_texture_type_.dirty_) {
+    program.setProcTextureType(proc_texture_type_.value_);
   }
   if (object_color_.dirty_) {
     program.setObjectColor(object_color_.value_);
@@ -391,6 +402,7 @@ void ProgramState::updateUniforms(const Program &program) {
   proj_matrix_.dirty_ = false;
   view_matrix_.dirty_ = false;
   model_matrix_.dirty_ = false;
+  proc_texture_type_.dirty_ = false;
   object_color_.dirty_ = false;
   dir_light_color_.dirty_ = false;
   dir_light_dir_.dirty_ = false;
