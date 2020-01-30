@@ -10,15 +10,13 @@ import time
 def view_trajectory(sim, robot_idx, input_sequence, time_step, interval):
   sim.save_state()
 
-  # Get robot position and bounds
-  base_tf = np.zeros((4, 4), order='f')
+  # Get robot bounds
   lower = np.zeros(3)
   upper = np.zeros(3)
-  sim.get_link_transform(robot_idx, 0, base_tf)
   sim.get_robot_world_aabb(robot_idx, lower, upper)
 
   viewer = rd.GLFWViewer()
-  viewer.camera_params.position = base_tf[:3,3]
+  viewer.camera_params.position = 0.5 * (lower + upper)
   viewer.camera_params.yaw = 0.0
   viewer.camera_params.pitch = -np.pi / 6
   viewer.camera_params.distance = 2.0 * np.linalg.norm(upper - lower)
@@ -33,10 +31,11 @@ def view_trajectory(sim, robot_idx, input_sequence, time_step, interval):
         sim.set_joint_target_positions(robot_idx,
                                        input_sequence[:,j].reshape(-1, 1))
       sim.step()
-      sim.get_link_transform(robot_idx, 0, base_tf)
+      sim.get_robot_world_aabb(robot_idx, lower, upper)
       # Update camera position to track the robot smoothly
+      target_pos = 0.5 * (lower + upper)
       camera_pos = viewer.camera_params.position.copy()
-      camera_pos += 2.0 * time_step * (base_tf[:3,3] - camera_pos)
+      camera_pos += 5.0 * time_step * (target_pos - camera_pos)
       viewer.camera_params.position = camera_pos
       viewer.update(time_step)
       sim_time += time_step
@@ -48,8 +47,8 @@ def view_trajectory(sim, robot_idx, input_sequence, time_step, interval):
         i = 0
         j = 0
         sim.restore_state()
-        sim.get_link_transform(robot_idx, 0, base_tf)
-        viewer.camera_params.position = base_tf[:3,3]
+        sim.get_robot_world_aabb(robot_idx, lower, upper)
+        viewer.camera_params.position = 0.5 * (lower + upper)
     viewer.render(sim)
 
 def finalize_robot(robot):
