@@ -151,6 +151,7 @@ int main(int argc, char **argv) {
   auto value_estimator = std::make_shared<FCValueEstimator>(
       *main_sim, /*robot_idx=*/robot_idx, /*device=*/device, /*batch_size=*/64,
       /*epoch_count=*/3);
+  auto input_sampler = std::make_shared<DefaultInputSampler>();
   int episode_len = 250;
   int episode_count = args::get(episodes_flag);
   MatrixX input_sequence = MatrixX::Zero(dof_count, episode_len);
@@ -170,7 +171,8 @@ int main(int argc, char **argv) {
           /*dof_count=*/dof_count, /*interval=*/interval, /*horizon=*/horizon,
           /*sample_count=*/128, /*thread_count=*/thread_count,
           /*seed=*/opt_seed, /*make_sim_fn=*/make_sim_fn,
-          /*objective_fn=*/objective_fn, /*value_estimator=*/value_estimator);
+          /*objective_fn=*/objective_fn, /*value_estimator=*/value_estimator,
+          /*input_sampler=*/input_sampler);
       for (int i = 0; i < 10; ++i) {
         optimizer.update();
       }

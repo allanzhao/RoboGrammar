@@ -7,6 +7,14 @@ namespace py = pybind11;
 namespace rd = robot_design;
 
 void initOptim(py::module &m) {
+  py::class_<rd::InputSampler, std::shared_ptr<rd::InputSampler>>(
+      m, "InputSampler")
+      .def("sample_input_sequence", &rd::InputSampler::sampleInputSequence);
+
+  py::class_<rd::DefaultInputSampler, rd::InputSampler,
+             std::shared_ptr<rd::DefaultInputSampler>>(m, "DefaultInputSampler")
+      .def(py::init<>());
+
   py::class_<rd::MPPIOptimizer, std::shared_ptr<rd::MPPIOptimizer>>(
       m, "MPPIOptimizer")
       // Only SumOfSquaresObjective and DotProductObjective are supported by the
@@ -14,11 +22,13 @@ void initOptim(py::module &m) {
       .def(py::init<rd::Scalar, rd::Scalar, int, int, int, int, int,
                     unsigned int, const rd::MakeSimFunction &,
                     const rd::SumOfSquaresObjective &,
-                    const std::shared_ptr<const rd::ValueEstimator> &>())
+                    const std::shared_ptr<const rd::ValueEstimator> &,
+                    const std::shared_ptr<const rd::InputSampler> &>())
       .def(py::init<rd::Scalar, rd::Scalar, int, int, int, int, int,
                     unsigned int, const rd::MakeSimFunction &,
                     const rd::DotProductObjective &,
-                    const std::shared_ptr<const rd::ValueEstimator> &>())
+                    const std::shared_ptr<const rd::ValueEstimator> &,
+                    const std::shared_ptr<const rd::InputSampler> &>())
       .def("update", &rd::MPPIOptimizer::update,
            py::call_guard<py::gil_scoped_release>())
       .def("advance", &rd::MPPIOptimizer::advance,

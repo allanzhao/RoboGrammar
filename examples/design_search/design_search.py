@@ -77,6 +77,7 @@ def simulate(robot, task, opt_seed, thread_count, episode_count=1):
     value_estimator = rd.FCValueEstimator(main_sim, robot_idx, 'cpu', 64, 3, 1)
   else:
     value_estimator = rd.NullValueEstimator()
+  input_sampler = rd.DefaultInputSampler()
   objective_fn = task.get_objective_fn()
 
   replay_obs = np.zeros((value_estimator.get_observation_size(), 0))
@@ -86,7 +87,7 @@ def simulate(robot, task, opt_seed, thread_count, episode_count=1):
     optimizer = rd.MPPIOptimizer(1.0, task.discount_factor, dof_count,
                                  task.interval, task.horizon, 128, thread_count,
                                  opt_seed + episode_idx, make_sim_fn,
-                                 objective_fn, value_estimator)
+                                 objective_fn, value_estimator, input_sampler)
     for _ in range(10):
       optimizer.update()
 

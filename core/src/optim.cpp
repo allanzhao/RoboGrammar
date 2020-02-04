@@ -3,15 +3,59 @@
 
 namespace robot_design {
 
+DefaultInputSampler::DefaultInputSampler() {}
+
+void DefaultInputSampler::sampleInputSequence(
+    Ref<MatrixX> input_seq, unsigned int sample_seed, int sample_idx,
+    const Ref<const MatrixX> &last_input_seq,
+    const Ref<const MatrixX> &history) const {
+  int dof_count = last_input_seq.rows();
+  int horizon = last_input_seq.cols();
+  int history_len = history.cols();
+
+  Scalar std_dev;
+  // Half of the samples are based on repeating past motion ("history")
+  if (history_len >= horizon && sample_idx % 2 == 0) {
+    // The repetition period should range from (horizon / 2 + 1) to horizon
+    int repeat_len = (sample_idx / 2) % (horizon / 2) + horizon / 2 + 1;
+    input_seq = history.rightCols(repeat_len)
+                    .replicate(1, horizon)
+                    .leftCols(horizon);
+    std_dev = 0.025;
+  } else {
+    input_seq = last_input_seq;
+    std_dev = 0.1;
+  }
+  std::mt19937 generator(sample_seed + sample_idx);
+  std::normal_distribution<Scalar> distribution(0.0, std_dev);
+  Eigen::Vector<Scalar, 5> filter_coeffs;
+  // FIR filter with passband below 2 Hz, stopband above 4 Hz at f_s = 15 Hz
+  filter_coeffs << 0.10422766377112629, 0.3239870556899027, 0.3658903830367387,
+      0.3239870556899027, 0.10422766377112629;
+  int filter_len = filter_coeffs.size();
+  MatrixX noise =
+      MatrixX::NullaryExpr(dof_count, horizon + filter_len - 1,
+                           [&]() { return distribution(generator); });
+  for (int j = 0; j < horizon; ++j) {
+    input_seq.col(j) +=
+        noise.block(0, j, dof_count, filter_len) * filter_coeffs;
+  }
+  for (int i = 0; i < dof_count; i += 2) {
+    input_seq.row(i + 1) = input_seq.row(i);
+  }
+}
+
 MPPIOptimizer::MPPIOptimizer(
     Scalar kappa, Scalar discount_factor, int dof_count, int interval,
     int horizon, int sample_count, int thread_count, unsigned int seed,
     const MakeSimFunction &make_sim_fn, const ObjectiveFunction &objective_fn,
-    const std::shared_ptr<const ValueEstimator> &value_estimator)
+    const std::shared_ptr<const ValueEstimator> &value_estimator,
+    const std::shared_ptr<const InputSampler> &input_sampler)
     : kappa_(kappa), discount_factor_(discount_factor), dof_count_(dof_count),
       interval_(interval), horizon_(horizon), sample_count_(sample_count),
       seed_(seed), objective_fn_(objective_fn),
-      value_estimator_(value_estimator), thread_pool_(thread_count) {
+      value_estimator_(value_estimator), input_sampler_(input_sampler),
+      thread_pool_(thread_count) {
   // Create a separate simulation instance for each sample
   sim_instances_.reserve(sample_count);
   for (int i = 0; i < sample_count; ++i) {
@@ -50,7 +94,8 @@ void MPPIOptimizer::update() {
   Scalar max_return = sim_returns.maxCoeff();
   for (int k = 0; k < sample_count_; ++k) {
     // Recreate the same input sequence used for the simulation
-    sampleInputSequence(rand_input_seq, seed_, k);
+    input_sampler_->sampleInputSequence(
+        rand_input_seq, seed_, k, input_sequence_, history_);
     Scalar seq_weight = std::exp(kappa_ * (sim_returns(k) - max_return));
     input_sequence_sum += rand_input_seq * seq_weight;
     seq_weight_sum += seq_weight;
@@ -92,7 +137,8 @@ Scalar MPPIOptimizer::runSimulation(unsigned int sample_seed, int sample_idx) {
   Simulation &sim = *sim_instances_[sample_idx];
   Index robot_idx = 0; // TODO: don't assume there is only one robot
   MatrixX rand_input_seq(dof_count_, horizon_);
-  sampleInputSequence(rand_input_seq, sample_seed, sample_idx);
+  input_sampler_->sampleInputSequence(
+      rand_input_seq, sample_seed, sample_idx, input_sequence_, history_);
   sim.saveState();
   Scalar sim_return = 0.0;
   Scalar discount_prod = 1.0;
@@ -118,37 +164,6 @@ void MPPIOptimizer::advanceSimulation(int sample_idx, int step_count) {
       sim.setJointTargetPositions(robot_idx, input_sequence_.col(j));
       sim.step();
     }
-  }
-}
-
-void MPPIOptimizer::sampleInputSequence(Ref<MatrixX> rand_input_seq,
-                                        unsigned int sample_seed,
-                                        int sample_idx) const {
-  Scalar std_dev;
-  // Half of the samples are based on repeating past motion ("history")
-  if (total_step_count_ >= horizon_ && sample_idx < sample_count_ / 2) {
-    // The repetition period should range from (horizon_ / 2 + 1) to horizon_
-    int repeat_len = sample_idx % (horizon_ / 2) + horizon_ / 2 + 1;
-    rand_input_seq = history_.rightCols(repeat_len).replicate(1, horizon_)
-        .leftCols(horizon_);
-    std_dev = 0.05;
-  } else {
-    rand_input_seq = input_sequence_;
-    std_dev = 0.2;
-  }
-  std::mt19937 generator(sample_seed + sample_idx);
-  std::normal_distribution<Scalar> distribution(0.0, std_dev);
-  Eigen::Vector<Scalar, 5> filter_coeffs;
-  // FIR filter with passband below 2 Hz, stopband above 4 Hz at f_s = 15 Hz
-  filter_coeffs << 0.10422766377112629, 0.3239870556899027, 0.3658903830367387,
-      0.3239870556899027, 0.10422766377112629;
-  int filter_len = filter_coeffs.size();
-  MatrixX noise =
-      MatrixX::NullaryExpr(dof_count_, horizon_ + filter_len - 1,
-                           [&]() { return distribution(generator); });
-  for (int j = 0; j < horizon_; ++j) {
-    rand_input_seq.col(j) +=
-        noise.block(0, j, dof_count_, filter_len) * filter_coeffs;
   }
 }
 

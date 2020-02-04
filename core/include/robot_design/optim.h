@@ -15,13 +15,35 @@ using ObjectiveFunction = std::function<Scalar(const Simulation &)>;
 
 using Eigen::Ref;
 
+class InputSampler {
+public:
+  virtual ~InputSampler() {}
+  virtual void sampleInputSequence(Ref<MatrixX> input_seq,
+                                   unsigned int sample_seed, int sample_idx,
+                                   const Ref<const MatrixX> &last_input_seq,
+                                   const Ref<const MatrixX> &history) const = 0;
+};
+
+class DefaultInputSampler : public InputSampler {
+public:
+  DefaultInputSampler();
+  virtual ~DefaultInputSampler() {}
+  DefaultInputSampler(const DefaultInputSampler &other) = delete;
+  DefaultInputSampler &operator=(const DefaultInputSampler &other) = delete;
+  virtual void
+  sampleInputSequence(Ref<MatrixX> input_seq, unsigned int sample_seed,
+                      int sample_idx, const Ref<const MatrixX> &last_input_seq,
+                      const Ref<const MatrixX> &history) const override;
+};
+
 class MPPIOptimizer {
 public:
   MPPIOptimizer(Scalar kappa, Scalar discount_factor, int dof_count,
                 int interval, int horizon, int sample_count, int thread_count,
                 unsigned int seed, const MakeSimFunction &make_sim_fn,
                 const ObjectiveFunction &objective_fn,
-                const std::shared_ptr<const ValueEstimator> &value_estimator);
+                const std::shared_ptr<const ValueEstimator> &value_estimator,
+                const std::shared_ptr<const InputSampler> &input_sampler);
   void update();
   void advance(int step_count);
 
@@ -30,8 +52,6 @@ public:
 private:
   Scalar runSimulation(unsigned int sample_seed, int sample_idx);
   void advanceSimulation(int sample_idx, int step_count);
-  void sampleInputSequence(Ref<MatrixX> rand_input_seq,
-                           unsigned int sample_seed, int sample_idx) const;
 
   Scalar kappa_;
   Scalar discount_factor_;
@@ -42,6 +62,7 @@ private:
   unsigned int seed_;
   ObjectiveFunction objective_fn_;
   std::shared_ptr<const ValueEstimator> value_estimator_;
+  std::shared_ptr<const InputSampler> input_sampler_;
   std::vector<std::shared_ptr<Simulation>> sim_instances_;
   MatrixX final_obs_;
   MatrixX history_;
