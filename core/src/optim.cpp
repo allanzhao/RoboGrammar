@@ -40,9 +40,6 @@ void DefaultInputSampler::sampleInputSequence(
     input_seq.col(j) +=
         noise.block(0, j, dof_count, filter_len) * filter_coeffs;
   }
-  for (int i = 0; i < dof_count; i += 2) {
-    input_seq.row(i + 1) = input_seq.row(i);
-  }
 }
 
 MPPIOptimizer::MPPIOptimizer(
