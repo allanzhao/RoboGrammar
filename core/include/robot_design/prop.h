@@ -4,11 +4,17 @@
 
 namespace robot_design {
 
+enum class PropShape : Index { BOX };
+
 struct Prop {
   Prop() = default;
-  Prop(Scalar density, Scalar friction, const Vector3 &half_extents)
-      : density_(density), friction_(friction), half_extents_(half_extents) {}
+  Prop(PropShape shape, Scalar density, Scalar friction,
+       const Vector3 &half_extents)
+      : shape_(shape), density_(density), friction_(friction),
+        half_extents_(half_extents) {}
 
+  // Shape
+  PropShape shape_ = PropShape::BOX;
   // Density
   Scalar density_ = 0.0;
   // Friction

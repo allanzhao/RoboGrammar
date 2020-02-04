@@ -109,6 +109,7 @@ int main(int argc, char **argv) {
 
   // Create a floor
   std::shared_ptr<Prop> floor = std::make_shared<Prop>(
+      /*shape=*/PropShape::BOX,
       /*density=*/0.0, // static
       /*friction=*/0.9,
       /*half_extents=*/Vector3{10.0, 1.0, 10.0});
