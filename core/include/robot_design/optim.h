@@ -26,7 +26,8 @@ public:
 
 class DefaultInputSampler : public InputSampler {
 public:
-  DefaultInputSampler();
+  DefaultInputSampler(Scalar history_std_dev = 0.025,
+                      Scalar warm_start_std_dev = 0.1);
   virtual ~DefaultInputSampler() {}
   DefaultInputSampler(const DefaultInputSampler &other) = delete;
   DefaultInputSampler &operator=(const DefaultInputSampler &other) = delete;
@@ -34,6 +35,9 @@ public:
   sampleInputSequence(Ref<MatrixX> input_seq, unsigned int sample_seed,
                       int sample_idx, const Ref<const MatrixX> &last_input_seq,
                       const Ref<const MatrixX> &history) const override;
+
+  Scalar history_std_dev_;
+  Scalar warm_start_std_dev_;
 };
 
 class MPPIOptimizer {

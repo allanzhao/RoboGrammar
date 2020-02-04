@@ -3,7 +3,10 @@
 
 namespace robot_design {
 
-DefaultInputSampler::DefaultInputSampler() {}
+DefaultInputSampler::DefaultInputSampler(Scalar history_std_dev,
+                                         Scalar warm_start_std_dev)
+    : history_std_dev_(history_std_dev),
+      warm_start_std_dev_(warm_start_std_dev) {}
 
 void DefaultInputSampler::sampleInputSequence(
     Ref<MatrixX> input_seq, unsigned int sample_seed, int sample_idx,
@@ -21,10 +24,10 @@ void DefaultInputSampler::sampleInputSequence(
     input_seq = history.rightCols(repeat_len)
                     .replicate(1, horizon)
                     .leftCols(horizon);
-    std_dev = 0.025;
+    std_dev = history_std_dev_;
   } else {
     input_seq = last_input_seq;
-    std_dev = 0.1;
+    std_dev = warm_start_std_dev_;
   }
   std::mt19937 generator(sample_seed + sample_idx);
   std::normal_distribution<Scalar> distribution(0.0, std_dev);

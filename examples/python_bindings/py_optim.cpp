@@ -13,7 +13,8 @@ void initOptim(py::module &m) {
 
   py::class_<rd::DefaultInputSampler, rd::InputSampler,
              std::shared_ptr<rd::DefaultInputSampler>>(m, "DefaultInputSampler")
-      .def(py::init<>());
+      .def(py::init<>())
+      .def(py::init<rd::Scalar, rd::Scalar>());
 
   py::class_<rd::MPPIOptimizer, std::shared_ptr<rd::MPPIOptimizer>>(
       m, "MPPIOptimizer")
