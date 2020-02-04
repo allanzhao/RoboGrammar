@@ -28,7 +28,7 @@ struct NodeAttributes {
   LinkShape shape_ = LinkShape::NONE;
   Scalar length_ = 1.0;
   Scalar radius_ = 0.05;
-  Scalar density_ = 1.0;
+  Scalar density_ = 2.5;
   Scalar friction_ = 0.9;
   bool base_ = false;
   Color color_ = {0.45f, 0.5f, 0.55f}; // Slate gray
