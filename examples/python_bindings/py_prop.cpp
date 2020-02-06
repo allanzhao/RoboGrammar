@@ -18,4 +18,9 @@ void initProp(py::module &m) {
       .def_readwrite("friction", &rd::Prop::friction_)
       .def_readwrite("half_extents", &rd::Prop::half_extents_)
       .def_readwrite("color", &rd::Prop::color_);
+
+  py::class_<rd::HeightfieldProp, rd::Prop,
+             std::shared_ptr<rd::HeightfieldProp>>(m, "HeightfieldProp")
+      .def(py::init<rd::Scalar, const rd::Vector3 &, const rd::MatrixX &>())
+      .def_readwrite("heightfield", &rd::HeightfieldProp::heightfield_);
 }

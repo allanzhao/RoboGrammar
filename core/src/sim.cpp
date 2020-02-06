@@ -1,6 +1,8 @@
+#include <BulletCollision/CollisionShapes/btHeightfieldTerrainShape.h>
 #include <Serialize/BulletWorldImporter/btMultiBodyWorldImporter.h>
 #include <cstddef>
 #include <limits>
+#include <robot_design/prop.h>
 #include <robot_design/sim.h>
 #include <robot_design/types.h>
 #include <robot_design/utils.h>
@@ -167,10 +169,33 @@ Index BulletSimulation::addProp(std::shared_ptr<const Prop> prop,
   prop_wrappers_.emplace_back(prop);
   BulletPropWrapper &wrapper = prop_wrappers_.back();
 
-  wrapper.col_shape_ =
-      std::make_shared<btBoxShape>(bulletVector3FromEigen(prop->half_extents_));
-  // TODO: generalize to other shapes
-  Scalar mass = 8 * prop->half_extents_.prod() * prop->density_;
+  Scalar mass = 0.0;
+  switch (prop->shape_) {
+  case PropShape::BOX:
+    wrapper.col_shape_ = std::make_shared<btBoxShape>(
+        bulletVector3FromEigen(prop->half_extents_));
+    mass = 8 * prop->half_extents_.prod() * prop->density_;
+    break;
+  case PropShape::HEIGHTFIELD: {
+    const HeightfieldProp &heightfield_prop =
+        dynamic_cast<const HeightfieldProp &>(*prop);
+    const MatrixX &heightfield = heightfield_prop.heightfield_;
+    auto col_shape = std::make_shared<btHeightfieldTerrainShape>(
+        heightfield.rows(), heightfield.cols(), heightfield.data(),
+        /*heightScale=*/1.0, /*minHeight=*/0.0, /*maxHeight=*/1.0,
+        /*upAxis=*/1, /*heightDataType=*/PHY_FLOAT, /*flipQuadEdges=*/false);
+    Vector3 local_scaling = (2.0 * heightfield_prop.half_extents_).array() /
+        Vector3(heightfield.rows() - 1, 2.0, heightfield.cols() - 1).array();
+    col_shape->setLocalScaling(bulletVector3FromEigen(local_scaling));
+    col_shape->buildAccelerator();
+    wrapper.col_shape_ = std::move(col_shape);
+    // Heightfields are always static (zero mass)
+    break;
+  }
+  default:
+    throw std::runtime_error("Unexpected prop shape");
+  }
+
   btVector3 inertia(0, 0, 0);
   if (mass != 0) {
     wrapper.col_shape_->calculateLocalInertia(mass, inertia);
