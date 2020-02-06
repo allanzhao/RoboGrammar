@@ -101,7 +101,6 @@ Index BulletSimulation::addRobot(std::shared_ptr<const Robot> robot,
         break;
       default:
         throw std::runtime_error("Unexpected joint type");
-        break;
       }
     }
 
