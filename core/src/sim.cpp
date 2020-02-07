@@ -184,7 +184,7 @@ Index BulletSimulation::addProp(std::shared_ptr<const Prop> prop,
         /*heightScale=*/1.0, /*minHeight=*/0.0, /*maxHeight=*/1.0,
         /*upAxis=*/1, /*heightDataType=*/PHY_FLOAT, /*flipQuadEdges=*/false);
     Vector3 local_scaling = (2.0 * heightfield_prop.half_extents_).array() /
-        Vector3(heightfield.rows() - 1, 2.0, heightfield.cols() - 1).array();
+        Vector3(heightfield.rows() - 1, 1.0, heightfield.cols() - 1).array();
     col_shape->setLocalScaling(bulletVector3FromEigen(local_scaling));
     col_shape->buildAccelerator();
     wrapper.col_shape_ = std::move(col_shape);
