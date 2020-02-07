@@ -12,16 +12,16 @@ namespace robot_design {
 
 GLRenderer::GLRenderer(const std::string &data_dir) {
   // Create default shader program
-  std::string default_vs_source = loadString(data_dir +
-                                             "shaders/default.vert.glsl");
-  std::string default_fs_source = loadString(data_dir +
-                                             "shaders/default.frag.glsl");
+  std::string default_vs_source =
+      loadString(data_dir + "shaders/default.vert.glsl");
+  std::string default_fs_source =
+      loadString(data_dir + "shaders/default.frag.glsl");
   default_program_ =
       std::make_shared<Program>(default_vs_source, default_fs_source);
 
   // Create depth shader program
-  std::string depth_vs_source = loadString(data_dir +
-                                           "shaders/depth.vert.glsl");
+  std::string depth_vs_source =
+      loadString(data_dir + "shaders/depth.vert.glsl");
   std::string depth_fs_source; // Empty string (no fragment shader needed)
   depth_program_ = std::make_shared<Program>(depth_vs_source, depth_fs_source);
 
@@ -37,6 +37,8 @@ GLRenderer::GLRenderer(const std::string &data_dir) {
   cylinder_end_mesh_ = makeCylinderEndMesh(/*n_segments=*/32);
   // drawText will create new vertex data for each string
   text_mesh_ = std::make_shared<Mesh>(/*usage=*/GL_STREAM_DRAW);
+  // drawHeightfield will create new vertex data for each heightfield
+  heightfield_mesh_ = std::make_shared<Mesh>(/*usage=*/GL_STREAM_DRAW);
 
   // Create directional light
   dir_light_ = std::make_shared<DirectionalLight>(
@@ -169,14 +171,36 @@ void GLRenderer::drawOpaque(const Simulation &sim, const Program &program,
   }
 
   // Draw props
-  program_state.setProcTextureType(1); // Checkerboard texture
   for (Index prop_idx = 0; prop_idx < sim.getPropCount(); ++prop_idx) {
     const Prop &prop = *sim.getProp(prop_idx);
-    program_state.setObjectColor(prop.color_);
     Matrix4 prop_transform;
     sim.getPropTransform(prop_idx, prop_transform);
-    drawBox(prop_transform.cast<float>(), prop.half_extents_.cast<float>(),
-            program, program_state);
+
+    // Draw the prop's collision shape
+    if (prop.density_ == 0.0) {
+      // Checkerboard texture for static shapes
+      program_state.setProcTextureType(1);
+    } else {
+      // No texture for dynamic shapes
+      program_state.setProcTextureType(0);
+    }
+    program_state.setObjectColor(prop.color_);
+    switch (prop.shape_) {
+    case PropShape::BOX:
+      drawBox(prop_transform.cast<float>(), prop.half_extents_.cast<float>(),
+              program, program_state);
+      break;
+    case PropShape::HEIGHTFIELD: {
+      const MatrixX &heightfield =
+          dynamic_cast<const HeightfieldProp &>(prop).heightfield_;
+      drawHeightfield(prop_transform.cast<float>(),
+                      prop.half_extents_.cast<float>(), program, program_state,
+                      heightfield.cast<float>());
+      break;
+    }
+    default:
+      throw std::runtime_error("Unexpected prop shape");
+    }
   }
 }
 
@@ -316,6 +340,54 @@ void GLRenderer::drawText(const Eigen::Matrix4f &transform, float half_height,
   program_state.setModelMatrix(transform.matrix());
   program_state.updateUniforms(program);
   text_mesh_->draw();
+}
+
+void GLRenderer::drawHeightfield(const Eigen::Matrix4f &transform,
+                                 const Eigen::Vector3f &half_extents,
+                                 const Program &program,
+                                 ProgramState &program_state,
+                                 const Eigen::MatrixXf &heightfield) const {
+  std::vector<float> positions;
+  std::vector<float> normals;
+  std::vector<int> indices;
+
+  for (int j = 0; j < heightfield.cols() - 1; ++j) {
+    for (int i = 0; i < heightfield.rows() - 1; ++i) {
+      Eigen::Vector3f p00(i, heightfield(i, j), j);
+      Eigen::Vector3f p10(i + 1, heightfield(i + 1, j), j);
+      Eigen::Vector3f p01(i, heightfield(i, j + 1), j + 1);
+      Eigen::Vector3f p11(i + 1, heightfield(i + 1, j + 1), j + 1);
+      Eigen::Vector3f n00 = (p01 - p00).cross(p10 - p00).normalized();
+      Eigen::Vector3f n11 = (p10 - p11).cross(p01 - p11).normalized();
+
+      Eigen::Vector<float, 18> pos;
+      pos << p00, p01, p10, p11, p10, p01;
+      Eigen::Vector<float, 18> nor;
+      nor << n00, n00, n00, n11, n11, n11;
+      Eigen::Vector<int, 6> idx;
+      idx << 0, 1, 2, 3, 4, 5;
+      idx += Eigen::Vector<int, 6>::Constant(indices.size());
+
+      positions.insert(positions.end(), std::begin(pos), std::end(pos));
+      normals.insert(normals.end(), std::begin(nor), std::end(nor));
+      indices.insert(indices.end(), std::begin(idx), std::end(idx));
+    }
+  }
+  heightfield_mesh_->setPositions(positions);
+  heightfield_mesh_->setNormals(normals);
+  heightfield_mesh_->setIndices(indices);
+
+  Eigen::Vector3f local_scaling =
+      (2.0 * half_extents).array() /
+      Eigen::Vector3f(heightfield.rows() - 1, 1.0, heightfield.cols() - 1)
+          .array();
+  Eigen::Affine3f model_transform =
+      Eigen::Affine3f(transform) * Eigen::Translation3f(-half_extents) *
+      Eigen::Scaling(local_scaling);
+  heightfield_mesh_->bind();
+  program_state.setModelMatrix(model_transform.matrix());
+  program_state.updateUniforms(program);
+  heightfield_mesh_->draw();
 }
 
 std::string GLRenderer::loadString(const std::string &path) {

@@ -314,6 +314,10 @@ private:
   void drawText(const Eigen::Matrix4f &transform, float half_height,
                 const Program &program, ProgramState &program_state,
                 const std::string &str) const;
+  void drawHeightfield(const Eigen::Matrix4f &transform,
+                       const Eigen::Vector3f &half_extents,
+                       const Program &program, ProgramState &program_state,
+                       const Eigen::MatrixXf &heightfield) const;
   static std::string loadString(const std::string &path);
 
   std::shared_ptr<Program> default_program_;
@@ -324,6 +328,7 @@ private:
   std::shared_ptr<Mesh> capsule_end_mesh_;
   std::shared_ptr<Mesh> cylinder_end_mesh_;
   std::shared_ptr<Mesh> text_mesh_;
+  std::shared_ptr<Mesh> heightfield_mesh_;
   std::shared_ptr<DirectionalLight> dir_light_;
   std::shared_ptr<BitmapFont> font_;
 };
