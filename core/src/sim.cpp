@@ -210,6 +210,7 @@ Index BulletSimulation::addProp(std::shared_ptr<const Prop> prop,
   wrapper.rigid_body_->setCenterOfMassTransform(btTransform(
       /*q=*/bulletQuaternionFromEigen(rot),
       /*c=*/bulletVector3FromEigen(pos)));
+  wrapper.rigid_body_->setActivationState(DISABLE_DEACTIVATION);
   world_->addRigidBody(wrapper.rigid_body_.get(),
                        /*collisionFilterGroup=*/2,
                        /*collisionFilterMask=*/3);
