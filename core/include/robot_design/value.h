@@ -3,21 +3,14 @@
 #include <Eigen/Dense>
 #include <memory>
 #include <robot_design/sim.h>
+#include <robot_design/torch_utils.h>
 #include <robot_design/types.h>
 #include <torch/torch.h>
-#include <type_traits>
 #include <vector>
 
 namespace robot_design {
 
 using Eigen::Ref;
-
-// Torch dtype corresponding to Scalar
-constexpr torch::Dtype SCALAR_DTYPE =
-    std::is_same<Scalar, double>::value ? torch::kFloat64 : torch::kFloat32;
-
-// Torch dtype used internally
-constexpr torch::Dtype TORCH_DTYPE = torch::kFloat32;
 
 class ValueEstimator {
 public:
@@ -71,11 +64,6 @@ public:
       const MatrixX &obs, const Ref<const VectorX> &value) override;
 
 private:
-  torch::Tensor torchTensorFromEigenMatrix(const Ref<const MatrixX> &mat) const;
-  torch::Tensor torchTensorFromEigenVector(const Ref<const VectorX> &vec) const;
-  void torchTensorToEigenVector(const torch::Tensor &tensor,
-                                Ref<VectorX> vec) const;
-
   int robot_idx_;
   torch::Device device_;
   int batch_size_;

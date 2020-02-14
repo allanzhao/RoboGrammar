@@ -62,7 +62,7 @@ void FCValueEstimator::getObservation(const Simulation &sim,
 
 void FCValueEstimator::estimateValue(const MatrixX &obs,
                                      Ref<VectorX> value_est) const {
-  torch::Tensor obs_tensor = torchTensorFromEigenMatrix(obs);
+  torch::Tensor obs_tensor = torchTensorFromEigenMatrix(obs).to(device_);
   std::vector<torch::Tensor> ensemble_outputs;
   ensemble_outputs.reserve(nets_.size());
   for (std::size_t k = 0; k < nets_.size(); ++k) {
@@ -86,8 +86,10 @@ void FCValueEstimator::train(const MatrixX &obs,
     while (index_batch) {
       MatrixX obs_batch = obs(Eigen::all, *index_batch);
       VectorX value_batch = value(*index_batch);
-      torch::Tensor obs_tensor = torchTensorFromEigenMatrix(obs_batch);
-      torch::Tensor value_tensor = torchTensorFromEigenVector(value_batch);
+      torch::Tensor obs_tensor =
+          torchTensorFromEigenMatrix(obs_batch).to(device_);
+      torch::Tensor value_tensor =
+          torchTensorFromEigenVector(value_batch).to(device_);
       for (std::size_t k = 0; k < nets_.size(); ++k) {
         nets_[k]->zero_grad();
         torch::Tensor value_est_tensor =
@@ -99,29 +101,6 @@ void FCValueEstimator::train(const MatrixX &obs,
       index_batch = sampler.next(batch_size_);
     }
   }
-}
-
-torch::Tensor FCValueEstimator::torchTensorFromEigenMatrix(
-    const Ref<const MatrixX> &mat) const {
-  // Create a row-major Torch tensor from a column-major Eigen matrix
-  return torch::from_blob(const_cast<Scalar *>(mat.data()),
-                          {mat.cols(), mat.rows()}, torch::dtype(SCALAR_DTYPE))
-      .toType(TORCH_DTYPE)
-      .to(device_);
-}
-
-torch::Tensor FCValueEstimator::torchTensorFromEigenVector(
-    const Ref<const VectorX> &vec) const {
-  return torch::from_blob(const_cast<Scalar *>(vec.data()), {vec.size()},
-                          torch::dtype(SCALAR_DTYPE))
-      .toType(TORCH_DTYPE)
-      .to(device_);
-}
-
-void FCValueEstimator::torchTensorToEigenVector(const torch::Tensor &tensor,
-                                                Ref<VectorX> vec) const {
-  vec = Eigen::Map<VectorX>(tensor.cpu().toType(SCALAR_DTYPE).data<Scalar>(),
-                            vec.size());
 }
 
 } // namespace robot_design
