@@ -64,7 +64,7 @@ MPPIOptimizer::MPPIOptimizer(
 
   input_sequence_ = MatrixX::Zero(dof_count, horizon);
   final_obs_.resize(value_estimator->getObservationSize(), sample_count);
-  history_.resize(dof_count, horizon_);
+  history_ = MatrixX::Zero(dof_count, horizon_);
   total_step_count_ = 0;
 }
 
