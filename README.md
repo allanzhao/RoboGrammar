@@ -5,11 +5,6 @@
 [CMake](https://cmake.org/download/) >= 3.8
 * Ubuntu: The version available through `apt-get` is probably outdated, install from the link above
 
-[LibTorch](https://pytorch.org/get-started/locally/) (select your OS, Package: LibTorch, CUDA: None, cxx11 ABI)
-* Ubuntu: Extract the `.zip` file and move the `libtorch` directory to `/usr/local` (suggested location)
-* Add `export CMAKE_PREFIX_PATH=$CMAKE_PREFIX_PATH:/usr/local/libtorch/share/cmake` to `~/.bashrc`
-* `source ~/.bashrc`
-
 GLEW
 * Ubuntu: `sudo apt-get install libglew-dev`
 * Mac OS (Homebrew): `brew install glew`
