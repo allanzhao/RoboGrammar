@@ -14,7 +14,6 @@
 #include <robot_design/robot.h>
 #include <robot_design/sim.h>
 #include <thread>
-#include <torch/torch.h>
 #include <vector>
 
 using namespace robot_design;
@@ -31,9 +30,6 @@ int main(int argc, char **argv) {
                                           {'s', "seed"});
   args::ValueFlag<unsigned int> jobs_flag(
       parser, "jobs", "Number of jobs/threads", {'j', "jobs"}, 0);
-  args::MapFlag<std::string, torch::DeviceType> device_flag(
-      parser, "device", "Torch device (cpu|cuda)", {'d', "device"},
-      {{"cpu", torch::kCPU}, {"cuda", torch::kCUDA}}, torch::kCPU);
   args::ValueFlag<unsigned int> episodes_flag(
       parser, "episodes", "Number of episodes", {'e', "episodes"}, 3);
   args::Flag optim_flag(parser, "optim", "Optimize a trajectory",
@@ -70,10 +66,6 @@ int main(int argc, char **argv) {
   constexpr Scalar discount_factor = 0.99;
   // Use the provided random seed to generate all other seeds
   std::mt19937 generator(args::get(seed_flag));
-  torch::Device device(args::get(device_flag));
-
-  // Set Torch random seed
-  torch::manual_seed(generator());
 
   // Load rule graphs
   std::vector<Graph> rule_graphs = loadGraphs(args::get(graph_file_arg));
@@ -149,9 +141,7 @@ int main(int argc, char **argv) {
     // Use the number of hardware threads available, which should be at least 1
     thread_count = std::max(std::thread::hardware_concurrency(), 1u);
   }
-  auto value_estimator = std::make_shared<FCValueEstimator>(
-      *main_sim, /*robot_idx=*/robot_idx, /*device=*/device, /*batch_size=*/64,
-      /*epoch_count=*/3);
+  auto value_estimator = std::make_shared<NullValueEstimator>();
   auto input_sampler = std::make_shared<DefaultInputSampler>();
   int episode_len = 250;
   int episode_count = args::get(episodes_flag);

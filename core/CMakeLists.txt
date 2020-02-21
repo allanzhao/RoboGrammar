@@ -50,7 +50,6 @@ set(ROBOTDESIGN_SOURCES
     src/optim.cpp
     src/render.cpp
     src/sim.cpp
-    src/value.cpp
 )
 
 add_library(${LIBRARY_NAME}
@@ -66,7 +65,6 @@ target_include_directories(${LIBRARY_NAME} PUBLIC
     ${GLEW_INCLUDE_DIRS}
     ${GLFW_INCLUDE_DIRS}
     ${THREADPOOL_INCLUDE_DIRS}
-    ${TORCH_INCLUDE_DIRS}
 )
 
 target_include_directories(${LIBRARY_NAME} PRIVATE
@@ -79,7 +77,6 @@ target_link_libraries(${LIBRARY_NAME} PUBLIC
     glfw
     ${GLEW_LIBRARIES}
     ${GLFW_LIBRARIES}
-    ${TORCH_LIBRARIES}
 )
 
 target_link_libraries(${LIBRARY_NAME} PRIVATE
