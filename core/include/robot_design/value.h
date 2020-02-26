@@ -25,8 +25,6 @@ class NullValueEstimator : public ValueEstimator {
 public:
   NullValueEstimator() {}
   virtual ~NullValueEstimator() {}
-  NullValueEstimator(const NullValueEstimator &other) = delete;
-  NullValueEstimator &operator=(const NullValueEstimator &other) = delete;
   virtual int getObservationSize() const override { return 0; }
   virtual void getObservation(
       const Simulation &sim, Ref<VectorX> obs) const override {}
