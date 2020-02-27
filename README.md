@@ -47,4 +47,4 @@ View a rule from the grammar:
 Add the `build/examples/python_bindings` directory to your `PYTHONPATH` environment variable, and make sure you are in the `robot_design` directory.
 
 Optimize and view a trajectory for the example robot:
-`python3 examples/python_bindings/traj_opt.py`
+`python3 examples/design_search/viewer.py FlatTerrainTask data/designs/grammar_jan21.dot -j16 0, 6, 20, 12, 2, 7, 18, 20, 10, 4, 20, 10, 11, 5, 10, 4, 10, 5, 19, 5 -o`
