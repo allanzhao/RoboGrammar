@@ -38,6 +38,8 @@ void initOptim(py::module &m) {
            py::call_guard<py::gil_scoped_release>())
       .def("advance", &rd::MPPIOptimizer::advance,
            py::call_guard<py::gil_scoped_release>())
+      .def("get_sample_count", &rd::MPPIOptimizer::getSampleCount)
+      .def("set_sample_count", &rd::MPPIOptimizer::setSampleCount)
       .def_readwrite("input_sequence", &rd::MPPIOptimizer::input_sequence_);
 
   py::class_<rd::SumOfSquaresObjective>(m, "SumOfSquaresObjective")

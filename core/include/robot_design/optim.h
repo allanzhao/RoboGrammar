@@ -48,6 +48,8 @@ public:
                 const std::shared_ptr<const InputSampler> &input_sampler);
   void update();
   void advance(int step_count);
+  int getSampleCount() const;
+  void setSampleCount(int sample_count);
 
   MatrixX input_sequence_;
 
