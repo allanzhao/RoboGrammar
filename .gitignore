@@ -5,3 +5,5 @@ __pycache__/
 *.mp4
 *.png
 vgcore.*
+trained_models/
+.vscode/
