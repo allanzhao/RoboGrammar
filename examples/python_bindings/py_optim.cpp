@@ -20,6 +20,12 @@ void initOptim(py::module &m) {
       .def_readwrite("warm_start_std_dev",
                      &rd::DefaultInputSampler::warm_start_std_dev_);
 
+  py::class_<rd::ConstantInputSampler, rd::InputSampler,
+             std::shared_ptr<rd::ConstantInputSampler>>(m,
+                                                        "ConstantInputSampler")
+      .def(py::init<>())
+      .def_readwrite("samples", &rd::ConstantInputSampler::samples_);
+
   py::class_<rd::MPPIOptimizer, std::shared_ptr<rd::MPPIOptimizer>>(
       m, "MPPIOptimizer")
       // Only SumOfSquaresObjective and DotProductObjective are supported by the

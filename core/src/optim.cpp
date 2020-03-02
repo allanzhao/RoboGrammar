@@ -45,6 +45,14 @@ void DefaultInputSampler::sampleInputSequence(
   }
 }
 
+void ConstantInputSampler::sampleInputSequence(
+    Ref<MatrixX> input_seq, unsigned int sample_seed, int sample_idx,
+    const Ref<const MatrixX> &last_input_seq,
+    const Ref<const MatrixX> &history) const {
+  input_seq = samples_.block(sample_idx * input_seq.rows(), 0, input_seq.rows(),
+                             input_seq.cols());
+}
+
 MPPIOptimizer::MPPIOptimizer(
     Scalar kappa, Scalar discount_factor, int dof_count, int interval,
     int horizon, int sample_count, int thread_count, unsigned int seed,

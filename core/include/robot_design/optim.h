@@ -38,6 +38,18 @@ public:
   Scalar warm_start_std_dev_;
 };
 
+class ConstantInputSampler : public InputSampler {
+public:
+  ConstantInputSampler() {}
+  virtual ~ConstantInputSampler() {}
+  virtual void
+  sampleInputSequence(Ref<MatrixX> input_seq, unsigned int sample_seed,
+                      int sample_idx, const Ref<const MatrixX> &last_input_seq,
+                      const Ref<const MatrixX> &history) const override;
+
+  MatrixX samples_;
+};
+
 class MPPIOptimizer {
 public:
   MPPIOptimizer(Scalar kappa, Scalar discount_factor, int dof_count,
