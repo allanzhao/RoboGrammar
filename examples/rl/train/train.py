@@ -20,6 +20,7 @@ import environments
 from rl.train.arguments import get_parser
 from rl.train.utils import solve_argv_conflict
 from common.common import *
+from rl.train.evaluation import render
 
 # import a2c_ppo_acktr
 from a2c_ppo_acktr import algo, utils
@@ -38,12 +39,10 @@ def train(args):
     fp_log = open(training_log_path, 'w')
     fp_log.close()
 
-    env = gym.make(args.env_name, args = args)
-    input()
     envs = make_vec_envs(args.env_name, args.seed, args.num_processes, 
-                        args.gamma, None, device, False)
+                        args.gamma, None, device, False, args = args)
 
-    render_env = gym.make(args.env_name)
+    render_env = gym.make(args.env_name, args = args)
     render_env.seed(args.seed)
 
     actor_critic = Policy(
@@ -167,7 +166,7 @@ def train(args):
 
         if (args.render_interval is not None and j % args.render_interval == 0):
             ob_rms = utils.get_vec_normalize(envs).ob_rms
-            render(render_env, actor_critic, ob_rms)
+            render(render_env, actor_critic, ob_rms, deterministic = True)
 
     render_env.close()
     envs.close()
@@ -175,6 +174,8 @@ def train(args):
 if __name__ == '__main__':
     torch.set_default_dtype(torch.float64)
     args_list = ['--env-name', 'RobotLocomotion-v0',
+                 '--task', 'FlatTerrainTask',
+                 '--grammar-file', '../../data/designs/grammar_jan21.dot',
                  '--algo', 'ppo',
                  '--use-gae',
                  '--log-interval', '5',

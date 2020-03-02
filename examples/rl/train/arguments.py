@@ -2,7 +2,25 @@ import argparse
 
 def get_parser():
     parser = argparse.ArgumentParser(description='RL')
-        
+    
+    # robot_locomotion parameters
+    parser.add_argument(
+        '--task',
+        type=str,
+        default='FlatTerrainTask',
+        help='different tasks/terrains: FlatTerrainTask | RidgedTerrainTask | GapTerrainTask | StairsTerrainTask | FrozenLakeTask | HillTerrainTask')
+
+    parser.add_argument(
+        '--grammar-file',
+        type=str,
+        required=True,
+        help='Grammar file (.dot)')
+
+    parser.add_argument(
+        '--rule-sequence',
+        nargs='+',
+        help='Design rule sequence to apply')
+
     # logging
     parser.add_argument(
         '--log-interval',
@@ -132,8 +150,8 @@ def get_parser():
         help='number of environment steps to train (default: 10e6)')
     parser.add_argument(
         '--env-name',
-        default='PongNoFrameskip-v4',
-        help='environment to train on (default: PongNoFrameskip-v4)')
+        default='RobotLocomotion-v0',
+        help='environment to train on (default: RobotLocomotion-v0)')
     parser.add_argument(
         '--log-dir',
         default='/tmp/gym/',
