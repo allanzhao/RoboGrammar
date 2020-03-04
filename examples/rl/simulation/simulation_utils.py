@@ -4,6 +4,7 @@ sys.path.append(base_dir)
 sys.path.append(os.path.join(base_dir, 'design_search'))
 
 from copy import deepcopy
+import numpy as np
 
 from design_search import presimulate, simulate, build_normalized_robot, make_initial_graph
 import pyrobotdesign as rd
@@ -33,10 +34,6 @@ def build_robot(args):
     rules = [rd.create_rule_from_graph(g) for g in graphs]
 
     rule_sequence = [int(s.strip(",")) for s in args.rule_sequence]
-    if args.opt_seed is not None:
-        opt_seed = args.opt_seed
-    else:
-        opt_seed = random.getrandbits(32)
 
     graph = make_initial_graph()
     for r in rule_sequence:
@@ -49,11 +46,11 @@ def build_robot(args):
 
     return robot
 
-def get_robot_states(sim, robot_id):
+def get_robot_state(sim, robot_id):
     base_tf = np.zeros((4, 4), order = 'f')
     sim.get_link_transform(robot_id, 0, base_tf)
     base_R = deepcopy(base_tf[0:3, 0:3])
-    base_pos = deepcopy(base_rf[0:3, 3])
+    base_pos = deepcopy(base_tf[0:3, 3])
 
     # anguler velocity first and linear velocity next
     base_vel = np.zeros(6, order = 'f')
@@ -66,8 +63,8 @@ def get_robot_states(sim, robot_id):
     
     joint_vel = np.zeros(n_dofs, order = 'f')
     sim.get_joint_velocities(robot_id, joint_vel)
-
-    state = np.hstack((R.flatten(), base_pos, base_vel, joint_pos, joint_vel))
+    
+    state = np.hstack((base_R.flatten(), base_pos, base_vel, joint_pos, joint_vel))
 
     return state
 
