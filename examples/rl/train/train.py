@@ -147,9 +147,10 @@ def train(args):
             total_num_steps = (j + 1) * args.num_processes * args.num_steps
             end = time.time()
             print(
-                "Updates {}, num timesteps {}, FPS {} \n Last {} training episodes: mean/median length {:1f}/{}, min/max length {}/{} mean/median reward {:.1f}/{:.1f}, min/max reward {:.1f}/{:.1f}\n"
+                "Updates {}, num timesteps {}, FPS {}, time {} minutes \n Last {} training episodes: mean/median length {:1f}/{}, min/max length {}/{} mean/median reward {:.1f}/{:.1f}, min/max reward {:.1f}/{:.1f}\n"
                 .format(j, total_num_steps,
                         int(total_num_steps / (end - start)),
+                        (end - start) / 60., 
                         len(episode_rewards), 
                         np.mean(episode_lens), np.median(episode_lens), 
                         np.min(episode_lens), np.max(episode_lens),
@@ -179,7 +180,7 @@ if __name__ == '__main__':
                  '--algo', 'ppo',
                  '--use-gae',
                  '--log-interval', '5',
-                 '--num-steps', '2048',
+                 '--num-steps', '4096',
                  '--num-processes', '4',
                  '--lr', '3e-4',
                  '--entropy-coef', '0',
@@ -188,7 +189,7 @@ if __name__ == '__main__':
                  '--num-mini-batch', '32',
                  '--gamma', '0.995',
                  '--gae-lambda', '0.95',
-                 '--num-env-steps', '4000000',
+                 '--num-env-steps', '8000000',
                  '--use-linear-lr-decay',
                  '--use-proper-time-limits',
                  '--save-interval', '20',

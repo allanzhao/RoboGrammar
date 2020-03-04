@@ -98,7 +98,7 @@ def render(render_env, actor_critic, ob_rms, deterministic = False, repeat = Fal
 
         print_info('length = ', episode_length)
         print_info('total reward = ', total_reward)
-        print_info('ave reward = ', total_reward / (episode_length * render_env.frame_skip))
+        print_info('avg reward = ', total_reward / (episode_length * render_env.frame_skip))
         
         if not repeat:
             break

@@ -81,6 +81,7 @@ class RobotLocomotionEnv(gym.Env):
         # reward = base_vel[3]
         # reward = base_vel[3] + np.dot(base_x_axis, target_x_axis) * 0.1 + np.dot(base_y_axis, target_y_axis) * 0.1
         reward = base_vel[3] + np.dot(base_x_axis, target_x_axis) * 0.1 + np.dot(base_y_axis, target_y_axis) * 0.1 - np.sum(self.last_u ** 2) / self.action_dim * 0.7
+        # reward = 1.0 + base_vel[3] - np.sum(self.last_u ** 2) / self.action_dim * 0.7
 
         return reward
 
@@ -117,8 +118,8 @@ class RobotLocomotionEnv(gym.Env):
         for _ in range(self.frame_skip):
             self.sim.set_joint_target_positions(self.robot_index, deepcopy(action.reshape(-1, 1)))
             self.sim.step()
-            # reward += self.objective_fn(self.sim)
-            reward += self.compute_reward()
+            reward += self.objective_fn(self.sim)
+            # reward += self.compute_reward()
             
         obs = self.get_obs()
         done = self.detect_crash()

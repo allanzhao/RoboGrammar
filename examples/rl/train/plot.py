@@ -13,6 +13,7 @@ def get_value(str_data):
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--log-dir', type = str, required = True)
+parser.add_argument('--save-path', type = str, default = None)
 
 args = parser.parse_args()
 
@@ -62,5 +63,8 @@ ax[1][1].set_title('action loss')
 ax[1][1].set_xlabel('steps')
 ax[1][1].set_ylabel('loss')
 ax[1][1].plot(iterations, action_loss, c = 'red')
+
+if args.save_path is not None:
+    plt.savefig(args.save_path)
 
 plt.show()
