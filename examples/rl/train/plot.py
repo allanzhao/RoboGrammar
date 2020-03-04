@@ -13,6 +13,7 @@ def get_value(str_data):
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--log-dir', type = str, required = True)
+parser.add_argument('--save-path', type = str, default = None)
 
 args = parser.parse_args()
 
@@ -52,6 +53,7 @@ ax[0][1].set_title('episode reward')
 ax[0][1].set_xlabel('steps')
 ax[0][1].set_ylabel('reward')
 ax[0][1].plot(iterations, reward_mean, c = 'orange')
+ax[0][1].fill_between(iterations, reward_min, reward_max, color = 'orange', alpha = 0.1)
 
 ax[1][0].set_title('value loss')
 ax[1][0].set_xlabel('steps')
@@ -62,5 +64,8 @@ ax[1][1].set_title('action loss')
 ax[1][1].set_xlabel('steps')
 ax[1][1].set_ylabel('loss')
 ax[1][1].plot(iterations, action_loss, c = 'red')
+
+if args.save_path is not None:
+    plt.savefig(args.save_path)
 
 plt.show()

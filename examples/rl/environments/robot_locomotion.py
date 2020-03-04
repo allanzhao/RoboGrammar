@@ -54,6 +54,9 @@ class RobotLocomotionEnv(gym.Env):
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
 
+    def set_frame_skip(self, frame_skip):
+        self.frame_skip = frame_skip
+
     def reset(self):
         self.sim.remove_robot(0)
         self.sim.add_robot(self.robot, self.robot_init_pos, rd.Quaterniond(0.0, 0.0, 1.0, 0.0))
@@ -81,6 +84,7 @@ class RobotLocomotionEnv(gym.Env):
         # reward = base_vel[3]
         # reward = base_vel[3] + np.dot(base_x_axis, target_x_axis) * 0.1 + np.dot(base_y_axis, target_y_axis) * 0.1
         reward = base_vel[3] + np.dot(base_x_axis, target_x_axis) * 0.1 + np.dot(base_y_axis, target_y_axis) * 0.1 - np.sum(self.last_u ** 2) / self.action_dim * 0.7
+        # reward = 1.0 + base_vel[3] - np.sum(self.last_u ** 2) / self.action_dim * 0.7
 
         return reward
 
@@ -121,6 +125,7 @@ class RobotLocomotionEnv(gym.Env):
             reward += self.compute_reward()
             
         obs = self.get_obs()
+        
         done = self.detect_crash()
         
         return obs, reward, done, {}
