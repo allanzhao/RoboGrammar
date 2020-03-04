@@ -35,7 +35,7 @@ class FlatTerrainTask(ForwardSpeedTask):
   def __init__(self, **kwargs):
     super().__init__(**kwargs)
 
-    self.floor = rd.Prop(rd.PropShape.BOX, 0.0, 0.9, [20.0, 1.0, 10.0])
+    self.floor = rd.Prop(rd.PropShape.BOX, 0.0, 0.9, [40.0, 1.0, 10.0])
 
   def add_terrain(self, sim):
     sim.add_prop(self.floor, [0.0, -1.0, 0.0],
