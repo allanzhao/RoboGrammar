@@ -45,6 +45,14 @@ void DefaultInputSampler::sampleInputSequence(
   }
 }
 
+void ConstantInputSampler::sampleInputSequence(
+    Ref<MatrixX> input_seq, unsigned int sample_seed, int sample_idx,
+    const Ref<const MatrixX> &last_input_seq,
+    const Ref<const MatrixX> &history) const {
+  input_seq = samples_.block(sample_idx * input_seq.rows(), 0, input_seq.rows(),
+                             input_seq.cols());
+}
+
 MPPIOptimizer::MPPIOptimizer(
     Scalar kappa, Scalar discount_factor, int dof_count, int interval,
     int horizon, int sample_count, int thread_count, unsigned int seed,
@@ -64,7 +72,7 @@ MPPIOptimizer::MPPIOptimizer(
 
   input_sequence_ = MatrixX::Zero(dof_count, horizon);
   final_obs_.resize(value_estimator->getObservationSize(), sample_count);
-  history_ = MatrixX::Zero(dof_count, horizon_);
+  history_ = MatrixX::Zero(dof_count, horizon);
   total_step_count_ = 0;
 }
 
@@ -131,6 +139,21 @@ void MPPIOptimizer::advance(int step_count) {
   input_sequence_.rightCols(step_count) = MatrixX::Zero(dof_count_, step_count);
 
   total_step_count_ += step_count;
+}
+
+int MPPIOptimizer::getSampleCount() const {
+  return sample_count_;
+}
+
+void MPPIOptimizer::setSampleCount(int sample_count) {
+  if (sample_count <= sample_count_) {
+    sample_count_ = sample_count;
+    sim_instances_.resize(sample_count);
+    final_obs_.resize(value_estimator_->getObservationSize(), sample_count);
+  } else {
+    // Increasing the sample count is not supported yet
+    throw std::invalid_argument("Cannot increase sample count");
+  }
 }
 
 Scalar MPPIOptimizer::runSimulation(unsigned int sample_seed, int sample_idx) {
