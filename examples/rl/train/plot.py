@@ -53,6 +53,7 @@ ax[0][1].set_title('episode reward')
 ax[0][1].set_xlabel('steps')
 ax[0][1].set_ylabel('reward')
 ax[0][1].plot(iterations, reward_mean, c = 'orange')
+ax[0][1].fill_between(iterations, reward_min, reward_max, color = 'orange', alpha = 0.1)
 
 ax[1][0].set_title('value loss')
 ax[1][0].set_xlabel('steps')

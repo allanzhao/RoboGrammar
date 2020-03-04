@@ -88,7 +88,7 @@ The videos can be found here: [4096-8M](https://drive.google.com/drive/folders/1
 | :--------- | :------: | :------: | :------: | :------: |
 | Avg Reward |  7.7635  |  5.6428  |  6.9454  |  4.2925  |
 
-
+The videos can be found here: [2048-4M](https://drive.google.com/drive/folders/1vgBv3bj2v3XhI9kp0EeGR16-OTSZPaRL?usp=sharing)
 
  
 
