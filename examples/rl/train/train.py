@@ -180,7 +180,7 @@ if __name__ == '__main__':
                  '--algo', 'ppo',
                  '--use-gae',
                  '--log-interval', '5',
-                 '--num-steps', '4096',
+                 '--num-steps', '2048',
                  '--num-processes', '4',
                  '--lr', '3e-4',
                  '--entropy-coef', '0',
@@ -195,7 +195,7 @@ if __name__ == '__main__':
                  '--save-interval', '20',
                  '--seed', '2',
                  '--save-dir', './trained_models/RobotLocomotion-v0/test/',
-                 '--render-interval', '20']
+                 '--render-interval', '80']
     
     solve_argv_conflict(args_list)
     parser = get_parser()

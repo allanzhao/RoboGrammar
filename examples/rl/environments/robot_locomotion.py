@@ -54,6 +54,9 @@ class RobotLocomotionEnv(gym.Env):
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
 
+    def set_frame_skip(self, frame_skip):
+        self.frame_skip = frame_skip
+
     def reset(self):
         self.sim.remove_robot(0)
         self.sim.add_robot(self.robot, self.robot_init_pos, rd.Quaterniond(0.0, 0.0, 1.0, 0.0))
@@ -118,10 +121,11 @@ class RobotLocomotionEnv(gym.Env):
         for _ in range(self.frame_skip):
             self.sim.set_joint_target_positions(self.robot_index, deepcopy(action.reshape(-1, 1)))
             self.sim.step()
-            reward += self.objective_fn(self.sim)
-            # reward += self.compute_reward()
+            # reward += self.objective_fn(self.sim)
+            reward += self.compute_reward()
             
         obs = self.get_obs()
+        
         done = self.detect_crash()
         
         return obs, reward, done, {}

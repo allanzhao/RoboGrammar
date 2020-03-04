@@ -14,7 +14,7 @@ import gym
 gym.logger.set_level(40)
 
 import environments
-from rl.train.evaluation import render
+from rl.train.evaluation import render, render_full
 from rl.train.arguments import get_parser
 
 from a2c_ppo_acktr import algo, utils
@@ -52,6 +52,6 @@ actor_critic.eval()
 
 envs.close()
 
-render(render_env, actor_critic, ob_rms, deterministic = True, repeat = True)
+render_full(render_env, actor_critic, ob_rms, deterministic = True, repeat = True)
 
 
