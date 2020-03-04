@@ -74,4 +74,17 @@ and averaged along the whole trajectory (128 * 16 steps).
 | :--------- | :------: | :------: | :------: | :------: |
 | Avg Reward |  8.7239  |  8.4184  |  7.4479  |  5.9300  |
 
-![design-1](report/images/4096-8M/design-1.png)
+![design-1](report/images/4096-8M/design-1.png){width=50%}
+
+
+
+
+
+
+
+ 
+
+
+
+
+
