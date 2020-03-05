@@ -72,7 +72,7 @@ R(s_t, a_t)=2V_x+2(e_x^{body}\cdot e_x^{world}+e_y^{body}\cdot e_y^{world})
 
 and averaged along the whole trajectory (128 * 16 steps).
 
-#### num-steps = 4096, total-steps = 8e6 (128M sim-steps), 2 hours
+#### num-steps = 4096, total-steps = 8e6, 2 hours
 
 |            | Design-1 | Design-2 | Design-3 | Design-4 |
 | :--------- | :------: | :------: | :------: | :------: |
@@ -82,7 +82,7 @@ The training curves are in `report/images/4096-8M`.
 
 The videos can be found here: [4096-8M](https://drive.google.com/drive/folders/18Yzx3-85Ly-cnZ7V5QF8yWedHmD0InKc?usp=sharing)
 
-#### num-steps = 2048, total-steps = 4e6 (64M sim-steps), 1 hour
+#### num-steps = 2048, total-steps = 4e6, 1 hour
 
 |            | Design-1 | Design-2 | Design-3 | Design-4 |
 | :--------- | :------: | :------: | :------: | :------: |
@@ -90,7 +90,7 @@ The videos can be found here: [4096-8M](https://drive.google.com/drive/folders/1
 
 The videos can be found here: [2048-4M](https://drive.google.com/drive/folders/1vgBv3bj2v3XhI9kp0EeGR16-OTSZPaRL?usp=sharing)
 
-#### num-steps = 2048, total-steps = 8e6 (64M sim-steps), 2 hour (best)
+#### num-steps = 2048, total-steps = 8e6, 2 hour (best)
 
 |            | Design-1 | Design-2 | Design-3 | Design-4 |
 | :--------- | :------: | :------: | :------: | :------: |
