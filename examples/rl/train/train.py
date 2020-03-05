@@ -165,7 +165,7 @@ def train(args):
             evaluate(args, actor_critic, ob_rms, args.env_name, args.seed,
                      args.num_processes, device)
 
-        if (args.render_interval is not None and j % args.render_interval == 0):
+        if (args.render_interval is not None and args.render_interval > 0 and j % args.render_interval == 0):
             ob_rms = utils.get_vec_normalize(envs).ob_rms
             render(render_env, actor_critic, ob_rms, deterministic = True)
 

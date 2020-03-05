@@ -90,7 +90,15 @@ The videos can be found here: [4096-8M](https://drive.google.com/drive/folders/1
 
 The videos can be found here: [2048-4M](https://drive.google.com/drive/folders/1vgBv3bj2v3XhI9kp0EeGR16-OTSZPaRL?usp=sharing)
 
- 
+#### num-steps = 2048, total-steps = 8e6 (64M sim-steps), 2 hour (best)
+
+|            | Design-1 | Design-2 | Design-3 | Design-4 |
+| :--------- | :------: | :------: | :------: | :------: |
+| Avg Reward |  9.2595  |  9.0235  |  7.4193  |  6.0324  |
+
+The training curves are in `report/images/2048-8M`. (We extend the ground, the curve indicates the training hasn't converged yet.)
+
+The videos can be found here: [2048-8M](https://drive.google.com/drive/folders/1s1ulGqHLVOQ6Jl7imqHQrcgCqkGW4Du0?usp=sharing)
 
 
 
