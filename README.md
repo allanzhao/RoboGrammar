@@ -7,11 +7,15 @@
 
 GLEW
 * Ubuntu: `sudo apt-get install libglew-dev`
-* Mac OS (Homebrew): `brew install glew`
 
-Python 3 + headers
-* Ubuntu: `sudo apt-get install python3 python3-dev`
-* Mac OS (Homebrew): `brew install python3`
+Python 3.6 + headers
+
+If you are on an older version of Ubuntu, you may need to add the "deadsnakes" PPA first:
+```
+sudo add-apt-repository ppa:deadsnakes/ppa
+sudo apt-get update
+```
+* Ubuntu: `sudo apt-get install python3.6 python3.6-dev`
 
 ## Building (Linux, Mac OS)
 
@@ -23,9 +27,21 @@ Python 3 + headers
 
 `mkdir build; cd build`
 
-`cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DPYTHON_EXECUTABLE=/path/to/python3 ..` (replace `/path/to/python3` as appropriate)
+`cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DPYTHON_EXECUTABLE=/path/to/python3.6 ..` (replace `/path/to/python3.6` as appropriate)
 
 `make -j4` (replace 4 with the number of CPU cores available)
+
+## Installing Python Packages
+
+Using a virtualenv is recommended.
+
+Add the `robot_design/build/examples/python_bindings` and the `robot_design/examples/design_search` directories to your `PYTHONPATH` environment variable, and make sure you are in the `robot_design` directory.
+
+`virtualenv -p python3.6 venv`
+
+`source venv/bin/activate`
+
+`pip3 install numpy numpy-quaternion`
 
 ## Running Examples
 
@@ -44,7 +60,7 @@ View a rule from the grammar:
 
 ### Python Examples
 
-Add the `build/examples/python_bindings` directory to your `PYTHONPATH` environment variable, and make sure you are in the `robot_design` directory.
+Make sure you are in the `robot_design` directory and the virtualenv is active (`source venv/bin/activate`).
 
 Optimize and view a trajectory for the example robot:
 `python3 examples/design_search/viewer.py FlatTerrainTask data/designs/grammar_jan21.dot -j16 0, 6, 20, 12, 2, 7, 18, 20, 10, 4, 20, 10, 11, 5, 10, 4, 10, 5, 19, 5 -o`
