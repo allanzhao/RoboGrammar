@@ -19,7 +19,7 @@ sudo apt-get update
 
 ## Building (Linux, Mac OS)
 
-`git clone https://github.com/allanzhao/robot_design.git`
+`git clone git@github.com:allanzhao/robot_design.git`
 
 `cd robot_design`
 
