@@ -100,7 +100,15 @@ The training curves are in `report/images/2048-8M`. (We extend the ground, the c
 
 The videos can be found here: [2048-8M](https://drive.google.com/drive/folders/1s1ulGqHLVOQ6Jl7imqHQrcgCqkGW4Du0?usp=sharing)
 
+#### num-steps = 1024, total-steps = 3e7, 5 hour (test the limitation)
 
+|            | Design-1 | Design-2 | Design-3 | Design-4 |
+| :--------- | :------: | :------: | :------: | :------: |
+| Avg Reward | 11.3937  |          |          |          |
+
+The training curves are in `report/images/2048-8M`. (We extend the ground, the curve indicates the training hasn't converged yet.)
+
+The videos can be found here: [2048-8M](https://drive.google.com/drive/folders/1s1ulGqHLVOQ6Jl7imqHQrcgCqkGW4Du0?usp=sharing)
 
 
 
