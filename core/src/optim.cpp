@@ -21,9 +21,13 @@ void DefaultInputSampler::sampleInputSequence(
   if (history_len >= horizon && sample_idx % 2 == 0) {
     // The repetition period should range from (horizon / 2 + 1) to horizon
     int repeat_len = (sample_idx / 2) % (horizon / 2) + horizon / 2 + 1;
-    input_seq = history.rightCols(repeat_len)
-                    .replicate(1, horizon)
-                    .leftCols(horizon);
+    for (int j = 0; j < horizon; ++j) {
+      // Linearly interpolate to avoid sudden changes in the inputs
+      Scalar t = static_cast<Scalar>(j + 1) / horizon;
+      input_seq.col(j) =
+          t * history.rightCols(repeat_len).replicate(1, horizon).col(j) +
+          (1.0 - t) * last_input_seq.col(j);
+    }
     std_dev = history_std_dev_;
   } else {
     input_seq = last_input_seq;
