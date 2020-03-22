@@ -26,8 +26,8 @@ public:
 
 class DefaultInputSampler : public InputSampler {
 public:
-  DefaultInputSampler(Scalar history_std_dev = 0.025,
-                      Scalar warm_start_std_dev = 0.1);
+  DefaultInputSampler(Scalar history_std_dev = 0.05,
+                      Scalar warm_start_std_dev = 0.25);
   virtual ~DefaultInputSampler() {}
   virtual void
   sampleInputSequence(Ref<MatrixX> input_seq, unsigned int sample_seed,

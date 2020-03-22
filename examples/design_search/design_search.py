@@ -91,6 +91,7 @@ def simulate(robot, task, opt_seed, thread_count, episode_count=1):
                                  input_sampler)
     for _ in range(10):
       optimizer.update()
+    optimizer.set_sample_count(128)
 
     main_sim.save_state()
 
@@ -99,8 +100,6 @@ def simulate(robot, task, opt_seed, thread_count, episode_count=1):
                     task.episode_len + 1), order='f')
     rewards = np.zeros(task.episode_len * task.interval)
     for j in range(task.episode_len):
-      if j == 10:
-        optimizer.set_sample_count(128)
       optimizer.update()
       input_sequence[:,j] = optimizer.input_sequence[:,0]
       optimizer.advance(1)
