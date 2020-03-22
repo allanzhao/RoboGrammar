@@ -35,7 +35,7 @@ class FlatTerrainTask(ForwardSpeedTask):
   def __init__(self, **kwargs):
     super().__init__(**kwargs)
 
-    self.floor = rd.Prop(rd.PropShape.BOX, 0.0, 0.9, [40.0, 1.0, 10.0])
+    self.floor = rd.Prop(rd.PropShape.BOX, 0.0, 0.5, [40.0, 1.0, 10.0])
 
   def add_terrain(self, sim):
     sim.add_prop(self.floor, [0.0, -1.0, 0.0],
@@ -50,8 +50,8 @@ class RidgedTerrainTask(ForwardSpeedTask):
   def __init__(self, **kwargs):
     super().__init__(**kwargs)
 
-    self.floor = rd.Prop(rd.PropShape.BOX, 0.0, 0.9, [20.0, 1.0, 10.0])
-    self.bump = rd.Prop(rd.PropShape.BOX, 0.0, 0.9, [0.1, 0.1, 10.0])
+    self.floor = rd.Prop(rd.PropShape.BOX, 0.0, 0.5, [20.0, 1.0, 10.0])
+    self.bump = rd.Prop(rd.PropShape.BOX, 0.0, 0.5, [0.1, 0.1, 10.0])
 
   def add_terrain(self, sim):
     sim.add_prop(self.floor, [0.0, -1.0, 0.0],
@@ -78,10 +78,10 @@ class GapTerrainTask(ForwardSpeedTask):
 
     self.platform_x = platform_x
     self.platforms = [
-        rd.Prop(rd.PropShape.BOX, 0.0, 0.9, [half_width, 1.0, 10.0]) for
+        rd.Prop(rd.PropShape.BOX, 0.0, 0.5, [half_width, 1.0, 10.0]) for
         half_width in platform_half_widths]
     self.floor_x = 0.5 * (x_min + x_max)
-    self.floor = rd.Prop(rd.PropShape.BOX, 0.0, 0.9,
+    self.floor = rd.Prop(rd.PropShape.BOX, 0.0, 0.5,
                          [0.5 * (x_max - x_min), 1.0, 10.0])
 
   def add_terrain(self, sim):
@@ -98,8 +98,8 @@ class StairsTerrainTask(ForwardSpeedTask):
   def __init__(self, **kwargs):
     super().__init__(**kwargs)
 
-    self.floor = rd.Prop(rd.PropShape.BOX, 0.0, 0.9, [10.0, 1.0, 10.0])
-    self.step = rd.Prop(rd.PropShape.BOX, 0.0, 0.9, [0.25, 1.0, 10.0])
+    self.floor = rd.Prop(rd.PropShape.BOX, 0.0, 0.5, [10.0, 1.0, 10.0])
+    self.step = rd.Prop(rd.PropShape.BOX, 0.0, 0.5, [0.25, 1.0, 10.0])
 
   def add_terrain(self, sim):
     sim.add_prop(self.floor, [0.0, -1.0, 0.0],
@@ -135,7 +135,7 @@ class HillTerrainTask(ForwardSpeedTask):
 
     self.rng = np.random.RandomState(0)
     y = np.clip(self.rng.normal(0.5, 0.125, size=(33, 33)), 0.0, 1.0)
-    self.heightfield = rd.HeightfieldProp(0.9, [10.0, 0.25, 10.0], y)
+    self.heightfield = rd.HeightfieldProp(0.5, [10.0, 0.25, 10.0], y)
 
   def add_terrain(self, sim):
     sim.add_prop(self.heightfield, [0.0, -0.25, 0.0],
