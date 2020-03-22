@@ -160,6 +160,18 @@ Index BulletSimulation::addRobot(std::shared_ptr<const Robot> robot,
   wrapper.multi_body_->updateCollisionObjectWorldTransforms(world_to_local,
                                                             local_origin);
 
+  // Create joint motors
+  wrapper.motors_.reserve(wrapper.multi_body_->getNumDofs());
+  for (int i = 0; i < wrapper.multi_body_->getNumLinks(); ++i) {
+    const btMultibodyLink &link = wrapper.multi_body_->getLink(i);
+    for (int dof_idx = 0; dof_idx < link.m_dofCount; ++dof_idx) {
+      wrapper.motors_.push_back(std::make_shared<btMultiBodyJointMotor>(
+          /*body=*/wrapper.multi_body_.get(), /*link=*/i, /*linkDoF=*/dof_idx,
+          /*desiredVelocity=*/0.0, /*maxMotorImpulse=*/5.0));
+      world_->addMultiBodyConstraint(wrapper.motors_.back().get());
+    }
+  }
+
   return robot_wrappers_.size() - 1;
 }
 
@@ -262,7 +274,9 @@ Index BulletSimulation::findPropIndex(const Prop &prop) const {
 
 void BulletSimulation::unregisterRobotWrapper(
     BulletRobotWrapper &robot_wrapper) {
-  // Remove collision objects for every link
+  for (auto motor : robot_wrapper.motors_) {
+    world_->removeMultiBodyConstraint(motor.get());
+  }
   for (auto collider : robot_wrapper.colliders_) {
     world_->removeCollisionObject(collider.get());
   }
@@ -469,21 +483,17 @@ void BulletSimulation::step() {
   for (Index robot_idx = 0; robot_idx < getRobotCount(); ++robot_idx) {
     BulletRobotWrapper &wrapper = robot_wrappers_[robot_idx];
     int dof_count = wrapper.multi_body_->getNumDofs();
-    VectorX joint_pos(dof_count), joint_vel(dof_count);
-    getJointPositions(robot_idx, joint_pos);
-    getJointVelocities(robot_idx, joint_vel);
-    VectorX joint_pos_error = wrapper.joint_target_pos_ - joint_pos;
-    VectorX joint_vel_error = wrapper.joint_target_vel_ - joint_vel;
-    wrapper.joint_motor_torques_ =
-        wrapper.joint_kp_.asDiagonal() * joint_pos_error +
-        wrapper.joint_kd_.asDiagonal() * joint_vel_error;
-    // TODO: make the torque limits depend on gear ratio
-    wrapper.joint_motor_torques_ =
-        wrapper.joint_motor_torques_.array().max(-5.0).min(5.0);
-    addJointTorques(robot_idx, wrapper.joint_motor_torques_);
+    for (int dof_idx = 0; dof_idx < dof_count; ++dof_idx) {
+      btMultiBodyJointMotor &motor = *wrapper.motors_[dof_idx];
+      motor.setPositionTarget(wrapper.joint_target_pos_[dof_idx],
+                              wrapper.joint_kp_[dof_idx]);
+      motor.setVelocityTarget(wrapper.joint_target_vel_[dof_idx],
+                              wrapper.joint_kd_[dof_idx]);
+    }
   }
   world_->stepSimulation(time_step_, 0, time_step_);
   world_->forwardKinematics(); // Update m_cachedWorldTransform for every link
+  // TODO: read back joint torques
 }
 
 bool BulletSimulation::OverlapFilterCallback::needBroadphaseCollision(

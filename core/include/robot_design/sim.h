@@ -2,6 +2,7 @@
 
 #include <BulletDynamics/Featherstone/btMultiBodyConstraintSolver.h>
 #include <BulletDynamics/Featherstone/btMultiBodyDynamicsWorld.h>
+#include <BulletDynamics/Featherstone/btMultiBodyJointMotor.h>
 #include <BulletDynamics/Featherstone/btMultiBodyLinkCollider.h>
 #include <Serialize/BulletFileLoader/btBulletFile.h>
 #include <btBulletDynamicsCommon.h>
@@ -70,6 +71,7 @@ struct BulletRobotWrapper {
   std::shared_ptr<btMultiBody> multi_body_;
   std::vector<std::shared_ptr<btCollisionShape>> col_shapes_;
   std::vector<std::shared_ptr<btMultiBodyLinkCollider>> colliders_;
+  std::vector<std::shared_ptr<btMultiBodyJointMotor>> motors_;
   VectorX joint_kp_;
   VectorX joint_kd_;
   VectorX joint_target_pos_;
