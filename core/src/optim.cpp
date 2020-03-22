@@ -102,8 +102,8 @@ void MPPIOptimizer::update() {
   Scalar max_return = sim_returns.maxCoeff();
   for (int k = 0; k < sample_count_; ++k) {
     // Recreate the same input sequence used for the simulation
-    input_sampler_->sampleInputSequence(
-        rand_input_seq, seed_, k, input_sequence_, history_);
+    input_sampler_->sampleInputSequence(rand_input_seq, seed_, k,
+                                        input_sequence_, history_);
     Scalar seq_weight = std::exp(kappa_ * (sim_returns(k) - max_return));
     input_sequence_sum += rand_input_seq * seq_weight;
     seq_weight_sum += seq_weight;
@@ -141,9 +141,7 @@ void MPPIOptimizer::advance(int step_count) {
   total_step_count_ += step_count;
 }
 
-int MPPIOptimizer::getSampleCount() const {
-  return sample_count_;
-}
+int MPPIOptimizer::getSampleCount() const { return sample_count_; }
 
 void MPPIOptimizer::setSampleCount(int sample_count) {
   if (sample_count <= sample_count_) {
@@ -160,8 +158,8 @@ Scalar MPPIOptimizer::runSimulation(unsigned int sample_seed, int sample_idx) {
   Simulation &sim = *sim_instances_[sample_idx];
   Index robot_idx = 0; // TODO: don't assume there is only one robot
   MatrixX rand_input_seq(dof_count_, horizon_);
-  input_sampler_->sampleInputSequence(
-      rand_input_seq, sample_seed, sample_idx, input_sequence_, history_);
+  input_sampler_->sampleInputSequence(rand_input_seq, sample_seed, sample_idx,
+                                      input_sequence_, history_);
   sim.saveState();
   Scalar sim_return = 0.0;
   Scalar discount_prod = 1.0;
