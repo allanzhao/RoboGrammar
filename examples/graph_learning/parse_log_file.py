@@ -5,6 +5,7 @@ from design_search import build_normalized_robot, make_initial_graph
 import numpy as np
 import pyrobotdesign as rd
 import quaternion
+import IPython
 
 def np_quaternion(q):
   """Create a np.quaternion from a rd.Quaternion."""
@@ -55,21 +56,34 @@ def featurize_link(link):
                    link.joint_kp,
                    link.joint_kd])
 
-def main():
+def main(log_file=None, grammar_file=None):
+  
+  
   parser = argparse.ArgumentParser(
       description="Example code for parsing a MCTS log file.")
-  parser.add_argument("log_file", type=str, help="Log file (.csv)")
-  parser.add_argument("grammar_file", type=str, help="Grammar file (.dot)")
-  args = parser.parse_args()
+  if not log_file or not grammar_file:
+    parser.add_argument("log_file", type=str, help="Log file (.csv)")
+    parser.add_argument("grammar_file", type=str, help="Grammar file (.dot)")
+    args = parser.parse_args()
+    
+  else:
+    args = parser.parse_args()
+    args.grammar_file = grammar_file
+    args.log_file = log_file
 
   graphs = rd.load_graphs(args.grammar_file)
   rules = [rd.create_rule_from_graph(g) for g in graphs]
 
   with open(args.log_file, newline='') as log_file:
     reader = csv.DictReader(log_file)
+    
+    all_link_features = []
+    all_link_adj = []
+    all_results = []
     for row in reader:
       rule_seq = ast.literal_eval(row['rule_seq'])
       result = float(row['result'])
+      all_results.append(result)
 
       # Build a robot from the rule sequence
       robot_graph = make_initial_graph()
@@ -117,8 +131,11 @@ def main():
             *world_joint_axis]))
       link_features = np.array(link_features)
 
-      print(adj_matrix)
-      print(link_features.shape)
+      #print(adj_matrix)
+      #print(link_features.shape)
+      all_link_features.append(link_features)
+      all_link_adj.append(adj_matrix)
+  return all_link_features, all_link_adj, all_results
 
 if __name__ == '__main__':
   main()
