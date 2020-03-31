@@ -199,29 +199,37 @@ class RobotDesignEnv(mcts.Env):
   def get_key(self, state):
     return hash(state[0])
 
-def min_nonterminals_policy(state, available_actions):
-  """Policy which tries to minimize the number of nonterminals in the graph."""
-  graph, _ = state
-  nonterminal_counts = list()
-  for rule in available_actions:
-    applicable_matches = list(get_applicable_matches(rule, graph))
-    new_graph = rd.apply_rule(rule, graph, applicable_matches[0])
-    nonterminal_count = 0
-    for node in new_graph.nodes:
-      if node.attrs.shape == rd.LinkShape.NONE:
-        nonterminal_count += 1
-    for edge in new_graph.edges:
-      if edge.attrs.joint_type == rd.JointType.NONE:
-        nonterminal_count += 1
-    nonterminal_counts.append(nonterminal_count)
+class RandomSearch(object):
+  def __init__(self, env, max_tries=100):
+    self.env = env
+    self.max_tries = max_tries
 
-  min_nonterminal_count = min(nonterminal_counts)
-  minimizing_actions = list()
-  for action, nonterminal_count in zip(available_actions, nonterminal_counts):
-    if nonterminal_count == min_nonterminal_count:
-      minimizing_actions.append(action)
+  def select_action(self, state):
+    available_actions = list(self.env.get_available_actions(state))
+    if available_actions:
+      return random.choice(available_actions)
+    else:
+      return None
 
-  return random.choice(minimizing_actions)
+  def run_iteration(self):
+    result = None
+
+    for try_count in range(self.max_tries):
+      states = [self.env.initial_state]
+      actions = []
+      action = self.select_action(states[-1])
+      while action is not None:
+        states.append(self.env.get_next_state(states[-1], action))
+        actions.append(action)
+        action = self.select_action(states[-1])
+      result = self.env.get_result(states[-1])
+      if result is not None:
+        # Result is valid
+        break
+
+    return states, actions, result
+
+algorithms = {"mcts": mcts.TreeSearch, "random": RandomSearch}
 
 def set_pdb_trace(sig, frame):
   import pdb
@@ -233,12 +241,15 @@ def main():
   parser = argparse.ArgumentParser(description="Robot design search demo.")
   parser.add_argument("task", type=str, help="Task (Python class name)")
   parser.add_argument("grammar_file", type=str, help="Grammar file (.dot)")
+  parser.add_argument("-a", "--algorithm", choices=algorithms.keys(),
+                      default="mcts",
+                      help="Algorithm ({})".format("|".join(algorithms.keys())))
   parser.add_argument("-s", "--seed", type=int, default=None,
                       help="Random seed")
   parser.add_argument("-j", "--jobs", type=int, required=True,
                       help="Number of jobs/threads")
   parser.add_argument("-i", "--iterations", type=int, required=True,
-                      help="Number of MCTS iterations")
+                      help="Number of iterations")
   parser.add_argument("-d", "--depth", type=int, required=True,
                       help="Maximum tree depth")
   parser.add_argument("-l", "--log_dir", type=str, default='',
@@ -254,8 +265,7 @@ def main():
   graphs = rd.load_graphs(args.grammar_file)
   rules = [rd.create_rule_from_graph(g) for g in graphs]
   env = RobotDesignEnv(task, rules, args.seed, args.jobs, args.depth)
-  #tree_search = mcts.TreeSearch(env, default_policy=min_nonterminals_policy)
-  tree_search = mcts.TreeSearch(env)
+  search_alg = algorithms[args.algorithm](env)
 
   if args.log_file:
     # Resume an existing run
@@ -291,7 +301,7 @@ def main():
       log_file.flush()
 
     for i in range(args.iterations):
-      states, actions, result = tree_search.run_iteration()
+      states, actions, result = search_alg.run_iteration()
 
       if i >= len(env.result_cache):
         rule_seq = [rules.index(rule) for rule in actions]
