@@ -14,9 +14,12 @@ from examples.graph_learning import parse_log_file
 import numpy as np
 from torch_geometric.data import InMemoryDataset
 from torch_geometric.data.data import Data
+import pickle
+
+load_data = True
 
 
-max_nodes = 150
+max_nodes = 17
 
 class MyFilter(object):
     def __call__(self, data):
@@ -28,62 +31,80 @@ path = osp.join(osp.dirname(osp.realpath(__file__)), '..', 'data',
 dataset = TUDataset(path, name='PROTEINS', transform=T.ToDense(max_nodes),
                     pre_filter=MyFilter())
 
-all_link_features, all_link_adj, all_rewards = parse_log_file.main('flat_jan21.csv', 'data/designs/grammar_jan21.dot')
-#xperimental postprocessing
-#step 1: make symmetric
-all_link_adj_symmetric = [link_adj + np.transpose(link_adj) for link_adj in all_link_adj]
-#step 2: Add blank rows, pad with 0s, and fill out mask:
-#max length:
-max_nodes = max([feat.shape[0] for feat in all_link_features])
 
-def pad(array, shape):
-    """
-    array: Array to be padded
-    reference: Reference array with the desired shape
-    offsets: list of offsets (number of elements must be equal to the dimension of the array)
-    """
-    # Create an array of zeros with the reference shape
-    result = np.zeros(shape)
-    if len(shape) == 1:
-      result[:array.shape[0], :] = array
-    elif len(shape) == 2:
-      result[:array.shape[0], :array.shape[1]] = array
-    else:
-      raise Exception('only 1 and 2d supported for now')
-    return result
+num_channels = 31
+if not load_data:
+  all_link_features, all_link_adj, all_rewards = parse_log_file.main('flat_jan21.csv', 'data/designs/grammar_jan21.dot')
+  #xperimental postprocessing
+  #step 1: make symmetric
+  all_link_adj_symmetric = [link_adj + np.transpose(link_adj) for link_adj in all_link_adj]
+  #step 2: Add blank rows, pad with 0s, and fill out mask:
+  #max length:
+  max_nodes = max([feat.shape[0] for feat in all_link_features])
+
+  def pad(array, shape):
+      """
+      array: Array to be padded
+      reference: Reference array with the desired shape
+      offsets: list of offsets (number of elements must be equal to the dimension of the array)
+      """
+      # Create an array of zeros with the reference shape
+      result = np.zeros(shape)
+      if len(shape) == 1:
+        result[:array.shape[0], :] = array
+      elif len(shape) == 2:
+        result[:array.shape[0], :array.shape[1]] = array
+      else:
+        raise Exception('only 1 and 2d supported for now')
+      return result
+      
+  all_link_adj_symmetric_pad = [pad(adj, (max_nodes, max_nodes)) for adj in all_link_adj_symmetric]
+  all_features_pad = [pad(feat, (max_nodes, feat.shape[1])) for feat in all_link_features]
+
+  def create_mask(feat, max_nodes):
+    return np.array([True if i < feat.shape[0] else False for i in range(max_nodes)])
+
+
+  all_masks = [create_mask(feat, max_nodes) for feat in all_link_features]
+  #num_channels = all_features_pad[0].shape[1]
+  
+
+  #step 3: Create dataset object
+
+
+
+
+  data = [Data(adj=torch.from_numpy(adj).float(),
+               mask=torch.from_numpy(mask),
+               x=torch.from_numpy(x[:, :num_channels]).float(), 
+               y=torch.from_numpy(np.array([y])).float() ) for adj, mask, x, y in zip(all_link_adj_symmetric_pad, all_masks, all_features_pad, all_rewards)]
+  import random
+  random.shuffle(data)
+     
+                                
+  dataset = dataset.shuffle()
+  n = (len(dataset) + 9) // 10
+  test_dataset = data[:n]
+  val_dataset = data[n:2 * n]
+  train_dataset = data[2 * n:]
+  
+  
+  with open('test_loader', 'wb') as test_file, open('val_loader', 'wb') as val_file, open('train_loader', 'wb') as train_file: 
+    pickle.dump(test_dataset, test_file)
+    pickle.dump(train_dataset, train_file)
+    pickle.dump(val_dataset, val_file)
+  
+else:
+  with open('test_loader', 'rb') as test_file, open('val_loader', 'rb') as val_file, open('train_loader', 'rb') as train_file: 
+    test_dataset = pickle.load(test_file)
+    train_dataset = pickle.load(train_file)
+    val_dataset = pickle.load(val_file)
     
-all_link_adj_symmetric_pad = [pad(adj, (max_nodes, max_nodes)) for adj in all_link_adj_symmetric]
-all_features_pad = [pad(feat, (max_nodes, feat.shape[1])) for feat in all_link_features]
-
-def create_mask(feat, max_nodes):
-  return np.array([True if i < feat.shape[0] else False for i in range(max_nodes)])
-
-
-all_masks = [create_mask(feat, max_nodes) for feat in all_link_features]
-#num_channels = all_features_pad[0].shape[1]
-num_channels = 3
-
-#step 3: Create dataset object
-
-
-
-
-data = [Data(adj=torch.from_numpy(adj).float(),
-             mask=torch.from_numpy(mask),
-             x=torch.from_numpy(x[:, :3]).float(), 
-             y=torch.from_numpy(np.array([y])).float() ) for adj, mask, x, y in zip(all_link_adj_symmetric_pad, all_masks, all_features_pad, all_rewards)]
-import random
-random.shuffle(data)
-   
-                              
-dataset = dataset.shuffle()
-n = (len(dataset) + 9) // 10
-test_dataset = data[:n]
-val_dataset = data[n:2 * n]
-train_dataset = data[2 * n:]
 test_loader = DenseDataLoader(test_dataset, batch_size=20)
 val_loader = DenseDataLoader(val_dataset, batch_size=20)
 train_loader = DenseDataLoader(train_dataset, batch_size=20)
+
+
 
 
 class GNN(torch.nn.Module):
@@ -118,12 +139,13 @@ class GNN(torch.nn.Module):
         batch_size, num_nodes, in_channels = x.size()
 
         x0 = x
+        #IPython.embed()
         x1 = self.bn(1, F.relu(self.conv1(x0, adj, mask, self.add_loop)))
         x2 = self.bn(2, F.relu(self.conv2(x1, adj, mask, self.add_loop)))
         x3 = self.bn(3, F.relu(self.conv3(x2, adj, mask, self.add_loop)))
 
         x = torch.cat([x1, x2, x3], dim=-1)
-
+        
         if self.lin is not None:
             x = F.relu(self.lin(x))
 
@@ -137,22 +159,25 @@ class Net(torch.nn.Module):
         num_nodes = ceil(0.25 * max_nodes)
         self.gnn1_pool = GNN(num_channels, 64, num_nodes, add_loop=True)
         self.gnn1_embed = GNN(num_channels, 64, 64, add_loop=True, lin=False)
-
+        
         num_nodes = ceil(0.25 * num_nodes)
+        self.gnn2_pool = GNN(3 * 64, 64, num_nodes)
+        self.gnn2_embed = GNN(3 * 64, 64, 64, lin=False)
 
-        self.gnn2_pool = GNN(num_channels * 64, 64, num_nodes)
-        self.gnn2_embed = GNN(num_channels * 64, 64, 64, lin=False)
+        self.gnn3_embed = GNN(3 * 64, 64, 64, lin=False)
 
-        self.gnn3_embed = GNN(num_channels * 64, 64, 64, lin=False)
-
-        self.lin1 = torch.nn.Linear(num_channels * 64, 64)
+        self.lin1 = torch.nn.Linear(3 * 64, 64)
         self.lin2 = torch.nn.Linear(64, 1)
+        
 
     def forward(self, x, adj, mask=None):
+        
         s = self.gnn1_pool(x, adj, mask)
         x = self.gnn1_embed(x, adj, mask)
 
         x, adj, l1, e1 = dense_diff_pool(x, adj, s, mask)
+ 
+        #print('time for gnn2')
 
         s = self.gnn2_pool(x, adj)
         x = self.gnn2_embed(x, adj)
