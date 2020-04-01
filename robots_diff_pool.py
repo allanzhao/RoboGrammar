@@ -217,12 +217,13 @@ def train(epoch):
 @torch.no_grad()
 def test(loader, size):
     model.eval()
-    correct = 0
-
+    error = 0.
     for data in loader:
         data = data.to(device)
         pred = model(data.x, data.adj, data.mask)[0]
-        error = F.mse_loss(pred[:, 0], data.y.view(-1))
+        error += F.mse_loss(pred[:, 0], data.y.view(-1))
+        #print('prediction is ', pred[:, 0])
+        #print('truth is ', data.y.view(-1))
         #correct += pred.eq(data.y.view(-1)).sum().item()
     return error / size
 
