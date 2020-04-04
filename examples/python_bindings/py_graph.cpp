@@ -44,6 +44,7 @@ void initGraph(py::module &m) {
       .def_readwrite("joint_axis", &rd::EdgeAttributes::joint_axis_)
       .def_readwrite("joint_kp", &rd::EdgeAttributes::joint_kp_)
       .def_readwrite("joint_kd", &rd::EdgeAttributes::joint_kd_)
+      .def_readwrite("joint_torque", &rd::EdgeAttributes::joint_torque_)
       .def_readwrite("joint_lower_limit",
                      &rd::EdgeAttributes::joint_lower_limit_)
       .def_readwrite("joint_upper_limit",
