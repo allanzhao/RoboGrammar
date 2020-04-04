@@ -17,6 +17,7 @@ from torch_geometric.data.data import Data
 import pickle
 
 load_data = True
+variational = True
 
 
 max_nodes = 17
@@ -35,6 +36,11 @@ dataset = TUDataset(path, name='PROTEINS', transform=T.ToDense(max_nodes),
 num_channels = 31
 if not load_data:
   all_link_features, all_link_adj, all_rewards = parse_log_file.main('flat_jan21.csv', 'data/designs/grammar_jan21.dot')
+  if variational:
+    all_rewards = [(reward,) for reward in all_rewards]
+  else:
+    all_rewards = [(reward,) for reward in all_rewards]
+
   #xperimental postprocessing
   #step 1: make symmetric
   all_link_adj_symmetric = [link_adj + np.transpose(link_adj) for link_adj in all_link_adj]
@@ -153,8 +159,12 @@ class GNN(torch.nn.Module):
 
 
 class Net(torch.nn.Module):
-    def __init__(self):
+    def __init__(self, variational=False):
         super(Net, self).__init__()
+        
+        self.variational = variational
+        
+        
 
         num_nodes = ceil(0.25 * max_nodes)
         self.gnn1_pool = GNN(num_channels, 64, num_nodes, add_loop=True)
@@ -167,7 +177,10 @@ class Net(torch.nn.Module):
         self.gnn3_embed = GNN(3 * 64, 64, 64, lin=False)
 
         self.lin1 = torch.nn.Linear(3 * 64, 64)
-        self.lin2 = torch.nn.Linear(64, 1)
+        
+        out_channels = 2 if self.variational else 1
+        
+        self.lin2 = torch.nn.Linear(64, out_channels)
         
 
     def forward(self, x, adj, mask=None):
@@ -195,7 +208,7 @@ class Net(torch.nn.Module):
 
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-model = Net().to(device)
+model = Net(variational).to(device)
 optimizer = torch.optim.Adam(model.parameters(), lr=0.0001)
 
 
@@ -207,7 +220,13 @@ def train(epoch):
         data = data.to(device)
         optimizer.zero_grad()
         output, _, _ = model(data.x, data.adj, data.mask)        
-        loss = F.mse_loss(output[:, 0], data.y.view(-1))
+        if not model.variational:
+          loss = F.mse_loss(output[:, 0], data.y.view(-1))
+        else:
+          means = output[:, 0]
+          stds = torch.exp(output[:, 1])
+          dist = torch.distributions.Normal(means, stds) 
+          loss = torch.mean(-dist.log_prob(data.y.view(-1)))  #TODO: we might want a regularizer here
         loss.backward()
         loss_all += loss.item()
         optimizer.step()
