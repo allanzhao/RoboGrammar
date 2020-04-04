@@ -33,7 +33,7 @@ def build_normalized_robot(graph, target_mass=1.5):
   robot = rd.build_robot(graph)
   total_body_length = 0.0
   for link in robot.links:
-    if np.isclose(link.density, 5.0):
+    if np.isclose(link.density, 3.0):
       # Link is a body link
       total_body_length += link.length
   body_density = target_mass / total_body_length

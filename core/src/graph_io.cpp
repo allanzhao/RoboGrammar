@@ -132,6 +132,9 @@ void updateEdgeAttributes(
     } else if (key == "kd") {
       std::istringstream in(value);
       in >> edge_attrs.joint_kd_;
+    } else if (key == "torque") {
+      std::istringstream in(value);
+      in >> edge_attrs.joint_torque_;
     } else if (key == "limits") {
       std::istringstream in(value);
       Scalar lower_limit, upper_limit;

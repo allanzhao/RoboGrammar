@@ -23,8 +23,9 @@ void initRobot(py::module &m) {
       .def(py::init<rd::Index, rd::JointType, rd::Scalar,
                     const rd::Quaternion &, const rd::Vector3 &, rd::LinkShape,
                     rd::Scalar, rd::Scalar, rd::Scalar, rd::Scalar, rd::Scalar,
-                    rd::Scalar, const rd::Color &, const rd::Color &,
-                    const std::string &, const std::string &>())
+                    rd::Scalar, rd::Scalar, const rd::Color &,
+                    const rd::Color &, const std::string &,
+                    const std::string &>())
       .def_readwrite("parent", &rd::Link::parent_)
       .def_readwrite("joint_type", &rd::Link::joint_type_)
       .def_readwrite("joint_pos", &rd::Link::joint_pos_)
@@ -37,6 +38,7 @@ void initRobot(py::module &m) {
       .def_readwrite("friction", &rd::Link::friction_)
       .def_readwrite("joint_kp", &rd::Link::joint_kp_)
       .def_readwrite("joint_kd", &rd::Link::joint_kd_)
+      .def_readwrite("joint_torque", &rd::Link::joint_torque_)
       .def_readwrite("color", &rd::Link::color_)
       .def_readwrite("joint_color", &rd::Link::joint_color_)
       .def_readwrite("label", &rd::Link::label_)

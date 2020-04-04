@@ -47,17 +47,20 @@ class RidgedTerrainTask(ForwardSpeedTask):
   terrain.
   """
 
-  def __init__(self, **kwargs):
+  def __init__(self, seed=0, **kwargs):
     super().__init__(**kwargs)
+    self.seed = seed
 
     self.floor = rd.Prop(rd.PropShape.BOX, 0.0, 0.5, [20.0, 1.0, 10.0])
-    self.bump = rd.Prop(rd.PropShape.BOX, 0.0, 0.5, [0.1, 0.1, 10.0])
+    self.bump = rd.Prop(rd.PropShape.BOX, 0.0, 0.5, [0.1, 0.2, 10.0])
 
   def add_terrain(self, sim):
+    rng = np.random.RandomState(self.seed)
     sim.add_prop(self.floor, [0.0, -1.0, 0.0],
                  rd.Quaterniond(1.0, 0.0, 0.0, 0.0))
-    for i in range(19):
-      sim.add_prop(self.bump, [1.5 + i, 0.05, 0.0],
+    for i in range(20):
+      sim.add_prop(self.bump,
+                   [rng.normal(0.5, 0.1) + i, -0.2 + 0.02 * (i + 1), 0.0],
                    rd.Quaterniond(1.0, 0.0, 0.0, 0.0))
 
 class GapTerrainTask(ForwardSpeedTask):
@@ -66,11 +69,14 @@ class GapTerrainTask(ForwardSpeedTask):
   terrain with several large gaps.
   """
 
-  def __init__(self, x_min=-20.0, x_max=20.0, **kwargs):
+  def __init__(self, x_min=-20.0, x_max=20.0, seed=0, **kwargs):
     super().__init__(**kwargs)
+    self.seed = seed
 
-    gap_centers = np.arange(1.5, x_max, 1.0)
-    gap_widths = np.full(len(gap_centers), 0.35)
+    rng = np.random.RandomState(self.seed)
+    gap_centers = np.arange(0.5, x_max, 1.0)
+    gap_centers += rng.normal(0.0, 0.1, size=gap_centers.shape)
+    gap_widths = np.linspace(0.1, 0.5, num=len(gap_centers))
     platform_x_min = np.concatenate(([x_min], gap_centers + 0.5 * gap_widths))
     platform_x_max = np.concatenate((gap_centers - 0.5 * gap_widths, [x_max]))
     platform_x = 0.5 * (platform_x_min + platform_x_max)
@@ -85,8 +91,10 @@ class GapTerrainTask(ForwardSpeedTask):
                          [0.5 * (x_max - x_min), 1.0, 10.0])
 
   def add_terrain(self, sim):
-    for x, platform in zip(self.platform_x, self.platforms):
-      sim.add_prop(platform, [x, -1.0, 0.0], rd.Quaterniond(1.0, 0.0, 0.0, 0.0))
+    rng = np.random.RandomState(self.seed)
+    for i, (x, platform) in enumerate(zip(self.platform_x, self.platforms)):
+      sim.add_prop(platform, [x, -1.0 + rng.normal(0.0, 0.01 * i), 0.0],
+                   rd.Quaterniond(1.0, 0.0, 0.0, 0.0))
     sim.add_prop(self.floor, [self.floor_x, -2.0, 0.0],
                  rd.Quaterniond(1.0, 0.0, 0.0, 0.0))
 
@@ -130,10 +138,11 @@ class HillTerrainTask(ForwardSpeedTask):
   terrain with hills.
   """
 
-  def __init__(self, **kwargs):
+  def __init__(self, seed=0, **kwargs):
     super().__init__(**kwargs)
+    self.seed = seed
 
-    self.rng = np.random.RandomState(0)
+    self.rng = np.random.RandomState(self.seed)
     y = np.clip(self.rng.normal(0.5, 0.125, size=(33, 33)), 0.0, 1.0)
     self.heightfield = rd.HeightfieldProp(0.5, [10.0, 0.25, 10.0], y)
 
