@@ -228,7 +228,7 @@ def train(epoch):
           dist = torch.distributions.Normal(means, stds)
 
           regularizer = 0.5 * torch.mean(torch.exp(stds) + means**2 - 1.0 - stds)
-          loss = torch.mean(-dist.log_prob(data.y.view(-1))) + 0.01 * regularizer  
+          loss = torch.mean(-dist.log_prob(data.y.view(-1))) + 0.001 * regularizer  
         loss.backward()
         loss_all += loss.item()
         optimizer.step()
