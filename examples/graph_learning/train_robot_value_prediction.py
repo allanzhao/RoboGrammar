@@ -113,7 +113,7 @@ else:
                 mask=torch.from_numpy(mask),
                 x=torch.from_numpy(x[:, :num_features]).float(), 
                 y=torch.from_numpy(np.array([y])).float() ) for adj, mask, x, y in zip(all_link_adj_symmetric_pad, all_masks, all_features_pad, all_rewards)]
-    # random.shuffle(data)
+    random.shuffle(data)
 
     n_test = (len(data) + 2) // 3
     known_dataset = data[:-n_test]
