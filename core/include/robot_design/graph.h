@@ -28,7 +28,7 @@ struct NodeAttributes {
   LinkShape shape_ = LinkShape::NONE;
   Scalar length_ = 1.0;
   Scalar radius_ = 0.05;
-  Scalar density_ = 2.5;
+  Scalar density_ = 1.0;
   Scalar friction_ = 0.9;
   bool base_ = false;
   Color color_ = {0.45f, 0.5f, 0.55f}; // Slate gray
@@ -54,6 +54,7 @@ struct EdgeAttributes {
   Vector3 joint_axis_ = Vector3::UnitZ();
   Scalar joint_kp_ = 0.01;
   Scalar joint_kd_ = 0.5;
+  Scalar joint_torque_ = 1.0;
   Scalar joint_lower_limit_ = 0.0;
   Scalar joint_upper_limit_ = 0.0;
   Scalar scale_ = 1.0;
@@ -182,6 +183,7 @@ struct hash<robot_design::EdgeAttributes> {
     hashCombine(seed, edge_attrs.joint_axis_);
     hashCombine(seed, edge_attrs.joint_kp_);
     hashCombine(seed, edge_attrs.joint_kd_);
+    hashCombine(seed, edge_attrs.joint_torque_);
     hashCombine(seed, edge_attrs.joint_lower_limit_);
     hashCombine(seed, edge_attrs.joint_upper_limit_);
     hashCombine(seed, edge_attrs.scale_);

@@ -162,12 +162,15 @@ Index BulletSimulation::addRobot(std::shared_ptr<const Robot> robot,
 
   // Create joint motors
   wrapper.motors_.reserve(wrapper.multi_body_->getNumDofs());
-  for (int i = 0; i < wrapper.multi_body_->getNumLinks(); ++i) {
-    const btMultibodyLink &link = wrapper.multi_body_->getLink(i);
+  for (std::size_t i = 1; i < robot->links_.size(); ++i) {
+    // The first non-base link in Bullet has index 0
+    const btMultibodyLink &link = wrapper.multi_body_->getLink(i - 1);
     for (int dof_idx = 0; dof_idx < link.m_dofCount; ++dof_idx) {
+      Scalar max_torque = robot->links_[i].joint_torque_;
       wrapper.motors_.push_back(std::make_shared<btMultiBodyJointMotor>(
-          /*body=*/wrapper.multi_body_.get(), /*link=*/i, /*linkDoF=*/dof_idx,
-          /*desiredVelocity=*/0.0, /*maxMotorImpulse=*/5.0));
+          /*body=*/wrapper.multi_body_.get(), /*link=*/i - 1,
+          /*linkDoF=*/dof_idx, /*desiredVelocity=*/0.0,
+          /*maxMotorImpulse=*/max_torque * time_step_));
       world_->addMultiBodyConstraint(wrapper.motors_.back().get());
     }
   }

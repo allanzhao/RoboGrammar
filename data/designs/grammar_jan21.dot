@@ -33,7 +33,7 @@ digraph make_body_with_legs {
   }
 
   subgraph R {
-    body_link [shape=capsule, length=0.15, radius=0.045, density=5.0];
+    body_link [shape=capsule, length=0.15, radius=0.045, density=3.0];
     limb_mount [shape=capsule, length=0.1, radius=0.025];
     limb_link [label="limb_link"];
     limb [label="limb"];
@@ -55,7 +55,7 @@ digraph make_body_without_legs {
   }
 
   subgraph R {
-    body_link [shape=capsule, length=0.15, radius=0.045, density=5.0];
+    body_link [shape=capsule, length=0.15, radius=0.045, density=3.0];
     parent -> body_link [id="parent_edges"];
     body_link -> child [id="child_edges"];
   }

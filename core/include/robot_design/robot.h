@@ -17,15 +17,15 @@ struct Link {
   Link(Index parent, JointType joint_type, Scalar joint_pos,
        const Quaternion &joint_rot, const Vector3 &joint_axis, LinkShape shape,
        Scalar length, Scalar radius, Scalar density, Scalar friction,
-       Scalar joint_kp, Scalar joint_kd, const Color &color,
-       const Color &joint_color, const std::string &label,
+       Scalar joint_kp, Scalar joint_kd, Scalar joint_torque,
+       const Color &color, const Color &joint_color, const std::string &label,
        const std::string &joint_label)
       : parent_(parent), joint_type_(joint_type), joint_pos_(joint_pos),
         joint_rot_(joint_rot), joint_axis_(joint_axis), shape_(shape),
         length_(length), radius_(radius), density_(density),
         friction_(friction), joint_kp_(joint_kp), joint_kd_(joint_kd),
-        color_(color), joint_color_(joint_color), label_(label),
-        joint_label_(joint_label) {}
+        joint_torque_(joint_torque), color_(color), joint_color_(joint_color),
+        label_(label), joint_label_(joint_label) {}
 
   // Parent link index (-1 for base link)
   Index parent_;
@@ -51,6 +51,8 @@ struct Link {
   Scalar joint_kp_;
   // Joint damping coefficient
   Scalar joint_kd_;
+  // Joint maximum torque
+  Scalar joint_torque_;
   // Link color for rendering
   Color color_;
   // Joint color for rendering

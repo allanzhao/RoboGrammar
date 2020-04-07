@@ -37,6 +37,7 @@ def featurize_edge(edge_attrs):
                    *edge_attrs.joint_axis,
                    edge_attrs.joint_kp,
                    edge_attrs.joint_kd,
+                   edge_attrs.joint_torque,
                    edge_attrs.joint_lower_limit,
                    edge_attrs.joint_upper_limit,
                    edge_attrs.scale,
@@ -54,7 +55,8 @@ def featurize_link(link):
                    link.density,
                    link.friction,
                    link.joint_kp,
-                   link.joint_kd])
+                   link.joint_kd,
+                   link.joint_torque])
 
 def main(log_file=None, grammar_file=None):
   
