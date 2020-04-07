@@ -59,8 +59,6 @@ def featurize_link(link):
                    link.joint_torque])
 
 def main(log_file=None, grammar_file=None):
-  
-  
   parser = argparse.ArgumentParser(
       description="Example code for parsing a MCTS log file.")
   
@@ -76,6 +74,13 @@ def main(log_file=None, grammar_file=None):
   graphs = rd.load_graphs(args.grammar_file)
   rules = [rd.create_rule_from_graph(g) for g in graphs]
 
+  # Find all possible link labels, so they can be one-hot encoded
+  all_labels = set()
+  for rule in rules:
+    for node in rule.lhs.nodes:
+      all_labels.add(node.attrs.label)
+  all_labels = sorted(list(all_labels))
+
   with open(args.log_file, newline='') as log_file:
     reader = csv.DictReader(log_file)
     
@@ -83,60 +88,65 @@ def main(log_file=None, grammar_file=None):
     all_link_adj = []
     all_results = []
     for row in reader:
-      rule_seq = ast.literal_eval(row['rule_seq'])
+      full_rule_seq = ast.literal_eval(row['rule_seq'])
       result = float(row['result'])
-      all_results.append(result)
 
-      # Build a robot from the rule sequence
-      robot_graph = make_initial_graph()
-      for r in rule_seq:
-        matches = rd.find_matches(rules[r].lhs, robot_graph)
-        # Always use the first match
-        robot_graph = rd.apply_rule(rules[r], robot_graph, matches[0])
-      robot = build_normalized_robot(robot_graph)
+      for prefix_len in range(len(full_rule_seq) + 1):
+        rule_seq = full_rule_seq[:prefix_len]
+        all_results.append(result)
 
-      # Find the world position and rotation of links
-      pos_rot = []
-      for i, link in enumerate(robot.links):
-        if link.parent >= 0:
-          parent_pos, parent_rot = pos_rot[link.parent]
-          parent_link_length = robot.links[link.parent].length
-        else:
-          parent_pos, parent_rot = np.zeros(3), np.quaternion(1, 0, 0, 0)
-          parent_link_length = 0
+        # Build a robot from the rule sequence
+        robot_graph = make_initial_graph()
+        for r in rule_seq:
+          matches = rd.find_matches(rules[r].lhs, robot_graph)
+          # Always use the first match
+          robot_graph = rd.apply_rule(rules[r], robot_graph, matches[0])
+        robot = build_normalized_robot(robot_graph)
 
-        offset = np.array([parent_link_length * link.joint_pos, 0, 0])
-        rel_pos = quaternion.rotate_vectors(parent_rot, offset)
-        rel_rot = np_quaternion(link.joint_rot).conjugate()
-        pos = parent_pos + rel_pos
-        rot = parent_rot * rel_rot
-        pos_rot.append((pos, rot))
+        # Find the world position and rotation of links
+        pos_rot = []
+        for i, link in enumerate(robot.links):
+          if link.parent >= 0:
+            parent_pos, parent_rot = pos_rot[link.parent]
+            parent_link_length = robot.links[link.parent].length
+          else:
+            parent_pos, parent_rot = np.zeros(3), np.quaternion(1, 0, 0, 0)
+            parent_link_length = 0
 
-      # Generate adjacency matrix
-      adj_matrix = np.zeros((len(robot.links), len(robot.links)))
-      for i, link in enumerate(robot.links):
-        if link.parent >= 0:
-          adj_matrix[link.parent, i] += 1
+          offset = np.array([parent_link_length * link.joint_pos, 0, 0])
+          rel_pos = quaternion.rotate_vectors(parent_rot, offset)
+          rel_rot = np_quaternion(link.joint_rot).conjugate()
+          pos = parent_pos + rel_pos
+          rot = parent_rot * rel_rot
+          pos_rot.append((pos, rot))
 
-      # Generate features for links
-      # Note: we can work with either the graph or the robot kinematic tree, but
-      # the kinematic tree provides more information
-      link_features = []
-      for i, link in enumerate(robot.links):
-        world_pos, world_rot = pos_rot[i]
-        world_joint_axis = quaternion.rotate_vectors(world_rot, link.joint_axis)
+        # Generate adjacency matrix
+        adj_matrix = np.zeros((len(robot.links), len(robot.links)))
+        for i, link in enumerate(robot.links):
+          if link.parent >= 0:
+            adj_matrix[link.parent, i] += 1
 
-        link_features.append(np.array([
-            *featurize_link(link),
-            *world_pos,
-            *quaternion_coords(world_rot),
-            *world_joint_axis]))
-      link_features = np.array(link_features)
+        # Generate features for links
+        # Note: we can work with either the graph or the robot kinematic tree, but
+        # the kinematic tree provides more information
+        link_features = []
+        for i, link in enumerate(robot.links):
+          world_pos, world_rot = pos_rot[i]
+          world_joint_axis = quaternion.rotate_vectors(world_rot, link.joint_axis)
+          label_vec = np.zeros(len(all_labels))
+          label_vec[all_labels.index(link.label)] = 1
 
-      #print(adj_matrix)
-      #print(link_features.shape)
-      all_link_features.append(link_features)
-      all_link_adj.append(adj_matrix)
+          link_features.append(np.array([
+              *featurize_link(link),
+              *world_pos,
+              *quaternion_coords(world_rot),
+              *world_joint_axis,
+              *label_vec]))
+        link_features = np.array(link_features)
+
+        all_link_features.append(link_features)
+        all_link_adj.append(adj_matrix)
+
   return all_link_features, all_link_adj, all_results
 
 if __name__ == '__main__':
