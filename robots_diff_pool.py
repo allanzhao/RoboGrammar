@@ -16,11 +16,27 @@ from torch_geometric.data import InMemoryDataset
 from torch_geometric.data.data import Data
 import pickle
 
-load_data = True
+load_data = False
 variational = True
 
 
 max_nodes = 17
+
+def estimate_vars(all_link_features, all_link_adj, all_rewards):
+  var_dict = {}
+  for feat, adj, rew in zip(all_link_features, all_link_adj, all_rewards):
+    key = (feat.to_string(), adj.to_string())
+    try:
+      key_dict[key].append(rew)
+    except:
+      key_dict[key] = [rew]
+    
+  IPython.embed()
+  #TODO:
+  #1. Compute std of each key
+  #2. Re-loop over every key feature in order (maybe store in a loop on the first forward pass) and then return the stds in the same order
+  #3. In the evaluation section, return difference of output variance and the sample variance as a proxy for the true variance
+  
 
 class MyFilter(object):
     def __call__(self, data):
@@ -36,6 +52,8 @@ dataset = TUDataset(path, name='PROTEINS', transform=T.ToDense(max_nodes),
 num_channels = 31
 if not load_data:
   all_link_features, all_link_adj, all_rewards = parse_log_file.main('flat_jan21.csv', 'data/designs/grammar_jan21.dot')
+  estimate_vars(all_link_features, all_link_adj, all_rewards)
+  
   if variational:
     all_rewards = [(reward,) for reward in all_rewards]
   else:
