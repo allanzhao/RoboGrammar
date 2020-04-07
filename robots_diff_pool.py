@@ -16,26 +16,30 @@ from torch_geometric.data import InMemoryDataset
 from torch_geometric.data.data import Data
 import pickle
 
-load_data = False
+load_data = True
 variational = True
 
 
 max_nodes = 17
 
 def estimate_vars(all_link_features, all_link_adj, all_rewards):
-  var_dict = {}
+  key_dict = {}
   for feat, adj, rew in zip(all_link_features, all_link_adj, all_rewards):
-    key = (feat.to_string(), adj.to_string())
+    key = (feat.tostring(), adj.tostring())
     try:
       key_dict[key].append(rew)
     except:
       key_dict[key] = [rew]
     
-  IPython.embed()
+
+  std_dict = {}
+  for key in key_dict:
+    std_dict[key] = np.std(key_dict[key])
   #TODO:
   #1. Compute std of each key
   #2. Re-loop over every key feature in order (maybe store in a loop on the first forward pass) and then return the stds in the same order
   #3. In the evaluation section, return difference of output variance and the sample variance as a proxy for the true variance
+  return std_dict
   
 
 class MyFilter(object):
@@ -53,7 +57,7 @@ print('path = ', path)
 num_channels = 31
 if not load_data:
   all_link_features, all_link_adj, all_rewards = parse_log_file.main('flat_jan21.csv', 'data/designs/grammar_jan21.dot')
-  #sestimate_vars(all_link_features, all_link_adj, all_rewards)
+  std_dict = estimate_vars(all_link_features, all_link_adj, all_rewards)
   
   if variational:
     all_rewards = [(reward,) for reward in all_rewards]
@@ -97,7 +101,8 @@ if not load_data:
   data = [Data(adj=torch.from_numpy(adj).float(),
                mask=torch.from_numpy(mask),
                x=torch.from_numpy(x[:, :num_channels]).float(), 
-               y=torch.from_numpy(np.array([y])).float() ) for adj, mask, x, y in zip(all_link_adj_symmetric_pad, all_masks, all_features_pad, all_rewards)]
+               y=torch.from_numpy(np.array([y])).float(),
+               std=torch.from_numpy(np.array([std_dict[std]])).float() ) for adj, mask, x, y, std in zip(all_link_adj_symmetric_pad, all_masks, all_features_pad, all_rewards, std_dict)]
   import random
   random.shuffle(data)
                                 
@@ -255,6 +260,10 @@ def test(loader, size):
         data = data.to(device)
         pred = model(data.x, data.adj, data.mask)[0]
         error += F.mse_loss(pred[:, 0], data.y.view(-1))
+        pred_std = pred[:, 1]
+        true_std = data.std.view(-1)
+        #print('predicted std is ', torch.exp(pred_std))
+        #print('true std is ', true_std)
         #print('prediction is ', pred[:, 0])
         #print('truth is ', data.y.view(-1))
         #correct += pred.eq(data.y.view(-1)).sum().item()
