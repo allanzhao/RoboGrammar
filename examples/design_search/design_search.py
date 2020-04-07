@@ -28,18 +28,24 @@ def has_nonterminals(graph):
       return True
   return False
 
-def build_normalized_robot(graph, target_mass=1.5):
+def build_normalized_robot(graph):
   """Build a robot from the graph and normalize the mass of the body links."""
   robot = rd.build_robot(graph)
+
+  body_links = []
   total_body_length = 0.0
   for link in robot.links:
-    if np.isclose(link.density, 3.0):
-          # Link is a body link
+    if np.isclose(link.radius, 0.045):
+      # Link is a body link
+      body_links.append(link)
       total_body_length += link.length
-  body_density = target_mass / total_body_length
-  for link in robot.links:
-    if np.isclose(link.radius, 0.05):
+      target_mass = link.length * link.density
+
+  if body_links:
+    body_density = target_mass / total_body_length
+    for link in body_links:
       link.density = body_density
+
   return robot
 
 def presimulate(robot):
