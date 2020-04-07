@@ -53,7 +53,7 @@ print('path = ', path)
 num_channels = 31
 if not load_data:
   all_link_features, all_link_adj, all_rewards = parse_log_file.main('flat_jan21.csv', 'data/designs/grammar_jan21.dot')
-  estimate_vars(all_link_features, all_link_adj, all_rewards)
+  #sestimate_vars(all_link_features, all_link_adj, all_rewards)
   
   if variational:
     all_rewards = [(reward,) for reward in all_rewards]
