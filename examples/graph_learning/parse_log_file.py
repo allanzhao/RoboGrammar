@@ -63,13 +63,13 @@ def main(log_file=None, grammar_file=None):
   
   parser = argparse.ArgumentParser(
       description="Example code for parsing a MCTS log file.")
+  
   if not log_file or not grammar_file:
     parser.add_argument("log_file", type=str, help="Log file (.csv)")
     parser.add_argument("grammar_file", type=str, help="Grammar file (.dot)")
     args = parser.parse_args()
-    
   else:
-    args = parser.parse_args()
+    args = argparse.Namespace()
     args.grammar_file = grammar_file
     args.log_file = log_file
 
