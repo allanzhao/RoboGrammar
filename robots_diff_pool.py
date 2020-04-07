@@ -16,7 +16,7 @@ from torch_geometric.data import InMemoryDataset
 from torch_geometric.data.data import Data
 import pickle
 
-load_data = True
+load_data = False
 
 
 max_nodes = 17
@@ -31,13 +31,15 @@ path = osp.join(osp.dirname(osp.realpath(__file__)), '..', 'data',
 dataset = TUDataset(path, name='PROTEINS', transform=T.ToDense(max_nodes),
                     pre_filter=MyFilter())
 
+print('path = ', path)
 
 num_channels = 31
 if not load_data:
-  all_link_features, all_link_adj, all_rewards = parse_log_file.main('flat_jan21.csv', 'data/designs/grammar_jan21.dot')
-  #xperimental postprocessing
+  all_link_features, all_link_adj, all_rewards = parse_log_file.main('flat_mar23.csv', 'data/designs/grammar_jan21.dot')
+  #exprimental postprocessing
   #step 1: make symmetric
   all_link_adj_symmetric = [link_adj + np.transpose(link_adj) for link_adj in all_link_adj]
+
   #step 2: Add blank rows, pad with 0s, and fill out mask:
   #max length:
   max_nodes = max([feat.shape[0] for feat in all_link_features])
@@ -51,7 +53,7 @@ if not load_data:
       # Create an array of zeros with the reference shape
       result = np.zeros(shape)
       if len(shape) == 1:
-        result[:array.shape[0], :] = array
+        result[:array.shape[0], :] = array # ERROR: why result is 2d
       elif len(shape) == 2:
         result[:array.shape[0], :array.shape[1]] = array
       else:
@@ -64,30 +66,22 @@ if not load_data:
   def create_mask(feat, max_nodes):
     return np.array([True if i < feat.shape[0] else False for i in range(max_nodes)])
 
-
   all_masks = [create_mask(feat, max_nodes) for feat in all_link_features]
   #num_channels = all_features_pad[0].shape[1]
   
-
   #step 3: Create dataset object
-
-
-
-
   data = [Data(adj=torch.from_numpy(adj).float(),
                mask=torch.from_numpy(mask),
                x=torch.from_numpy(x[:, :num_channels]).float(), 
                y=torch.from_numpy(np.array([y])).float() ) for adj, mask, x, y in zip(all_link_adj_symmetric_pad, all_masks, all_features_pad, all_rewards)]
   import random
   random.shuffle(data)
-     
                                 
   dataset = dataset.shuffle()
   n = (len(dataset) + 9) // 10
   test_dataset = data[:n]
   val_dataset = data[n:2 * n]
   train_dataset = data[2 * n:]
-  
   
   with open('test_loader', 'wb') as test_file, open('val_loader', 'wb') as val_file, open('train_loader', 'wb') as train_file: 
     pickle.dump(test_dataset, test_file)
