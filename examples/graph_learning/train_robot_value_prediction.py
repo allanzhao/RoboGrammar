@@ -67,7 +67,7 @@ if os.path.isfile(testset_path) and os.path.isfile(valset_path) and os.path.isfi
         train_dataset = pickle.load(train_file)
         val_dataset = pickle.load(val_file)
     max_nodes = 19
-    num_features = 31
+    num_features = 32 # 31 for previous configuration and 32 for current one (including torque)
 else:
     os.makedirs(dataset_dir, exist_ok = True)
 
@@ -107,18 +107,22 @@ else:
 
     all_masks = [create_mask(feat, max_nodes) for feat in all_link_features]
     num_features = all_features_pad[0].shape[1]
-    
+
     #step 3: Create dataset object
     data = [Data(adj=torch.from_numpy(adj).float(),
                 mask=torch.from_numpy(mask),
                 x=torch.from_numpy(x[:, :num_features]).float(), 
                 y=torch.from_numpy(np.array([y])).float() ) for adj, mask, x, y in zip(all_link_adj_symmetric_pad, all_masks, all_features_pad, all_rewards)]
-    random.shuffle(data)
-                                    
-    n = (len(data) + 9) // 10 
-    test_dataset = data[:n]
-    val_dataset = data[n:2 * n]
-    train_dataset = data[2 * n:]
+    # random.shuffle(data)
+
+    n_test = (len(data) + 2) // 3
+    known_dataset = data[:-n_test]
+    unknown_dataset = data[-n_test:]
+    random.shuffle(known_dataset)
+    n_val = (len(known_dataset) + 9) // 10
+    train_dataset = known_dataset[:-n_val]
+    val_dataset = known_dataset[-n_val:]
+    test_dataset = unknown_dataset
     
     with open(testset_path, 'wb') as test_file, open(valset_path, 'wb') as val_file, open(trainset_path, 'wb') as train_file: 
         pickle.dump(test_dataset, test_file)
@@ -135,11 +139,17 @@ y_min, y_max = 10000000.0, -10000000.0
 for data in train_dataset:
     y_min = min(y_min, data.y[0])
     y_max = max(y_max, data.y[0])
-print('y min = ', y_min, ', y max = ', y_max)
+print('training set: y min = ', y_min, ', y max = ', y_max)
+y_min, y_max = 10000000.0, -10000000.0
+for data in test_dataset:
+    y_min = min(y_min, data.y[0])
+    y_max = max(y_max, data.y[0])
+print('testing set: y min = ', y_min, ', yy max = ', y_max)
 
 # constrct batch
 test_loader = DenseDataLoader(test_dataset, batch_size=20)
 val_loader = DenseDataLoader(val_dataset, batch_size=20)
+# random.shuffle(train_dataset)
 train_loader = DenseDataLoader(train_dataset, batch_size=20)
 
 class GNN(torch.nn.Module):
@@ -198,16 +208,18 @@ class GNN(torch.nn.Module):
 class Net(torch.nn.Module):
     def __init__(self):
         super(Net, self).__init__()
+        
+        batch_normalization = False
 
         num_nodes = ceil(0.25 * max_nodes)
-        self.gnn1_pool = GNN(num_features, 64, num_nodes, batch_normalization = False, add_loop=True)
-        self.gnn1_embed = GNN(num_features, 64, 64, batch_normalization = False, add_loop=True, lin=False)
+        self.gnn1_pool = GNN(num_features, 64, num_nodes, batch_normalization = batch_normalization, add_loop=True)
+        self.gnn1_embed = GNN(num_features, 64, 64, batch_normalization = batch_normalization, add_loop=True, lin=False)
         
         num_nodes = ceil(0.25 * num_nodes)
-        self.gnn2_pool = GNN(3 * 64, 64, num_nodes, batch_normalization = False)
-        self.gnn2_embed = GNN(3 * 64, 64, 64, batch_normalization = False, lin=False)
+        self.gnn2_pool = GNN(3 * 64, 64, num_nodes, batch_normalization = batch_normalization)
+        self.gnn2_embed = GNN(3 * 64, 64, 64, batch_normalization = batch_normalization, lin=False)
 
-        self.gnn3_embed = GNN(3 * 64, 64, 64, batch_normalization = False, lin=False)
+        self.gnn3_embed = GNN(3 * 64, 64, 64, batch_normalization = batch_normalization, lin=False)
 
         self.lin1 = torch.nn.Linear(3 * 64, 64)
         self.lin2 = torch.nn.Linear(64, 1)
@@ -219,8 +231,6 @@ class Net(torch.nn.Module):
         x = self.gnn1_embed(x, adj, mask)
 
         x, adj, l1, e1 = dense_diff_pool(x, adj, s, mask)
-
-        #print('time for gnn2')
 
         s = self.gnn2_pool(x, adj)
         x = self.gnn2_embed(x, adj)
@@ -249,10 +259,9 @@ def train(epoch):
     for data in train_loader:
         data = data.to(device)
         optimizer.zero_grad()
-        # output, _, _ = model(data.x, data.adj, data.mask)
         output, loss_link, loss_entropy = model(data.x, data.adj, data.mask)        
         loss = F.mse_loss(output[:, 0], data.y.view(-1))
-        loss = loss + loss_link + loss_entropy
+        # loss = loss + loss_link + loss_entropy
         loss.backward()
         loss_all += loss.item()
         optimizer.step()
