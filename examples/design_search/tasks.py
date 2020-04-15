@@ -143,9 +143,9 @@ class HillTerrainTask(ForwardSpeedTask):
     self.seed = seed
 
     self.rng = np.random.RandomState(self.seed)
-    y = np.clip(self.rng.normal(0.5, 0.125, size=(33, 33)), 0.0, 1.0)
-    self.heightfield = rd.HeightfieldProp(0.5, [10.0, 0.25, 10.0], y)
+    y = np.clip(self.rng.normal(0.5, 0.125, size=(97, 33)), 0.0, 1.0)
+    self.heightfield = rd.HeightfieldProp(0.5, [30.0, 0.25, 10.0], y)
 
   def add_terrain(self, sim):
-    sim.add_prop(self.heightfield, [0.0, -0.25, 0.0],
+    sim.add_prop(self.heightfield, [20.0, -0.25, 0.0],
                  rd.Quaterniond(1.0, 0.0, 0.0, 0.0))
