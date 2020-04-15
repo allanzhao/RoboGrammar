@@ -2,6 +2,7 @@ import argparse
 import ast
 import csv
 import datetime
+import env
 import mcts
 import numpy as np
 import os
@@ -145,7 +146,7 @@ def make_initial_graph():
   initial_graph.nodes = [n0]
   return initial_graph
 
-class RobotDesignEnv(mcts.Env):
+class RobotDesignEnv(env.Env):
   """Robot design environment where states are (graph, rule sequence) pairs and
   actions are rule applications."""
 
