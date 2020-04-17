@@ -121,7 +121,6 @@ void GLRenderer::render(const Simulation &sim,
 void GLRenderer::drawOpaque(const Simulation &sim, const Program &program,
                             ProgramState &program_state) const {
   // Draw robots
-  program_state.setProcTextureType(0); // No texture
   for (Index robot_idx = 0; robot_idx < sim.getRobotCount(); ++robot_idx) {
     const Robot &robot = *sim.getRobot(robot_idx);
     for (std::size_t link_idx = 0; link_idx < robot.links_.size(); ++link_idx) {
@@ -130,6 +129,13 @@ void GLRenderer::drawOpaque(const Simulation &sim, const Program &program,
       sim.getLinkTransform(robot_idx, link_idx, link_transform);
 
       // Draw the link's collision shape
+      if (link.shape_ == LinkShape::CYLINDER) {
+        // Checkerboard (YZ) texture for cylinders
+        program_state.setProcTextureType(1);
+      } else {
+        // No texture for other shapes
+        program_state.setProcTextureType(0);
+      }
       program_state.setObjectColor(link.color_);
       switch (link.shape_) {
       case LinkShape::CAPSULE:
@@ -145,6 +151,7 @@ void GLRenderer::drawOpaque(const Simulation &sim, const Program &program,
       }
 
       // Draw the link's joint
+      program_state.setProcTextureType(0); // No texture
       program_state.setObjectColor(link.joint_color_);
       Matrix3 joint_axis_rotation(
           Quaternion::FromTwoVectors(link.joint_axis_, Vector3::UnitX()));
