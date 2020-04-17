@@ -188,8 +188,8 @@ void GLRenderer::drawOpaque(const Simulation &sim, const Program &program,
 
     // Draw the prop's collision shape
     if (prop.density_ == 0.0) {
-      // Checkerboard texture for static shapes
-      program_state.setProcTextureType(1);
+      // Checkerboard (XZ) texture for static shapes
+      program_state.setProcTextureType(2);
     } else {
       // No texture for dynamic shapes
       program_state.setProcTextureType(0);
@@ -246,10 +246,10 @@ void GLRenderer::drawBox(const Eigen::Matrix4f &transform,
                          const Eigen::Vector3f &half_extents,
                          const Program &program,
                          ProgramState &program_state) const {
-  Eigen::Affine3f model_transform =
-      Eigen::Affine3f(transform) * Eigen::Scaling(half_extents);
+  Eigen::Affine3f local_transform(Eigen::Scaling(half_extents));
   box_mesh_->bind();
-  program_state.setModelMatrix(model_transform.matrix());
+  program_state.setTexCoordsMatrix(local_transform.matrix());
+  program_state.setModelMatrix(transform * local_transform.matrix());
   program_state.updateUniforms(program);
   box_mesh_->draw();
 }
@@ -275,26 +275,29 @@ void GLRenderer::drawTubeBasedShape(const Eigen::Matrix4f &transform,
                                     const Program &program,
                                     ProgramState &program_state,
                                     const Mesh &end_mesh) const {
-  Eigen::Affine3f right_end_model_transform =
-      Eigen::Affine3f(transform) * Eigen::Translation3f(half_length, 0, 0) *
-      Eigen::Scaling(radius, radius, radius);
+  Eigen::Affine3f right_end_local_transform(
+      Eigen::Translation3f(half_length, 0, 0) *
+      Eigen::Scaling(radius, radius, radius));
   end_mesh.bind();
-  program_state.setModelMatrix(right_end_model_transform.matrix());
+  program_state.setTexCoordsMatrix(right_end_local_transform.matrix());
+  program_state.setModelMatrix(transform * right_end_local_transform.matrix());
   program_state.updateUniforms(program);
   end_mesh.draw();
 
-  Eigen::Affine3f left_end_model_transform =
-      Eigen::Affine3f(transform) * Eigen::Translation3f(-half_length, 0, 0) *
-      Eigen::Scaling(-radius, radius, -radius);
+  Eigen::Affine3f left_end_local_transform(
+      Eigen::Translation3f(-half_length, 0, 0) *
+      Eigen::Scaling(-radius, radius, -radius));
   end_mesh.bind();
-  program_state.setModelMatrix(left_end_model_transform.matrix());
+  program_state.setTexCoordsMatrix(left_end_local_transform.matrix());
+  program_state.setModelMatrix(transform * left_end_local_transform.matrix());
   program_state.updateUniforms(program);
   end_mesh.draw();
 
-  Eigen::Affine3f middle_model_transform =
-      Eigen::Affine3f(transform) * Eigen::Scaling(half_length, radius, radius);
+  Eigen::Affine3f middle_local_transform(
+      Eigen::Scaling(half_length, radius, radius));
   tube_mesh_->bind();
-  program_state.setModelMatrix(middle_model_transform.matrix());
+  program_state.setTexCoordsMatrix(middle_local_transform.matrix());
+  program_state.setModelMatrix(transform * middle_local_transform.matrix());
   program_state.updateUniforms(program);
   tube_mesh_->draw();
 }
@@ -391,11 +394,11 @@ void GLRenderer::drawHeightfield(const Eigen::Matrix4f &transform,
       (2.0 * half_extents).array() /
       Eigen::Vector3f(heightfield.rows() - 1, 1.0, heightfield.cols() - 1)
           .array();
-  Eigen::Affine3f model_transform =
-      Eigen::Affine3f(transform) * Eigen::Translation3f(-half_extents) *
-      Eigen::Scaling(local_scaling);
+  Eigen::Affine3f local_transform(
+      Eigen::Translation3f(-half_extents) * Eigen::Scaling(local_scaling));
   heightfield_mesh_->bind();
-  program_state.setModelMatrix(model_transform.matrix());
+  program_state.setTexCoordsMatrix(local_transform.matrix());
+  program_state.setModelMatrix(transform * local_transform.matrix());
   program_state.updateUniforms(program);
   heightfield_mesh_->draw();
 }

@@ -253,6 +253,9 @@ struct ProgramState {
   void setModelMatrix(const Eigen::Matrix4f &model_matrix) {
     model_matrix_.setValue(model_matrix);
   }
+  void setTexCoordsMatrix(const Eigen::Matrix4f &tex_coords_matrix) {
+    tex_coords_matrix_.setValue(tex_coords_matrix);
+  }
   void setProcTextureType(int proc_texture_type) {
     proc_texture_type_.setValue(proc_texture_type);
   }
@@ -276,6 +279,7 @@ struct ProgramState {
   ProgramParameter<Eigen::Matrix4f> proj_matrix_;
   ProgramParameter<Eigen::Matrix4f> view_matrix_;
   ProgramParameter<Eigen::Matrix4f> model_matrix_;
+  ProgramParameter<Eigen::Matrix4f> tex_coords_matrix_;
   ProgramParameter<int> proc_texture_type_;
   ProgramParameter<Eigen::Vector3f> object_color_;
   ProgramParameter<Eigen::Vector3f> dir_light_color_;

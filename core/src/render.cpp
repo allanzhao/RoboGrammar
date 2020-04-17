@@ -356,9 +356,8 @@ void ProgramState::updateUniforms(const Program &program) {
   if (view_matrix_.dirty_) {
     program.setViewMatrix(view_matrix_.value_);
   }
-  if (model_matrix_.dirty_) {
-    // Use world position as texture coordinates
-    program.setTexCoordsMatrix(model_matrix_.value_);
+  if (tex_coords_matrix_.dirty_) {
+    program.setTexCoordsMatrix(tex_coords_matrix_.value_);
   }
   if (view_matrix_.dirty_ || model_matrix_.dirty_) {
     Eigen::Matrix4f model_view_matrix =

@@ -39,13 +39,17 @@ float checkerboardGrad(vec2 p, vec2 dpdx, vec2 dpdy) {
   return 0.5 - 0.5 * i.x * i.y; // XOR, rescale to [0.0, 1.0] range
 }
 
-float procTextureGrad(vec2 p, vec2 dpdx, vec2 dpdy, int type) {
+float procTextureGrad(vec3 p, vec3 dpdx, vec3 dpdy, int type) {
   switch (type) {
   case 0:
   default:
     return 1.0; // Solid color
   case 1:
-    return checkerboardGrad(p, dpdx, dpdy); // Checkerboard
+    return checkerboardGrad(p.yz, dpdx.yz, dpdy.yz); // Checkerboard in YZ plane
+  case 2:
+    return checkerboardGrad(p.xz, dpdx.xz, dpdy.xz); // Checkerboard in XZ plane
+  case 3:
+    return checkerboardGrad(p.xy, dpdx.xy, dpdy.xy); // Checkerboard in XY plane
   }
 }
 
@@ -63,7 +67,7 @@ void main() {
   float spec_factor = pow(max(dot(view_camera_dir, reflect_dir), 0.0), 32);
   vec3 specular = 0.5 * spec_factor * light_color * shadow_factor;
 
-  vec2 p = 2.0 * texture_coords.xz;
+  vec3 p = 2.0 * texture_coords;
   float color_factor = 0.9 + 0.1 * procTextureGrad(p, dFdx(p), dFdy(p),
                                                    proc_texture_type);
   vec3 texture_color = object_color * color_factor;
