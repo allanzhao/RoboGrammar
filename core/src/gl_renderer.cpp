@@ -1,5 +1,6 @@
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
+#include <algorithm>
 #include <cstddef>
 #include <fstream>
 #include <memory>
@@ -151,7 +152,16 @@ void GLRenderer::drawOpaque(const Simulation &sim, const Program &program,
           (Affine3(link_transform) * Translation3(-link.length_ / 2, 0, 0) *
            Affine3(joint_axis_rotation))
               .matrix();
-      float joint_size = 1.05 * link.radius_;
+
+      float joint_size;
+      if (link.parent_ >= 0) {
+        double parent_link_radius = robot.links_[link.parent_].radius_;
+        joint_size = std::min(link.radius_, parent_link_radius);
+      } else {
+        joint_size = link.radius_;
+      }
+      joint_size *= 1.05;
+
       switch (link.joint_type_) {
       case JointType::FREE:
         // Nothing to draw
