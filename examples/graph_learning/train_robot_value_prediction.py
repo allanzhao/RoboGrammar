@@ -25,6 +25,7 @@ import numpy as np
 import pickle
 import argparse
 import random
+from copy import deepcopy
 
 # import third-party packages
 import torch
@@ -47,8 +48,13 @@ from common import *
 parser = argparse.ArgumentParser()
 parser.add_argument('--dataset-name', type = str, default = 'flat_mar23')
 parser.add_argument('--use-cuda', default = False, action = 'store_true')
+parser.add_argument('--save-interval', type = int, default = 10)
+parser.add_argument('--load-path', type = str, default = None)
+parser.add_argument('--test', default = False, action = 'store_true')
+
 args = parser.parse_args()
 dataset_name = args.dataset_name
+save_dir = os.path.join(current_dir, 'trained_models', 'value_function', dataset_name, get_time_stamp())
 
 # define if construct dataset from raw data
 load_data = False
@@ -58,7 +64,7 @@ dataset_dir = os.path.join(current_dir, 'data', dataset_name)
 testset_path = os.path.join(dataset_dir, 'test_loader')
 valset_path = os.path.join(dataset_dir, 'val_loader')
 trainset_path = os.path.join(dataset_dir, 'train_loader')
-# testset_path = os.path.join(current_dir, 'data', 'flat_mar23', 'test_loader')
+testset_path = os.path.join(current_dir, 'data', 'flat_mar23', 'test_loader')
 
 # load pre-prosessed dataset. build if not exists
 if os.path.isfile(testset_path) and os.path.isfile(valset_path) and os.path.isfile(trainset_path):
@@ -249,6 +255,12 @@ class Net(torch.nn.Module):
 
 device = torch.device('cuda' if torch.cuda.is_available() and args.use_cuda else 'cpu')
 model = Net().to(device)
+if args.load_path is not None and os.path.isfile(args.load_path):
+    model.load_state_dict(torch.load(args.load_path))
+    print_info('Successfully loaded the GNN model from {}'.format(args.load_path))
+else:
+    print_info('Train with random initial GNN model')
+
 optimizer = torch.optim.Adam(model.parameters(), lr=0.0001)
 
 
@@ -284,15 +296,36 @@ def test(loader, size, debug = False):
     return error / size
 
 
-best_val_error = test_error = 10000.0
-for epoch in range(1, 151):
-    t_start = time.time()
-    train_loss = train(epoch)
+if not args.test:
+    os.makedirs(save_dir, exist_ok = True)
+
+    best_val_error = test_error = 10000.0
+    best_model = None
+    for epoch in range(1, 151):
+        t_start = time.time()
+        train_loss = train(epoch)
+        train_error = test(train_loader, len(train_loader))
+        val_error = test(val_loader, len(val_loader))
+        t_end = time.time()
+        if val_error < best_val_error:
+            test_error = test(test_loader, len(test_loader), debug = True)
+            best_val_error = val_error
+            best_model = deepcopy(model)
+
+        print('Epoch: {:03d}, Epoch Time: {:.1f}s, Train Loss: {:.7f}, Train Error: {:.7f}, Val Error: {:.7f}, Test Error: {:.7f}'\
+            .format(epoch, t_end - t_start, train_loss, train_error, val_error, test_error))
+        
+        # save model with fixed interval
+        if args.save_interval > 0 and epoch % args.save_interval == 0:
+            save_path = os.path.join(save_dir, 'model_state_dict_{}.pt'.format(epoch))
+            torch.save(model.state_dict(), save_path)
+
+    # save the final model
+    save_path = os.path.join(save_dir, 'model_state_dict_final.pt')
+    torch.save(model.state_dict(), save_path)
+else:
     train_error = test(train_loader, len(train_loader))
     val_error = test(val_loader, len(val_loader))
-    t_end = time.time()
-    if val_error < best_val_error:
-        test_error = test(test_loader, len(test_loader), debug = True)
-        best_val_error = val_error
-    print('Epoch: {:03d}, Epoch Time: {:.1f}s, Train Loss: {:.7f}, Train Error: {:.7f}, Val Error: {:.7f}, Test Error: {:.7f}'\
-        .format(epoch, t_end - t_start, train_loss, train_error, val_error, test_error))
+    test_error = test(test_loader, len(test_loader), debug = True)
+    print('Train Error: {:.7f}, Val Error: {:.7f}, Test Error: {:.7f}'\
+            .format(train_error, val_error, test_error))
