@@ -114,6 +114,7 @@ else:
     all_masks = [create_mask(feat, max_nodes) for feat in all_link_features]
     num_features = all_features_pad[0].shape[1]
 
+    print('max-nodes = ', max_nodes, ', num-features = ', num_features)
     #step 3: Create dataset object
     data = [Data(adj=torch.from_numpy(adj).float(),
                 mask=torch.from_numpy(mask),
@@ -122,9 +123,10 @@ else:
     random.shuffle(data)
 
     n_test = (len(data) + 2) // 3
+    random.shuffle(data)
     known_dataset = data[:-n_test]
     unknown_dataset = data[-n_test:]
-    random.shuffle(known_dataset)
+    # random.shuffle(known_dataset)
     n_val = (len(known_dataset) + 9) // 10
     train_dataset = known_dataset[:-n_val]
     val_dataset = known_dataset[-n_val:]

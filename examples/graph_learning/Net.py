@@ -7,6 +7,7 @@ define the Q function Q(s, a). Q(s, a): maps the graph of s to value of each act
 import torch
 import torch.nn.functional as F
 from torch_geometric.nn import DenseSAGEConv, dense_diff_pool
+from math import ceil
 
 '''
 class GNN:

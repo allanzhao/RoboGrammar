@@ -10,25 +10,50 @@ Two preprocessing:
 '''
 import numpy as np
 import quaternion
+from design_search import make_initial_graph, build_normalized_robot, get_applicable_matches, has_nonterminals
 
-class DesignGraphState:
-    def __init__(self, max_nodes, adj_matrix = None, features = None, masks = None, robot = None):
+def np_quaternion(q):
+    """Create a np.quaternion from a rd.Quaternion."""
+    return np.quaternion(q.w, q.x, q.y, q.z)
+
+def one_hot_encode(enum_member):
+    """Encode an enum member as a one-hot vector."""
+    vec = np.zeros(len(type(enum_member).__members__))
+    vec[int(enum_member)] = 1
+    return vec
+
+def quaternion_coords(q):
+    """Get the coefficients of a rd.Quaternion as an np.ndarray."""
+    return np.array([q.w, q.x, q.y, q.z])
+
+def featurize_link(link):
+    """Extract a feature vector from a rd.Link."""
+    return np.array([*one_hot_encode(link.joint_type),
+                    link.joint_pos,
+                    *quaternion_coords(link.joint_rot),
+                    *link.joint_axis,
+                    *one_hot_encode(link.shape),
+                    link.length,
+                    link.radius,
+                    link.density,
+                    link.friction,
+                    link.joint_kp,
+                    link.joint_kd,
+                    link.joint_torque])
+
+class Preprocessor:
+    def __init__(self, max_nodes, all_labels):
         self.max_nodes = max_nodes
-        if adj_matrix is not None and features is not None and masks is not None:
-            self.adj_matrix = deepcopy(adj_matrix)
-            self.features = deepcopy(features)
-            self.masks = deepcopy(masks)
-        elif robot is not None:
-            self.adj_matrix, self.features, self.masks = self.construct_from_robot(robot)
-        else:
-            print_error('DesignGraph cannot be constructed from None type.')
+        self.all_labels = all_labels
     
     '''
-    construct the adjacent matrix and features from a robot instance.
-    
-    Note: copy from parse_log_file.py line 106 ~ line 145
+    preprocess the state data
+
+    input a robot graph, output the adjacent matrix, features, and masks
     '''
-    def construct_from_robot(self, robot):
+    def preprocess(self, robot_graph):
+        robot = build_normalized_robot(robot_graph)
+
         # Find the world position and rotation of links
         pos_rot = []
         for i, link in enumerate(robot.links):
@@ -59,8 +84,8 @@ class DesignGraphState:
         for i, link in enumerate(robot.links):
             world_pos, world_rot = pos_rot[i]
             world_joint_axis = quaternion.rotate_vectors(world_rot, link.joint_axis)
-            label_vec = np.zeros(len(all_labels))
-            label_vec[all_labels.index(link.label)] = 1
+            label_vec = np.zeros(len(self.all_labels))
+            label_vec[self.all_labels.index(link.label)] = 1
 
             link_features.append(np.array([
                 *featurize_link(link),
@@ -76,11 +101,11 @@ class DesignGraphState:
         adj_matrix = adj_matrix + np.transpose(adj_matrix)
 
         # add blank nodes
-        self.pad(adj_matrix, (self.max_nodes, self.max_nodes))
-        self.pad(link_features, (self.max_nodes, link_features.shape[1]))
+        adj_matrix = self.pad(adj_matrix, (self.max_nodes, self.max_nodes))
+        link_features = self.pad(link_features, (self.max_nodes, link_features.shape[1]))
 
         # create mask
-        masks = np.array([True if i < real_size else False for i in range(max_nodes)])
+        masks = np.array([True if i < real_size else False for i in range(self.max_nodes)])
 
         return adj_matrix, link_features, masks
 

@@ -3,15 +3,15 @@ import argparse
 def get_parser():
     parser = argparse.ArgumentParser(description='RL')
 
-    parser.add_argument('--task', type = 'FlatTerrainTask', help = 'Task (Python class name')
-    parser.add_argument("--grammar-file", type='../../data/designs/grammar_jan21.dot', help="Grammar file (.dot)")
+    parser.add_argument('--task', type = str, default = 'FlatTerrainTask', help = 'Task (Python class name')
+    parser.add_argument("--grammar-file", type = str, default = '../../data/designs/grammar_jan21.dot', help="Grammar file (.dot)")
     parser.add_argument("-s", "--seed", type=int, default=0,
                         help="Random seed")
     parser.add_argument("-j", "--mpc-num-processes", type=int, required=True,
                         help="Number of threads for mpc")
     parser.add_argument("-i", "--num-iterations", type=int, required=True,
                         help="Number of iterations")
-    parser.add_argumeng('--lr', type=float, required=True, help='learning rate for dqn')
+    parser.add_argument('--lr', type=float, required=True, help='learning rate for dqn')
     parser.add_argument("-d", "--depth", type=int, required=True,
                         help="Maximum tree depth")
     parser.add_argument('--eps-start', type = float, default = 1.0, help = 'starting eps for e-greedy')
