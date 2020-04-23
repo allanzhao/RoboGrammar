@@ -10,3 +10,15 @@ def print_warning(*message):
 
 def print_info(*message):
     print('\033[96m', *message, '\033[0m')
+
+from datetime import datetime
+
+def get_time_stamp():
+    now = datetime.now()
+    year = now.strftime('%Y')
+    month = now.strftime('%m')
+    day = now.strftime('%d')
+    hour = now.strftime('%H')
+    minute = now.strftime('%M')
+    second = now.strftime('%S')
+    return '{}-{}-{}-{}-{}-{}'.format(month, day, year, hour, minute, second)
