@@ -7,10 +7,13 @@ class TreeNode(object):
     self.state = state
     self.visit_count = 0
     self.result_sum = 0
+    self.result_max = float('-inf')
     self.action_visit_counts = defaultdict(int)
     self.action_result_sums = defaultdict(float)
+    self.action_result_maxes = defaultdict(lambda: float('-inf'))
     self.amaf_action_visit_counts = defaultdict(int)
     self.amaf_action_result_sums = defaultdict(float)
+    self.amaf_action_result_maxes = defaultdict(lambda: float('-inf'))
     self.blocked = False
 
 class TreeSearch(object):
@@ -23,15 +26,15 @@ class TreeSearch(object):
 
   def uct_score(self, node, action, amaf_threshold=10):
     action_visit_count = node.action_visit_counts[action]
-    action_result_sum = node.action_result_sums[action]
+    action_result_max = node.action_result_maxes[action]
     amaf_action_visit_count = node.amaf_action_visit_counts[action]
-    amaf_action_result_sum = node.amaf_action_result_sums[action]
+    amaf_action_result_max = node.amaf_action_result_maxes[action]
     # AMAF and Monte Carlo values are weighted equally when the visit count is
     # amaf_threshold
     amaf_weight = sqrt(amaf_threshold / (3 * node.visit_count + amaf_threshold))
     if action_visit_count > 0:
-      return ((1.0 - amaf_weight) * action_result_sum / action_visit_count +
-              amaf_weight * amaf_action_result_sum / amaf_action_visit_count +
+      return ((1.0 - amaf_weight) * action_result_max +
+              amaf_weight * amaf_action_result_max +
               sqrt(2.0 * log(node.visit_count) / action_visit_count))
     else:
       return float('inf')
@@ -64,12 +67,17 @@ class TreeSearch(object):
   def update_node(self, node, actions_after, result):
     node.visit_count += 1
     node.result_sum += result
+    node.result_max = max(node.result_max, result)
     node.action_visit_counts[actions_after[0]] += 1
     node.action_result_sums[actions_after[0]] += result
+    node.action_result_maxes[actions_after[0]] = \
+        max(node.action_result_maxes[actions_after[0]], result)
     # Update AMAF values (once for each unique action)
     for action in set(actions_after):
       node.amaf_action_visit_counts[action] += 1
       node.amaf_action_result_sums[action] += result
+      node.amaf_action_result_maxes[action] = \
+          max(node.amaf_action_result_maxes[action], result)
 
   def run_iteration(self):
     result = None
