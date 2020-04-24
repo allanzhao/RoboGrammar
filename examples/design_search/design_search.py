@@ -92,13 +92,12 @@ def simulate(robot, task, opt_seed, thread_count, episode_count=1):
 
   for episode_idx in range(episode_count):
     optimizer = rd.MPPIOptimizer(1.0, task.discount_factor, dof_count,
-                                 task.interval, task.horizon, 1024,
+                                 task.interval, task.horizon, 512,
                                  thread_count, opt_seed + episode_idx,
                                  make_sim_fn, objective_fn, value_estimator,
                                  input_sampler)
-    for _ in range(10):
-      optimizer.update()
-    optimizer.set_sample_count(128)
+    optimizer.update()
+    optimizer.set_sample_count(64)
 
     main_sim.save_state()
 
