@@ -42,7 +42,7 @@ def featurize_link(link):
                     link.joint_torque])
 
 class Preprocessor:
-    def __init__(self, max_nodes, all_labels):
+    def __init__(self, all_labels = None, max_nodes = None):
         self.max_nodes = max_nodes
         self.all_labels = all_labels
     
@@ -94,20 +94,28 @@ class Preprocessor:
                 *world_joint_axis,
                 *label_vec]))
         link_features = np.array(link_features)
-        
-        real_size = link_features.shape[0]
 
         # make adj_matrix symmetric
         adj_matrix = adj_matrix + np.transpose(adj_matrix)
 
-        # add blank nodes
-        adj_matrix = self.pad(adj_matrix, (self.max_nodes, self.max_nodes))
-        link_features = self.pad(link_features, (self.max_nodes, link_features.shape[1]))
+        masks = None
 
-        # create mask
-        masks = np.array([True if i < real_size else False for i in range(self.max_nodes)])
+        if self.max_nodes is not None:
+            adj_matrix, link_features, masks = self.pad_graph(adj_matrix, link_features, self.max_nodes)
 
         return adj_matrix, link_features, masks
+
+    def pad_graph(self, adj_matrix, features, max_nodes):
+        real_size = features.shape[0]
+
+        # add blank nodes
+        adj_matrix = self.pad(adj_matrix, (max_nodes, max_nodes))
+        features = self.pad(features, (max_nodes, features.shape[1]))
+
+        # create mask
+        masks = np.array([True if i < real_size else False for i in range(max_nodes)])
+
+        return adj_matrix, features, masks
 
     def pad(self, array, shape):
         """

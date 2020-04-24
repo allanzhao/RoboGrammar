@@ -123,7 +123,7 @@ def search(args):
     state = env.reset()
     sample_adj_matrix, sample_features, sample_masks = preprocessor.preprocess(state)
     num_features = sample_features.shape[1]
-    Q = Net(max_nodes = max_nodes, num_channels = num_features, num_actions = len(rules)).to(device)
+    Q = Net(max_nodes = max_nodes, num_channels = num_features, num_outputs = len(rules)).to(device)
 
     # initialize the optimizer
     global optimizer

@@ -64,7 +64,7 @@ dataset_dir = os.path.join(current_dir, 'data', dataset_name)
 testset_path = os.path.join(dataset_dir, 'test_loader')
 valset_path = os.path.join(dataset_dir, 'val_loader')
 trainset_path = os.path.join(dataset_dir, 'train_loader')
-testset_path = os.path.join(current_dir, 'data', 'flat_mar23', 'test_loader')
+testset_path = os.path.join(dataset_dir, 'test_loader')
 
 # load pre-prosessed dataset. build if not exists
 if os.path.isfile(testset_path) and os.path.isfile(valset_path) and os.path.isfile(trainset_path):

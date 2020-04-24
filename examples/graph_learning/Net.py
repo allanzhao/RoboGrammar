@@ -78,10 +78,10 @@ define a graph network structure for Q function
 parameters:
     max_nodes: maximum number of nodes in the graph
     num_channels: number of feature channels for each input graph node
-    num_actions: size of the action space
+    num_outputs: size of the action space
 '''
 class Net(torch.nn.Module):
-    def __init__(self, max_nodes, num_channels, num_actions):
+    def __init__(self, max_nodes, num_channels, num_outputs):
         super(Net, self).__init__()
         
         batch_normalization = False
@@ -97,7 +97,7 @@ class Net(torch.nn.Module):
         self.gnn3_embed = GNN(3 * 64, 64, 64, batch_normalization = batch_normalization, lin=False)
 
         self.lin1 = torch.nn.Linear(3 * 64, 64)
-        self.lin2 = torch.nn.Linear(64, num_actions)
+        self.lin2 = torch.nn.Linear(64, num_outputs)
         
     def forward(self, x, adj, mask=None):
         
