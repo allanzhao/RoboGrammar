@@ -54,6 +54,9 @@ public:
                            const Ref<const VectorX> &target_vel) = 0;
   virtual void addJointTorques(Index robot_idx,
                                const Ref<const VectorX> &torque) = 0;
+  virtual void addLinkForceTorque(Index robot_idx, Index link_idx,
+                                  const Ref<const Vector3> &force,
+                                  const Ref<const Vector3> &torque) = 0;
   virtual void getRobotWorldAABB(Index robot_idx, Ref<Vector3> lower,
                                  Ref<Vector3> upper) const = 0;
   virtual bool robotHasCollision(Index robot_idx) const = 0;
@@ -142,6 +145,9 @@ public:
                            const Ref<const VectorX> &target_vel) override;
   virtual void addJointTorques(Index robot_idx,
                                const Ref<const VectorX> &torque) override;
+  virtual void addLinkForceTorque(Index robot_idx, Index link_idx,
+                                  const Ref<const Vector3> &force,
+                                  const Ref<const Vector3> &torque) override;
   virtual void getRobotWorldAABB(Index robot_idx, Ref<Vector3> lower,
                                  Ref<Vector3> upper) const override;
   virtual bool robotHasCollision(Index robot_idx) const override;

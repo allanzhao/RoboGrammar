@@ -399,6 +399,19 @@ void BulletSimulation::addJointTorques(Index robot_idx,
   }
 }
 
+void BulletSimulation::addLinkForceTorque(Index robot_idx, Index link_idx,
+                                          const Ref<const Vector3> &force,
+                                          const Ref<const Vector3> &torque) {
+  btMultiBody &multi_body = *robot_wrappers_[robot_idx].multi_body_;
+  if (link_idx == 0) {
+    multi_body.addBaseForce(bulletVector3FromEigen(force));
+    multi_body.addBaseTorque(bulletVector3FromEigen(torque));
+  } else {
+    multi_body.addLinkForce(link_idx - 1, bulletVector3FromEigen(force));
+    multi_body.addLinkTorque(link_idx - 1, bulletVector3FromEigen(torque));
+  }
+}
+
 void BulletSimulation::getRobotWorldAABB(Index robot_idx, Ref<Vector3> lower,
                                          Ref<Vector3> upper) const {
   lower = Vector3::Constant(std::numeric_limits<Scalar>::infinity());

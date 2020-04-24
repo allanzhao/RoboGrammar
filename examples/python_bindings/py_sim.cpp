@@ -35,6 +35,7 @@ void initSim(py::module &m) {
       .def("set_joint_target_velocities",
            &rd::Simulation::setJointTargetVelocities)
       .def("add_joint_torques", &rd::Simulation::addJointTorques)
+      .def("add_link_force_torque", &rd::Simulation::addLinkForceTorque)
       .def("get_robot_world_aabb", &rd::Simulation::getRobotWorldAABB)
       .def("robot_has_collision", &rd::Simulation::robotHasCollision)
       .def("get_time_step", &rd::Simulation::getTimeStep)
