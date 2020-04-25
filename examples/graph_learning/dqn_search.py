@@ -49,8 +49,9 @@ def predict(Q, state):
         features = torch.tensor(features_np).unsqueeze(0)
         adj_matrix = torch.tensor(adj_matrix_np).unsqueeze(0)
         masks = torch.tensor(masks_np).unsqueeze(0)
-        
-        return Q(features, adj_matrix, masks)
+        output, _, _ = Q(features, adj_matrix, masks)
+
+        return output
 
 def select_action(env, Q, state, eps):
     available_actions = env.get_available_actions()
@@ -136,8 +137,8 @@ def search(args):
 
     for epoch in range(args.num_iterations):
         done = False
-        # eps = args.eps_start + epoch / args.num_iterations * (args.eps_end - args.eps_start)
-        eps = 1.0
+        eps = args.eps_start + epoch / args.num_iterations * (args.eps_end - args.eps_start)
+        # eps = 1.0
         while not done:
             state = env.reset()
             total_reward = 0.
@@ -154,45 +155,15 @@ def search(args):
                 state = next_state
                 if done:
                     break
-            done = True
         for i in range(len(state_seq)):
             memory.push(state_seq[i][0], state_seq[i][1], state_seq[i][2], state_seq[i][3], state_seq[i][4])
             data.append((state_seq[i][0], state_seq[i][1], total_reward))
         scores.append(total_reward)
 
-        # loss = 0.0
-        # for i in range(len(state_seq)):
-        #     loss += optimize(Q, Q, memory, args.batch_size)
-        # print('epoch ', epoch, ': reward = ', total_reward, ', eps = ', eps, ', Q loss = ', loss)
-        print('epoch ', epoch, ': reward = ', total_reward)
-    for epoch in range(100):
-        minibatch = random.sample(data, 20)
-
-        features_batch, adj_matrix_batch, masks_batch, y_batch = [], [], [], []
-        for state, action, reward in minibatch:
-            y_target, _, _ = predict(Q, state)
-            y_target[0][action] = reward
-            adj_matrix_np, features_np, masks_np = preprocessor.preprocess(state)
-            features_batch.append(features_np)
-            adj_matrix_batch.append(adj_matrix_np)
-            masks_batch.append(masks_np)
-            y_batch.append(y_target[0].numpy())
-        
-        features_batch = torch.tensor(features_batch)
-        adj_matrix_batch = torch.tensor(adj_matrix_batch)
-        masks_batch = torch.tensor(masks_batch)
-        y_batch = torch.tensor(y_batch)
-
-        optimizer.zero_grad()
-        output, loss_link, loss_entropy = Q(features_batch, adj_matrix_batch, masks_batch)
-        # loss = F.mse_loss(output, y_batch)
         loss = 0.0
-        for i in range(len(minibatch)):
-            loss += (output[i][minibatch[i][1]] - minibatch[i][2]) ** 2
-        loss.backward()
-        optimizer.step()
-
-        print('epoch ', epoch, ', loss = ', loss)
+        for i in range(len(state_seq)):
+            loss += optimize(Q, Q, memory, args.batch_size)
+        print('epoch ', epoch, ': reward = ', total_reward, ', eps = ', eps, ', Q loss = ', loss)
 
     # test
     cnt = 0

@@ -17,10 +17,13 @@ def get_parser():
     parser.add_argument('--eps-start', type = float, default = 1.0, help = 'starting eps for e-greedy')
     parser.add_argument('--eps-end', type = float, default = 0.0, help = 'ending eps for e-greedy')
     parser.add_argument('--batch-size', type = int, default = 32, help = 'batch size for dqn optimizer')
+    parser.add_argument('--load-model-path', type = str, default = None, help = 'the path to load pretrained model')
     parser.add_argument("--save-dir", type=str, default='',
                         help="Log directory")
     parser.add_argument("-f", "--log-file", type=str,
                         help="Existing log file, for resuming a previous run")
-    parser.add_argument('--render-interval', type=int)
+    parser.add_argument('--render-interval', type=int, default = 0)
+    parser.add_argument('--log-interval', type = int, default = 1)
+    parser.add_argument('--test', default = False, action = 'store_true')
     
     return parser
