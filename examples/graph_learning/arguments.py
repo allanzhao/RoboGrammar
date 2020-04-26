@@ -17,7 +17,9 @@ def get_parser():
     parser.add_argument('--eps-start', type = float, default = 1.0, help = 'starting eps for e-greedy')
     parser.add_argument('--eps-end', type = float, default = 0.0, help = 'ending eps for e-greedy')
     parser.add_argument('--batch-size', type = int, default = 32, help = 'batch size for dqn optimizer')
-    parser.add_argument('--load-model-path', type = str, default = None, help = 'the path to load pretrained model')
+    parser.add_argument('--load-V-path', type = str, default = None, help = 'the path to load pretrained value function')
+    parser.add_argument('--load-Vhat-path', type = str, default = None, help = 'the path to load pretrained value_target table')
+    parser.add_argument('--load-designs-path', type = str, default = None, help = 'the path to load explored designs')
     parser.add_argument("--save-dir", type=str, default='',
                         help="Log directory")
     parser.add_argument("-f", "--log-file", type=str,

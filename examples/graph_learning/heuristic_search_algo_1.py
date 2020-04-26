@@ -20,6 +20,8 @@ sys.path.append(os.path.join(base_dir, 'graph_learning'))
 import argparse
 import time
 import random
+import pickle
+import csv
 import numpy as np
 from copy import deepcopy
 import torch
@@ -179,26 +181,45 @@ def search_algo_1(args):
     V = Net(max_nodes = max_nodes, num_channels = num_features, num_outputs = 1).to(device)
 
     # load pretrained V function
-    if args.load_model_path is not None:
-        V.load_state_dict(torch.load(args.load_model_path))
-        print_info('Loaded pretrained V function from {}'.format(args.load_model_path))
+    if args.load_V_path is not None:
+        V.load_state_dict(torch.load(args.load_V_path))
+        print_info('Loaded pretrained V function from {}'.format(args.load_V_path))
+    
+    # initialize target V_hat look up table
+    V_hat = dict()
+
+    # load pretrained V_hat
+    if args.load_Vhat_path is not None:
+        V_hat_fp = open(args.load_Vhat_path, 'rb')
+        V_hat = pickle.load(V_hat_fp)
+        V_hat_fp.close()
 
     if not args.test:
-        # initialize save folders
-        os.makedirs(os.path.join(args.save_dir, 'models'), exist_ok = True)
+        # initialize save folders and files
         fp_log = open(os.path.join(args.save_dir, 'log.txt'), 'w')
         fp_log.close()
+        design_csv_path = os.path.join(args.save_dir, 'designs.csv')
+        fp_csv = open(design_csv_path, 'w')
+        fieldnames = ['rule_seq', 'reward']
+        writer = csv.DictWriter(fp_csv, fieldnames=fieldnames)
+        writer.writeheader()
+        fp_csv.close()
 
         # initialize the optimizer
         global optimizer
         optimizer = torch.optim.Adam(V.parameters(), lr = args.lr)
 
-        # initialize target V_hat look up table
-        V_hat = dict()
+        # initialize best design
         best_design, best_reward = None, -np.inf
         
         # initialize the seen states pool
         states_pool = []
+        
+        # TODO: load previousoly explored designs
+        
+        # explored designs
+        designs = []
+        design_rewards = []
 
         # reward history
         epoch_rew_his = []
@@ -229,6 +250,10 @@ def search_algo_1(args):
                     if done:
                         break
             
+            # save the design and the reward in the list
+            designs.append(rule_seq)
+            design_rewards.append(total_reward)
+
             # update best design
             if total_reward > best_reward:
                 best_design, best_reward = rule_seq, total_reward
@@ -269,9 +294,25 @@ def search_algo_1(args):
                 total_loss += loss.item()
                 optimizer.step()
 
-            if (epoch + 1) % args.log_interval == 0:
-                save_path = os.path.join(args.save_dir, 'models/model_state_dict_iter_{}.pt'.format(epoch + 1))
+            # logging
+            if (epoch + 1) % args.log_interval == 0 or epoch + 1 == args.num_iterations:
+                iter_save_dir = os.path.join(args.save_dir, '{}'.format(epoch + 1))
+                os.makedirs(os.path.join(iter_save_dir), exist_ok = True)
+                # save model
+                save_path = os.path.join(iter_save_dir, 'V_model.pt')
                 torch.save(V.state_dict(), save_path)
+                # save V_hat
+                save_path = os.path.join(iter_save_dir, 'V_hat')
+                fp = open(save_path, 'wb')
+                pickle.dump(V_hat, fp)
+                fp.close()
+                # save explored design and its reward
+                fp_csv = open(design_csv_path, 'a')
+                fieldnames = ['rule_seq', 'reward']
+                writer = csv.DictWriter(fp_csv, fieldnames=fieldnames)
+                for i in range(epoch - args.log_interval + 1, epoch + 1):
+                    writer.writerow({'rule_seq': str(designs[i]), 'reward': design_rewards[i]})
+                fp_csv.close()
 
             epoch_rew_his.append(total_reward)
 
@@ -284,10 +325,12 @@ def search_algo_1(args):
             fp_log.write('eps = {:.4f}, loss = {:.4f}, reward = {:.4f}, avg_reward = {:.4f}\n'.format(eps, avg_loss, total_reward, avg_reward))
             fp_log.close()
 
-        save_path = os.path.join(args.save_dir, 'models/model_state_dict_final.pt')
+        save_path = os.path.join(args.save_dir, 'model_state_dict_final.pt')
         torch.save(V.state_dict(), save_path)
     else:
-                
+        import IPython
+        IPython.embed()
+
         # test
         V.eval()
         print('Start testing')
@@ -297,11 +340,15 @@ def search_algo_1(args):
         x = []
         for ii in range(10):
             eps = 1.0 - 0.1 * ii
+
+            print('------------------------------------------')
+            print('eps = ', eps)
+
             reward_sum = 0.
             best_reward = -np.inf
-            t0, t1 = 0, 0
-            tt0 = time.time()
             for epoch in range(test_epoch):
+                t0 = time.time()
+
                 # use e-greedy to sample a design within maximum #steps.
                 done = False
                 while not done:
@@ -323,13 +370,10 @@ def search_algo_1(args):
 
                 reward_sum += total_reward
                 best_reward = max(best_reward, total_reward)
-                print('design ', epoch, ': reward = ', total_reward)
+                print(f'design {epoch}: reward = {total_reward}, time = {time.time() - t0}')
 
-            print('eps = ', eps)
             print('test avg reward = ', reward_sum / test_epoch)
             print('best reward found = ', best_reward)
-            t0 = time.time() - tt0
-            print('t0 = ', t0)
             x.append(eps)
             y0.append(reward_sum / test_epoch)
             y1.append(best_reward)
@@ -344,17 +388,17 @@ if __name__ == '__main__':
     torch.set_default_dtype(torch.float64)
     args_list = ['--task', 'FlatTerrainTask',
                  '--grammar-file', '../../data/designs/grammar_jan21.dot',
-                 '--num-iterations', '10000',
+                 '--num-iterations', '1000',
                  '--mpc-num-processes', '8',
                  '--lr', '1e-4',
                  '--eps-start', '1.0',
-                 '--eps-end', '0.3',
+                 '--eps-end', '0.2',
                  '--batch-size', '32',
                  '--depth', '25',
                  '--save-dir', './trained_models/FlatTerrainTask/test/',
                  '--render-interval', '80',
-                 '--log-interval', '10']
-                #  '--load-model-path', './trained_models/universal_value_function/test_model.pt']
+                 '--log-interval', '20']
+                #  '--load-V-path', './trained_models/universal_value_function/test_model.pt']
     
     solve_argv_conflict(args_list)
     parser = get_parser()
