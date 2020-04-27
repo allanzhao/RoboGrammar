@@ -91,6 +91,7 @@ def main():
     opt_seed = args.opt_seed
   else:
     opt_seed = random.getrandbits(32)
+    print("Using optimization seed:", opt_seed)
 
   graph = make_initial_graph()
   for r in rule_sequence:
