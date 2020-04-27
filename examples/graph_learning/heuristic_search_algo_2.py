@@ -82,69 +82,18 @@ def select_action(env, V, state, eps):
     
     return best_action
 
-def search_design(state, env, V, eps, blocked_states, cur_depth, max_depth):
-    '''
-    search_design
-
-    use dfs to search a design with epsilon-greedy
-
-    parameters:
-    state: current state
-    env: the environment
-    V: the universal value network
-    eps: eps for eps-greedy
-    blocked_states: a set of blocked states
-    cur_depth: current depth
-    max_depth: max depth
-
-    return:
-    done: whether find a valid design
-    state_seq
-    rule_seq
-    reward
-    '''
-    if hash(state) in blocked_states:
-        return False, None, None, None
-    
-    if not has_nonterminals(state):
-        reward = env.get_reward(state)
-        return True, [state], [], reward
-    
-    if cur_depth >= max_depth:
-        # print(hash(state))
-        return False, None, None, None
-
-    available_actions = env.get_available_actions(state)
-
-    # get all children and their values, sort in descent order
-    state_next = []
-    V_next = []
-    for action in available_actions:
-        state_next_i = env.transite(state, action)
-        V_next_i = predict(V, state_next_i)
-        state_next.append(state_next_i)
-        V_next.append(V_next_i)
-    sorted_idx = np.flip(np.argsort(V_next))
-
-    while len(sorted_idx) > 0:
-        sample = random.random()
-        if sample <= eps:
-            idx = random.randrange(len(sorted_idx))
-            action_idx = sorted_idx[idx]
-        else:
-            idx = 0
-            action_idx = sorted_idx[0]
-        done, state_seq, rule_seq, reward = search_design(state_next[action_idx], env, V, eps, blocked_states, cur_depth + 1, max_depth)
-        if done:
-            state_seq = [state] + state_seq
-            rule_seq = [available_actions[action_idx]] + rule_seq
-            return True, state_seq, rule_seq, reward
-        else:
-            sorted_idx = np.delete(sorted_idx, idx)
-
-    blocked_states.add(hash(state))
-
-    return False, None, None, None
+def compute_Vhat(robot_graph, env, V):
+    if has_nonterminals(robot_graph):
+        available_actions = env.get_available_actions(state)
+        if len(available_actinos) == 0:
+            return -5.0
+        next_states = []
+        for action in available_actions:
+            next_states.append(env.transite(robot_graph, action))
+        values = predict_batch(V, next_states)
+        return np.max(values)
+    else:
+        return env.get_reward(robot_graph)
 
 def search_algo_1(args):
     # iniailize random seed
@@ -184,15 +133,6 @@ def search_algo_1(args):
     if args.load_V_path is not None:
         V.load_state_dict(torch.load(args.load_V_path))
         print_info('Loaded pretrained V function from {}'.format(args.load_V_path))
-    
-    # initialize target V_hat look up table
-    V_hat = dict()
-
-    # load pretrained V_hat
-    if args.load_Vhat_path is not None:
-        V_hat_fp = open(args.load_Vhat_path, 'rb')
-        V_hat = pickle.load(V_hat_fp)
-        V_hat_fp.close()
 
     if not args.test:
         # initialize save folders and files
@@ -215,7 +155,7 @@ def search_algo_1(args):
         # initialize the seen states pool
         states_pool = []
         
-        # TODO: load previousoly explored designs
+        # TODO: load previously explored designs
         
         # explored designs
         designs = []
@@ -260,14 +200,6 @@ def search_algo_1(args):
             # update best design
             if total_reward > best_reward:
                 best_design, best_reward = rule_seq, total_reward
-
-            # update target V_hat and state pool
-            for ancestor in state_seq:
-                state_hash_key = hash(ancestor)
-                if not (state_hash_key in V_hat): # TODO: check the complexity of this line
-                    V_hat[state_hash_key] = -np.inf
-                    states_pool.append(ancestor)
-                V_hat[state_hash_key] = max(V_hat[state_hash_key], total_reward)
             
             # optimize
             V.train()
@@ -277,8 +209,8 @@ def search_algo_1(args):
 
                 train_adj_matrix, train_features, train_masks, train_reward = [], [], [], []
                 for robot_graph in minibatch:
-                    hash_key = hash(robot_graph)
-                    reward = V_hat[hash_key]
+                    V_hat = compute_Vhat(robot_graph, env, V)
+                    train_reward.append(V_hat)
                     adj_matrix, features, masks = preprocessor.preprocess(robot_graph)
                     train_adj_matrix.append(adj_matrix)
                     train_features.append(features)
@@ -304,12 +236,7 @@ def search_algo_1(args):
                 # save model
                 save_path = os.path.join(iter_save_dir, 'V_model.pt')
                 torch.save(V.state_dict(), save_path)
-                # save V_hat
-                save_path = os.path.join(iter_save_dir, 'V_hat')
-                fp = open(save_path, 'wb')
-                pickle.dump(V_hat, fp)
-                fp.close()
-                # save explored design and its reward
+                # save explored designs and their rewards
                 fp_csv = open(design_csv_path, 'a')
                 fieldnames = ['rule_seq', 'reward']
                 writer = csv.DictWriter(fp_csv, fieldnames=fieldnames)
@@ -397,7 +324,6 @@ if __name__ == '__main__':
                  '--eps-start', '1.0',
                  '--eps-end', '0.2',
                  '--eps-decay', '0.3',
-                 '--eps-schedule', 'exp-decay',
                  '--batch-size', '64',
                  '--depth', '25',
                  '--save-dir', './trained_models/FlatTerrainTask/test/',
