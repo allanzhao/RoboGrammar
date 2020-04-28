@@ -77,6 +77,8 @@ def main():
                       help="Number of optimization episodes")
   parser.add_argument("-j", "--jobs", type=int, required=True,
                       help="Number of jobs/threads")
+  parser.add_argument("--input_sequence_file", type=str,
+                      help="File to save input sequence to (.csv)")
   args = parser.parse_args()
 
   task_class = getattr(tasks, args.task)
@@ -89,6 +91,7 @@ def main():
     opt_seed = args.opt_seed
   else:
     opt_seed = random.getrandbits(32)
+    print("Using optimization seed:", opt_seed)
 
   graph = make_initial_graph()
   for r in rule_sequence:
@@ -104,6 +107,14 @@ def main():
     print("Result:", result)
   else:
     input_sequence = None
+
+  if args.input_sequence_file and input_sequence is not None:
+    import csv
+    with open(args.input_sequence_file, 'w', newline='') as input_seq_file:
+      writer = csv.writer(input_seq_file)
+      for col in input_sequence.T:
+        writer.writerow(col)
+    print("Saved input sequence to file:", args.input_sequence_file)
 
   robot_init_pos, has_self_collision = presimulate(robot)
 
