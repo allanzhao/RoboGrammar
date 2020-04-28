@@ -29,6 +29,16 @@ def has_nonterminals(graph):
       return True
   return False
 
+def make_graph(rules, rule_sequence):
+  graph = make_initial_graph()
+  for r in rule_sequence:
+    matches = list(get_applicable_matches(rules[r], graph))
+    if matches:
+      graph = rd.apply_rule(rules[r], graph, matches[0])
+    else:
+      raise ValueError("Rule in sequence has no applicable matches")
+  return graph
+
 def build_normalized_robot(graph):
   """Build a robot from the graph and normalize the mass of the body links."""
   robot = rd.build_robot(graph)
