@@ -1,13 +1,12 @@
 '''
-heuristic_search_algo_1.py
+heuristic_search_algo_2.py
 
-Implement the first algorithm in the pdf: overleaf.com/project/5ea0b6ae56ec33000137a41c
+Implement the second algorithm in the pdf: overleaf.com/project/5ea0b6ae56ec33000137a41c
 
 Learn a heuristic function V(s) for each universal design to predict the best reward under that node in the searching tree.
 
 1. Search strategy is epsilon greedy.
-2. Update the target value for the ancestors of the explored design
-3. train V to fit target value
+2. Train V to fit bellman update equation.
 '''
 
 import sys
@@ -84,8 +83,8 @@ def select_action(env, V, state, eps):
 
 def compute_Vhat(robot_graph, env, V):
     if has_nonterminals(robot_graph):
-        available_actions = env.get_available_actions(state)
-        if len(available_actinos) == 0:
+        available_actions = env.get_available_actions(robot_graph)
+        if len(available_actions) == 0:
             return -5.0
         next_states = []
         for action in available_actions:
@@ -93,9 +92,9 @@ def compute_Vhat(robot_graph, env, V):
         values = predict_batch(V, next_states)
         return np.max(values)
     else:
-        return env.get_reward(robot_graph)
+        return env.get_reward(robot_graph)[1]
 
-def search_algo_1(args):
+def search_algo_2(args):
     # iniailize random seed
     random.seed(args.seed)
     np.random.seed(args.seed)
@@ -155,17 +154,24 @@ def search_algo_1(args):
         # initialize the seen states pool
         states_pool = []
         
+        # initialize visited states
+        state_set = set()
+
         # TODO: load previously explored designs
         
         # explored designs
         designs = []
         design_rewards = []
-
+        
         # reward history
         epoch_rew_his = []
 
         for epoch in range(args.num_iterations):
             t_start = time.time()
+
+            V.eval()
+
+            t0 = time.time()
 
             # use e-greedy to sample a design within maximum #steps.
             if args.eps_schedule == 'linear-decay':
@@ -201,6 +207,15 @@ def search_algo_1(args):
             if total_reward > best_reward:
                 best_design, best_reward = rule_seq, total_reward
             
+            # update state pool
+            for ancestor in state_seq:
+                state_hash_key = hash(ancestor)
+                if not (state_hash_key in state_set):
+                    state_set.add(state_hash_key)
+                    states_pool.append(ancestor)
+
+            t1 = time.time()
+
             # optimize
             V.train()
             total_loss = 0.0
@@ -210,12 +225,11 @@ def search_algo_1(args):
                 train_adj_matrix, train_features, train_masks, train_reward = [], [], [], []
                 for robot_graph in minibatch:
                     V_hat = compute_Vhat(robot_graph, env, V)
-                    train_reward.append(V_hat)
                     adj_matrix, features, masks = preprocessor.preprocess(robot_graph)
                     train_adj_matrix.append(adj_matrix)
                     train_features.append(features)
                     train_masks.append(masks)
-                    train_reward.append(reward)
+                    train_reward.append(V_hat)
                 
                 train_adj_matrix_torch = torch.tensor(train_adj_matrix)
                 train_features_torch = torch.tensor(train_features)
@@ -228,6 +242,8 @@ def search_algo_1(args):
                 loss.backward()
                 total_loss += loss.item()
                 optimizer.step()
+
+            t2 = time.time()
 
             # logging
             if (epoch + 1) % args.log_interval == 0 or epoch + 1 == args.num_iterations:
@@ -250,7 +266,7 @@ def search_algo_1(args):
             avg_loss = total_loss / args.depth
             len_his = min(len(epoch_rew_his), 30)
             avg_reward = np.sum(epoch_rew_his[-len_his:]) / len_his
-            print('Epoch {}: Time = {:.3f}, eps = {:.3f}, training loss = {:.4f}, reward = {:.4f}, last 30 epoch reward = {:.4f}, best reward = {:.4f}'.format(epoch, t_end - t_start, eps, avg_loss, total_reward, avg_reward, best_reward))
+            print('Epoch {}: Time = {:.2f}, T_sample = {:.2f}, T_opt = {:.2f}, eps = {:.3f}, training loss = {:.4f}, reward = {:.4f}, last 30 epoch reward = {:.4f}, best reward = {:.4f}'.format(epoch, t_end - t_start, t1 - t0, t2 - t1, eps, avg_loss, total_reward, avg_reward, best_reward))
             fp_log = open(os.path.join(args.save_dir, 'log.txt'), 'a')
             fp_log.write('eps = {:.4f}, loss = {:.4f}, reward = {:.4f}, avg_reward = {:.4f}\n'.format(eps, avg_loss, total_reward, avg_reward))
             fp_log.close()
@@ -324,9 +340,9 @@ if __name__ == '__main__':
                  '--eps-start', '1.0',
                  '--eps-end', '0.2',
                  '--eps-decay', '0.3',
-                 '--batch-size', '64',
+                 '--batch-size', '32',
                  '--depth', '25',
-                 '--save-dir', './trained_models/FlatTerrainTask/test/',
+                 '--save-dir', './trained_models/FlatTerrainTask/algo2/',
                  '--render-interval', '80',
                  '--log-interval', '100']
                 #  '--load-V-path', './trained_models/universal_value_function/test_model.pt']
@@ -346,4 +362,4 @@ if __name__ == '__main__':
         fp.write(str(args_list + sys.argv[1:]))
         fp.close()
 
-    search_algo_1(args)
+    search_algo_2(args)
