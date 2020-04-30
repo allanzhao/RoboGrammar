@@ -40,6 +40,7 @@ import pyrobotdesign as rd
 from RobotGrammarEnv import RobotGrammarEnv
 from Net import Net
 from Preprocessor import Preprocessor
+from states_pool import StatesPool
 
 # predict without grad
 def predict(V, state):
@@ -87,18 +88,21 @@ def select_action_serial(env, V, state, eps):
 def select_action(env, V, state, eps):
     available_actions = env.get_available_actions(state)
     if len(available_actions) == 0:
-        return None
+        return None, None
     sample = random.random()
+    step_type = ""
     if sample > eps:
         next_states = []
         for action in available_actions:
             next_states.append(env.transite(state, action))
         values = predict_batch(V, next_states)
         best_action = available_actions[np.argmax(values)]
+        step_type = 'optimal'
     else:
         best_action = available_actions[random.randrange(len(available_actions))]
+        step_type = 'random'
     
-    return best_action
+    return best_action, step_type
 
 def update_Vhat(V_hat, state_seq, reward):
     for state in state_seq:
@@ -112,7 +116,7 @@ def update_states_pool(states_pool, state_seq):
         # state_hash_key = hash(state)
         # if not (state_hash_key in V_hat):
         #     states_pool.append(state)
-        states_pool.append(state) # try to use state distribution
+        states_pool.push(state) # try to use state distribution
 
 def apply_rules(state, actions, env):
     cur_state = state
@@ -124,7 +128,7 @@ def apply_rules(state, actions, env):
 
 def show_all_actions(env, V, V_hat, state):
     available_actions = env.get_available_actions(state)
-    print('V(state) = ', predict(V, state))
+    print('V(state) = ', predict(V, state), ', V_hat(state) = ', V_hat[hash(state)])
     for action in available_actions:
         next_state = env.transite(state, action)
         print('action = ', action, ', V = ', predict(V, next_state), ', V_hat = ', V_hat[hash(next_state)] if hash(next_state) in V_hat else -1.0)
@@ -179,8 +183,9 @@ def search_algo_1(args):
         print_info('Loaded pretrained Vhat from {}'.format(args.load_Vhat_path))
 
     # initialize the seen states pool
-    states_pool = []
-        
+    states_pool = StatesPool(capacity = args.states_pool_capacity)
+    all_sample_designs = []
+
     # explored designs
     designs = []
     design_rewards = []
@@ -195,8 +200,6 @@ def search_algo_1(args):
             state = make_initial_graph()
             for i in range(len(rule_seq)):
                 state = env.transite(state, rule_seq[i])
-                if i > 0:
-                    states_pool.append(state)
             designs.append(state)
             design_rewards.append(reward)
             if not np.isclose(V_hat[hash(state)], reward):
@@ -230,6 +233,12 @@ def search_algo_1(args):
         epoch_rew_his = []
         last_checkpoint = -1
 
+        # recording time
+        t_sample_sum = 0.
+
+        # record the count for invalid samples
+        no_action_samples, step_exceeded_samples = 0, 0
+
         for epoch in range(args.num_iterations):
             t_start = time.time()
 
@@ -243,51 +252,92 @@ def search_algo_1(args):
                 # exp schedule
                 eps = args.eps_end + (args.eps_start - args.eps_end) * np.exp(-1.0 * epoch / args.num_iterations / args.eps_decay)
 
+            t_sample, t_update, t_mpc, t_opt = 0, 0, 0, 0
+
+            best_candidate_design, best_candidate_reward = None, -1.0
+
+            for _ in range(8):
+                valid = False
+                while not valid:
+                    t0 = time.time()
+
+                    state = env.reset()
+                    rule_seq = []
+                    state_seq = [state]
+                    random_step_cnt, optimal_step_cnt = 0, 0
+                    no_action_flag = False
+                    for _ in range(args.depth):
+                        action, step_type = select_action(env, V, state, eps)
+                        if action is None:
+                            no_action_flag = True
+                            break
+                        if step_type == 'random':
+                            random_step_cnt += 1
+                        elif step_type == 'optimal':
+                            optimal_step_cnt += 1
+                        rule_seq.append(action)
+                        next_state = env.transite(state, action)
+                        state_seq.append(next_state)
+                        if not env.is_valid(state_next):
+                            valid = True
+                            break
+                        state = next_state
+
+                    t_sample += time.time() - t0
+
+                    t0 = time.time()
+
+                    # update the invalid sample's count
+                    if not valid:
+                        if no_action_flag:
+                            no_action_samples += 1
+                        else:
+                            step_exceeded_samples += 1
+
+                    # update the Vhat for invalid designs
+                    if not valid:
+                        update_Vhat(V_hat, state_seq, 0.0)
+                        
+                    # update states pool
+                    update_states_pool(states_pool, state_seq)
+                    # record the sampled design
+                    all_sample_designs.append(rule_seq)
+
+                    t_update += time.time() - t0
+
+                    predicted_value = predict(V, state)
+                    if predicted_value > best_candidate_reward:
+                        best_candidate_design, best_candidate_reward = state, predicted_value
+
             t0 = time.time()
-            done = False
-            while not done:
-                state = env.reset()
-                rule_seq = []
-                state_seq = [state]
-                total_reward = 0.
-                for _ in range(args.depth):
-                    action = select_action(env, V, state, eps)
-                    if action is None:
-                        break
-                    rule_seq.append(action)
-                    next_state, reward, done = env.step(action)
-                    total_reward += reward
-                    state_seq.append(next_state)
-                    state = next_state
-                    if done:
-                        break
-                # use failed state in data as well
-                update_Vhat(V_hat, state_seq, total_reward)
-                update_states_pool(states_pool, state_seq)
+
+            reward = env.get_reward(best_candidate_design)
+
+            t_mpc += time.time() - t0
 
             # save the design and the reward in the list
             designs.append(rule_seq)
-            design_rewards.append(total_reward)
+            design_rewards.append(reward)
 
             # update best design
-            if total_reward > best_reward:
-                best_design, best_reward = rule_seq, total_reward
+            if reward > best_reward:
+                best_design, best_reward = rule_seq, reward
 
-            t1 = time.time()
+            t0 = time.time()
 
-            # # update target V_hat
-            # update_Vhat(V_hat, state_seq, total_reward)
-            
-            # # update state pool
-            # update_states_pool(states_pool, state_seq)
+            # update V_hat for the valid design
+            update_Vhat(V_hat, state_seq, reward)
 
-            t2 = time.time()
+            t_update += time.time() - t0
+
+            t0 = time.time()
 
             # optimize
             V.train()
             total_loss = 0.0
-            for _ in range(args.depth):
-                minibatch = random.sample(states_pool, min(len(states_pool), args.batch_size))
+            for _ in range(args.opt_iter):
+                # minibatch = random.sample(states_pool, min(len(states_pool), args.batch_size))
+                minibatch = states_pool.sample(min(len(states_pool), args.batch_size))
 
                 train_adj_matrix, train_features, train_masks, train_reward = [], [], [], []
                 for robot_graph in minibatch:
@@ -311,20 +361,11 @@ def search_algo_1(args):
                 total_loss += loss.item()
                 optimizer.step()
 
-            t3 = time.time()
+            t_opt += time.time() - t0
 
-            # evaluation
-            if (epoch + 1) % args.eval_interval == 0 or epoch + 1 == args.num_iterations:
-                print_info('Doing evaluation')
-                print_info('#states = ', len(states_pool))
-                loss_total = 0.
-                for state in states_pool:
-                    value = predict(V, state)
-                    loss_total += (V_hat[hash(state)] - value) ** 2
-                print_info('Loss = {:.3f}'.format(loss_total / len(states_pool)))
-                fp_eval = open(os.path.join(args.save_dir, 'eval.txt'), 'w')
-                fp_eval.write('epoch = {}, loss = {:.3f}\n'.format(epoch + 1, loss_total / len(states_pool)))
-                fp_eval.close()
+            t_end = time.time()
+
+            t_sample_sum += t_sample
 
             # logging
             if (epoch + 1) % args.log_interval == 0 or epoch + 1 == args.num_iterations:
@@ -338,6 +379,11 @@ def search_algo_1(args):
                 fp = open(save_path, 'wb')
                 pickle.dump(V_hat, fp)
                 fp.close()
+                # save all_sampled_designs
+                save_path = os.path.join(iter_save_dir, 'all_sampled_designs')
+                fp = open(save_path, 'wb')
+                pickle.dump(all_sample_designs, fp)
+                fp.close()
                 # save explored design and its reward
                 fp_csv = open(design_csv_path, 'a')
                 fieldnames = ['rule_seq', 'reward']
@@ -347,16 +393,44 @@ def search_algo_1(args):
                 last_checkpoint = len(designs) - 1
                 fp_csv.close()
 
-            epoch_rew_his.append(total_reward)
+            epoch_rew_his.append(reward)
 
-            t_end = time.time()
             avg_loss = total_loss / args.depth
             len_his = min(len(epoch_rew_his), 30)
             avg_reward = np.sum(epoch_rew_his[-len_his:]) / len_his
-            print('Epoch {}: Time = {:.2f}, T_sample = {:.2f}, T_update = {:.2f}, T_opt = {:.2f}, eps = {:.3f}, training loss = {:.4f}, reward = {:.4f}, last 30 epoch reward = {:.4f}, best reward = {:.4f}'.format(epoch, t_end - t_start, t1 - t0, t2 - t1, t3 - t2, eps, avg_loss, total_reward, avg_reward, best_reward))
+            print('Epoch {}: Time = {:.2f}, T_sample = {:.2f}, T_update = {:.2f}, T_mpc = {:.2f}, T_opt = {:.2f}, eps = {:.3f}, #random_steps = {}, #optimal_steps = {}, training loss = {:.4f}, predicted_reward = {:.4f}, reward = {:.4f}, last 30 epoch reward = {:.4f}, best reward = {:.4f}'.format(\
+                epoch, t_end - t_start, t_sample, t_update, t_mpc, t_opt, eps, random_step_cnt, \
+                optimal_step_cnt, avg_loss, best_candidate_reward, reward, avg_reward, best_reward))
+
             fp_log = open(os.path.join(args.save_dir, 'log.txt'), 'a')
-            fp_log.write('eps = {:.4f}, loss = {:.4f}, reward = {:.4f}, avg_reward = {:.4f}\n'.format(eps, avg_loss, total_reward, avg_reward))
+            fp_log.write('eps = {:.4f}, T_sample = {:4f}, T_update = {:4f}, T_mpc = {:.4f}, T_opt = {:.4f}, loss = {:.4f}, predicted_reward = {:.4f}, reward = {:.4f}, avg_reward = {:.4f}\n'.format(\
+                eps, t_sample, t_update, t_mpc, t_opt, avg_loss, best_candidate_reward, reward, avg_reward))
             fp_log.close()
+
+            if (epoch + 1) % args.log_interval == 0:
+                print_info('Avg sampling time for last {} epoch: {:.4f} second'.format(args.log_interval, t_sample_sum / args.log_interval))
+                t_sample_sum = 0.
+                invalid_cnt, valid_cnt = 0, 0
+                for state in states_pool.pool:
+                    if np.isclose(V_hat[hash(state)], 0.):
+                        invalid_cnt += 1
+                    else:
+                        valid_cnt += 1
+                print_info('states_pool size = {}, #valid = {}, #invalid = {}, #valid / #invalid = {}'.format(len(states_pool), valid_cnt, invalid_cnt, valid_cnt / invalid_cnt))
+                print_info('Invalid samples: #no_action_samples = {}, #step_exceeded_samples = {}, #no_action / #step_exceeded = {}'.format(no_action_samples, step_exceeded_samples, no_action_samples / step_exceeded_samples))
+
+            # evaluation
+            if (epoch + 1) % args.eval_interval == 0 or epoch + 1 == args.num_iterations:
+                print_info('-------- Doing evaluation --------')
+                print_info('#states = {}'.format(len(states_pool)))
+                loss_total = 0.
+                for state in states_pool.pool:
+                    value = predict(V, state)
+                    loss_total += (V_hat[hash(state)] - value) ** 2
+                print_info('Loss = {:.3f}'.format(loss_total / len(states_pool)))
+                fp_eval = open(os.path.join(args.save_dir, 'eval.txt'), 'a')
+                fp_eval.write('epoch = {}, loss = {:.3f}\n'.format(epoch + 1, loss_total / len(states_pool)))
+                fp_eval.close()
 
         save_path = os.path.join(args.save_dir, 'model_state_dict_final.pt')
         torch.save(V.state_dict(), save_path)
@@ -371,7 +445,7 @@ def search_algo_1(args):
         y0 = []
         y1 = []
         x = []
-        for ii in range(9, 10):
+        for ii in range(0, 11):
             eps = 1.0 - 0.1 * ii
 
             print('------------------------------------------')
@@ -383,26 +457,27 @@ def search_algo_1(args):
                 t0 = time.time()
 
                 # use e-greedy to sample a design within maximum #steps.
-                done = False
-                while not done:
-                    state = env.reset() 
+                vaild = False
+                while not valid:
+                    state = env.reset()
                     rule_seq = []
                     state_seq = [state]
-                    total_reward = 0.
                     for _ in range(args.depth):
-                        action = select_action(env, V, state, eps)
+                        action, step_type = select_action(env, V, state, eps)
                         if action is None:
                             break
                         rule_seq.append(action)
-                        next_state, reward, done = env.step(action)
-                        total_reward += reward
+                        next_state = env.transite(state, action)
                         state_seq.append(next_state)
-                        state = next_state
-                        if done:
+                        if not env.is_valid(state_next):
+                            valid = True
                             break
-                reward_sum += total_reward
-                best_reward = max(best_reward, total_reward)
-                print(f'design {epoch}: reward = {total_reward}, time = {time.time() - t0}')
+                        state = next_state
+                        
+                reward = env.get_reward(state)
+                reward_sum += reward
+                best_reward = max(best_reward, reward)
+                print(f'design {epoch}: reward = {reward}, time = {time.time() - t0}')
 
             print('test avg reward = ', reward_sum / test_epoch)
             print('best reward found = ', best_reward)
@@ -413,7 +488,15 @@ def search_algo_1(args):
         import matplotlib.pyplot as plt
         fig, ax = plt.subplots(1, 2, figsize = (10, 5))
         ax[0].plot(x, y0)
+        ax[0].set_title('Avg Reward')
+        ax[0].set_xlabel('eps')
+        ax[0].set_ylabel('reward')
+
         ax[1].plot(x, y1)
+        ax[0].set_title('Best Reward')
+        ax[0].set_xlabel('eps')
+        ax[0].set_ylabel('reward')
+        
         plt.show()
 
 if __name__ == '__main__':
@@ -427,11 +510,13 @@ if __name__ == '__main__':
                  '--eps-end', '0.2',
                  '--eps-decay', '0.3',
                  '--eps-schedule', 'exp-decay',
+                 '--opt-iter', '25', 
                  '--batch-size', '32',
+                 '--states-pool-capacity', '50000',
                  '--depth', '25',
                  '--save-dir', './trained_models/FlatTerrainTask/algo1/',
                  '--render-interval', '80',
-                 '--log-interval', '100',
+                 '--log-interval', '200',
                  '--eval-interval', '1000']
                 #  '--load-V-path', './trained_models/universal_value_function/test_model.pt']
     

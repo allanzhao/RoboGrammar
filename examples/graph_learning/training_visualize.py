@@ -24,7 +24,7 @@ if __name__ == '__main__':
 
     print('total {} lines'.format(len(datalines)))
 
-    eps, loss, epoch_reward, avg_reward, best_reward = [], [], [], [], []
+    eps, loss, epoch_reward, avg_reward, avg_window_reward, best_reward = [], [], [], [], [], []
     for dataline in datalines:
         data = parse(dataline)
         eps.append(data['eps'])
@@ -36,12 +36,24 @@ if __name__ == '__main__':
         else:
             best_reward.append(max(best_reward[-1], data['reward']))
 
+    loss_smooth = []
+    for i in range(len(loss)):
+        his_len = min(i + 1, 30)
+        loss_sum = np.sum(loss[i - his_len + 1:i + 1])
+        loss_smooth.append(loss_sum / his_len)
+
     for i in range(len(eps)):
-        his_len = min(len(eps), 30)
+        his_len = min(i + 1, 10000)
         reward_sum = np.sum(epoch_reward[i - his_len + 1:i + 1])
         avg_reward[i] = reward_sum / his_len
 
-    fig, ax = plt.subplots(1, 4, figsize = (20, 5))
+    window_size = 100
+    for i in range(len(eps)):
+        his_len = min(i + 1, window_size)
+        reward_sum = np.sum(epoch_reward[i - his_len + 1:i + 1])
+        avg_window_reward.append(reward_sum / his_len)
+
+    fig, ax = plt.subplots(1, 5, figsize = (25, 5))
 
     epoch = list(range(0, len(eps)))
     
@@ -58,15 +70,20 @@ if __name__ == '__main__':
     ax[1].set_ylabel('training loss')
 
     # plot avg_reward
-    ax[2].plot(epoch, avg_reward, c = 'tab:green')
+    ax[2].plot(epoch, avg_reward, c = 'tab:green', zorder = 10)
     ax[2].set_title('Avg Reward')
     ax[2].set_xlabel('epoch')
 
-    # plot epoch reward and best reward
-    ax[3].scatter(epoch, epoch_reward, c = 'tab:blue', s = 5)
-    ax[3].plot(epoch, best_reward, c = 'tab:green')
-    ax[3].set_title('Epoch Reward & Best Reward')
+    # plot avg_window_reward
+    ax[3].plot(epoch, avg_window_reward, c = 'tab:green', zorder = 10)
+    ax[3].set_title('Avg Reward over {} epochs'.format(window_size))
     ax[3].set_xlabel('epoch')
+    
+    # plot epoch reward and best reward
+    ax[4].scatter(epoch, epoch_reward, c = 'tab:blue', s = 5, alpha = 0.2, zorder = 10)
+    ax[4].plot(epoch, best_reward, c = 'tab:green')
+    ax[4].set_title('Epoch Reward & Best Reward')
+    ax[4].set_xlabel('epoch')
 
     # for compare
     if args.log_path_compare is not None:
@@ -78,7 +95,7 @@ if __name__ == '__main__':
 
         print('total {} lines'.format(len(datalines)))
 
-        eps, loss, epoch_reward, avg_reward, best_reward = [], [], [], [], []
+        eps, loss, epoch_reward, avg_reward, avg_window_reward, best_reward = [], [], [], [], [], []
         for dataline in datalines:
             data = parse(dataline)
             eps.append(data['eps'])
@@ -91,14 +108,23 @@ if __name__ == '__main__':
                 best_reward.append(max(best_reward[-1], data['reward']))
 
         for i in range(len(eps)):
-            his_len = min(len(eps), 30)
+            his_len = min(i + 1, 10000)
             reward_sum = np.sum(epoch_reward[i - his_len + 1:i + 1])
             avg_reward[i] = reward_sum / his_len
 
+        for i in range(len(eps)):
+            his_len = min(i + 1, window_size)
+            reward_sum = np.sum(epoch_reward[i - his_len + 1:i + 1])
+            avg_window_reward.append(reward_sum / his_len)
+            
         epoch = list(range(0, len(eps)))
 
         ax[2].plot(epoch, avg_reward, c = 'tab:red')
-        ax[3].plot(epoch, best_reward, '--', c = 'tab:red')
+        ax[3].plot(epoch, avg_window_reward, c = 'tab:red')
+        ax[4].plot(epoch, best_reward, '--', c = 'tab:red')
+        # ax[4].scatter(epoch, epoch_reward, c = 'tab:purple', s = 5, alpha = 0.2)
+    
+    ax[2].set_ylim(ax[3].get_ylim())
 
     plt.show()
 
