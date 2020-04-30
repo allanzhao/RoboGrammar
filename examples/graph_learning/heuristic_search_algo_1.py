@@ -257,7 +257,8 @@ def search_algo_1(args):
             best_candidate_design, best_candidate_reward = None, -1.0
             best_candidate_state_seq, best_candidate_rule_seq = None, None
 
-            for _ in range(8):
+            num_samples = 1
+            for _ in range(num_samples):
                 valid = False
                 while not valid:
                     t0 = time.time()
@@ -279,10 +280,10 @@ def search_algo_1(args):
                         rule_seq.append(action)
                         next_state = env.transite(state, action)
                         state_seq.append(next_state)
+                        state = next_state
                         if env.is_valid(next_state):
                             valid = True
                             break
-                        state = next_state
 
                     t_sample += time.time() - t0
 
@@ -306,10 +307,10 @@ def search_algo_1(args):
 
                     t_update += time.time() - t0
 
-                    predicted_value = predict(V, state)
-                    if predicted_value > best_candidate_reward:
-                        best_candidate_design, best_candidate_reward = state, predicted_value
-                        best_candidate_rule_seq, best_candidate_state_seq = rule_seq, state_seq
+                predicted_value = predict(V, state)
+                if predicted_value > best_candidate_reward:
+                    best_candidate_design, best_candidate_reward = state, predicted_value
+                    best_candidate_rule_seq, best_candidate_state_seq = rule_seq, state_seq
 
             t0 = time.time()
 
@@ -341,7 +342,6 @@ def search_algo_1(args):
             V.train()
             total_loss = 0.0
             for _ in range(args.opt_iter):
-                # minibatch = random.sample(states_pool, min(len(states_pool), args.batch_size))
                 minibatch = states_pool.sample(min(len(states_pool), args.batch_size))
                 
                 train_adj_matrix, train_features, train_masks, train_reward = [], [], [], []
