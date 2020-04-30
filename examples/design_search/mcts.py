@@ -117,6 +117,7 @@ class TreeSearch(object):
         # No valid simulation after max_tries tries, block the last node
         # Next loop iteration will select a different node
         last_node.blocked = True
+        print("Blocked node:", [self.env.rules.index(rule) for rule in last_node.state[1]])
 
     # Backpropagation phase
     for i, state in enumerate(sim_states[:-1]):
