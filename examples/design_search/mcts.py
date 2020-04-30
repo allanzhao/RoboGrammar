@@ -17,7 +17,7 @@ class TreeNode(object):
     self.blocked = False
 
 class TreeSearch(object):
-  def __init__(self, env, max_tries=100, default_policy=None):
+  def __init__(self, env, max_tries, default_policy=None):
     self.env = env
     self.max_tries = max_tries
     self.nodes = dict() # Mapping from state keys to nodes

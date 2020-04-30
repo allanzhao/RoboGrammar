@@ -217,7 +217,7 @@ class RobotDesignEnv(env.Env):
     return hash(state[0])
 
 class RandomSearch(object):
-  def __init__(self, env, max_tries=100):
+  def __init__(self, env, max_tries):
     self.env = env
     self.max_tries = max_tries
 
@@ -282,7 +282,7 @@ def main():
   graphs = rd.load_graphs(args.grammar_file)
   rules = [rd.create_rule_from_graph(g) for g in graphs]
   env = RobotDesignEnv(task, rules, args.seed, args.jobs, args.depth)
-  search_alg = algorithms[args.algorithm](env)
+  search_alg = algorithms[args.algorithm](env, max_tries=1000)
 
   if args.log_file:
     # Resume an existing run
