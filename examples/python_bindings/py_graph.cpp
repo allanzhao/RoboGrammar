@@ -21,7 +21,8 @@ void initGraph(py::module &m) {
       .def_readwrite("density", &rd::NodeAttributes::density_)
       .def_readwrite("friction", &rd::NodeAttributes::friction_)
       .def_readwrite("base", &rd::NodeAttributes::base_)
-      .def_readwrite("color", &rd::NodeAttributes::color_);
+      .def_readwrite("color", &rd::NodeAttributes::color_)
+      .def_readwrite("require_label", &rd::NodeAttributes::require_label_);
 
   py::class_<rd::Node>(m, "Node")
       .def(py::init<>())
@@ -51,7 +52,8 @@ void initGraph(py::module &m) {
                      &rd::EdgeAttributes::joint_upper_limit_)
       .def_readwrite("scale", &rd::EdgeAttributes::scale_)
       .def_readwrite("mirror", &rd::EdgeAttributes::mirror_)
-      .def_readwrite("color", &rd::EdgeAttributes::color_);
+      .def_readwrite("color", &rd::EdgeAttributes::color_)
+      .def_readwrite("require_label", &rd::EdgeAttributes::require_label_);
 
   py::class_<rd::Edge>(m, "Edge")
       .def(py::init<>())
