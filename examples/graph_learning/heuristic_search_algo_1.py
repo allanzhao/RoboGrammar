@@ -226,7 +226,7 @@ def search_algo_1(args):
         global optimizer
         optimizer = torch.optim.Adam(V.parameters(), lr = args.lr)
 
-        # initialize best design
+        # initialize best design rule sequence
         best_design, best_reward = None, -np.inf
 
         # reward history
@@ -255,6 +255,7 @@ def search_algo_1(args):
             t_sample, t_update, t_mpc, t_opt = 0, 0, 0, 0
 
             best_candidate_design, best_candidate_reward = None, -1.0
+            best_candidate_state_seq, best_candidate_rule_seq = None, None
 
             for _ in range(8):
                 valid = False
@@ -278,7 +279,7 @@ def search_algo_1(args):
                         rule_seq.append(action)
                         next_state = env.transite(state, action)
                         state_seq.append(next_state)
-                        if not env.is_valid(state_next):
+                        if env.is_valid(next_state):
                             valid = True
                             break
                         state = next_state
@@ -297,9 +298,9 @@ def search_algo_1(args):
                     # update the Vhat for invalid designs
                     if not valid:
                         update_Vhat(V_hat, state_seq, 0.0)
-                        
-                    # update states pool
-                    update_states_pool(states_pool, state_seq)
+                        # update states pool
+                        update_states_pool(states_pool, state_seq)
+
                     # record the sampled design
                     all_sample_designs.append(rule_seq)
 
@@ -308,10 +309,11 @@ def search_algo_1(args):
                     predicted_value = predict(V, state)
                     if predicted_value > best_candidate_reward:
                         best_candidate_design, best_candidate_reward = state, predicted_value
+                        best_candidate_rule_seq, best_candidate_state_seq = rule_seq, state_seq
 
             t0 = time.time()
 
-            reward = env.get_reward(best_candidate_design)
+            _, reward = env.get_reward(best_candidate_design)
 
             t_mpc += time.time() - t0
 
@@ -321,12 +323,15 @@ def search_algo_1(args):
 
             # update best design
             if reward > best_reward:
-                best_design, best_reward = rule_seq, reward
+                best_design, best_reward = best_candidate_rule_seq, reward
 
             t0 = time.time()
 
             # update V_hat for the valid design
-            update_Vhat(V_hat, state_seq, reward)
+            update_Vhat(V_hat, best_candidate_state_seq, reward)
+
+            # update states pool for the valid design
+            update_states_pool(states_pool, best_candidate_state_seq)
 
             t_update += time.time() - t0
 
@@ -338,16 +343,16 @@ def search_algo_1(args):
             for _ in range(args.opt_iter):
                 # minibatch = random.sample(states_pool, min(len(states_pool), args.batch_size))
                 minibatch = states_pool.sample(min(len(states_pool), args.batch_size))
-
+                
                 train_adj_matrix, train_features, train_masks, train_reward = [], [], [], []
                 for robot_graph in minibatch:
                     hash_key = hash(robot_graph)
-                    reward = V_hat[hash_key]
+                    target_reward = V_hat[hash_key]
                     adj_matrix, features, masks = preprocessor.preprocess(robot_graph)
                     train_adj_matrix.append(adj_matrix)
                     train_features.append(features)
                     train_masks.append(masks)
-                    train_reward.append(reward)
+                    train_reward.append(target_reward)
                 
                 train_adj_matrix_torch = torch.tensor(train_adj_matrix)
                 train_features_torch = torch.tensor(train_features)
@@ -469,12 +474,12 @@ def search_algo_1(args):
                         rule_seq.append(action)
                         next_state = env.transite(state, action)
                         state_seq.append(next_state)
-                        if not env.is_valid(state_next):
+                        if env.is_valid(state_next):
                             valid = True
                             break
                         state = next_state
                         
-                reward = env.get_reward(state)
+                _, reward = env.get_reward(state)
                 reward_sum += reward
                 best_reward = max(best_reward, reward)
                 print(f'design {epoch}: reward = {reward}, time = {time.time() - t0}')
