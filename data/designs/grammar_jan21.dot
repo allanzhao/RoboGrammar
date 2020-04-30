@@ -1,6 +1,6 @@
 digraph make_robot {
   subgraph L {
-    robot [label="robot"];
+    robot [require_label="robot"];
   }
 
   subgraph R {
@@ -14,7 +14,7 @@ digraph make_robot {
 
 digraph append_body {
   subgraph L {
-    tail [label="tail"];
+    tail [require_label="tail"];
     parent -> tail [id="parent_edges"];
   }
 
@@ -27,7 +27,7 @@ digraph append_body {
 
 digraph make_body_with_legs {
   subgraph L {
-    body [label="body"];
+    body [require_label="body"];
     parent -> body [id="parent_edges"];
     body -> child [id="child_edges"];
   }
@@ -49,7 +49,7 @@ digraph make_body_with_legs {
 
 digraph make_body_without_legs {
   subgraph L {
-    body [label="body"];
+    body [require_label="body"];
     parent -> body [id="parent_edges"];
     body -> child [id="child_edges"];
   }
@@ -63,7 +63,7 @@ digraph make_body_without_legs {
 
 digraph append_limb_link {
   subgraph L {
-    limb [label="limb"];
+    limb [require_label="limb"];
     parent -> limb;
   }
 
@@ -76,7 +76,7 @@ digraph append_limb_link {
 
 digraph end_limb {
   subgraph L {
-    limb [label="limb"];
+    limb [require_label="limb"];
     parent -> limb;
   }
 
@@ -87,7 +87,7 @@ digraph end_limb {
 
 digraph make_tail_limb {
   subgraph L {
-    tail [label="tail"];
+    tail [require_label="tail"];
     parent -> tail;
   }
 
@@ -103,7 +103,7 @@ digraph make_tail_limb {
 
 digraph make_head_limb {
   subgraph L {
-    head [label="head"];
+    head [require_label="head"];
     head -> child;
   }
 
@@ -119,7 +119,7 @@ digraph make_head_limb {
 
 digraph end_tail {
   subgraph L {
-    tail [label="tail"];
+    tail [require_label="tail"];
     parent -> tail;
   }
 
@@ -130,7 +130,7 @@ digraph end_tail {
 
 digraph end_head {
   subgraph L {
-    head [label="head"];
+    head [require_label="head"];
     head -> child;
   }
 
@@ -141,7 +141,7 @@ digraph end_head {
 
 digraph make_normal_limb_link {
   subgraph L {
-    limb_link [label="limb_link"];
+    limb_link [require_label="limb_link"];
     parent -> limb_link [id="parent_edges"];
     limb_link -> child [id="child_edges"];
   }
@@ -155,7 +155,7 @@ digraph make_normal_limb_link {
 
 digraph make_long_limb_link {
   subgraph L {
-    limb_link [label="limb_link"];
+    limb_link [require_label="limb_link"];
     parent -> limb_link [id="parent_edges"];
     limb_link -> child [id="child_edges"];
   }
@@ -169,7 +169,7 @@ digraph make_long_limb_link {
 
 digraph make_fixed_body_joint {
   subgraph L {
-    parent -> child [label="body_joint"];
+    parent -> child [require_label="body_joint"];
   }
 
   subgraph R {
@@ -179,7 +179,7 @@ digraph make_fixed_body_joint {
 
 digraph make_roll_body_joint {
   subgraph L {
-    parent -> child [label="body_joint"];
+    parent -> child [require_label="body_joint"];
   }
 
   subgraph R {
@@ -189,7 +189,7 @@ digraph make_roll_body_joint {
 
 digraph make_swing_body_joint {
   subgraph L {
-    parent -> child [label="body_joint"];
+    parent -> child [require_label="body_joint"];
   }
 
   subgraph R {
@@ -199,7 +199,7 @@ digraph make_swing_body_joint {
 
 digraph make_lift_body_joint {
   subgraph L {
-    parent -> child [label="body_joint"];
+    parent -> child [require_label="body_joint"];
   }
 
   subgraph R {
@@ -209,7 +209,7 @@ digraph make_lift_body_joint {
 
 digraph make_left_roll_limb_joint {
   subgraph L {
-    parent -> child [label="limb_joint"];
+    parent -> child [require_label="limb_joint"];
   }
 
   subgraph R {
@@ -219,7 +219,7 @@ digraph make_left_roll_limb_joint {
 
 digraph make_right_roll_limb_joint {
   subgraph L {
-    parent -> child [label="limb_joint"];
+    parent -> child [require_label="limb_joint"];
   }
 
   subgraph R {
@@ -229,7 +229,7 @@ digraph make_right_roll_limb_joint {
 
 digraph make_swing_limb_joint {
   subgraph L {
-    parent -> child [label="limb_joint"];
+    parent -> child [require_label="limb_joint"];
   }
 
   subgraph R {
@@ -239,7 +239,7 @@ digraph make_swing_limb_joint {
 
 digraph make_acute_lift_limb_joint {
   subgraph L {
-    parent -> child [label="limb_joint"];
+    parent -> child [require_label="limb_joint"];
   }
 
   subgraph R {
@@ -249,7 +249,7 @@ digraph make_acute_lift_limb_joint {
 
 digraph make_obtuse_lift_limb_joint {
   subgraph L {
-    parent -> child [label="limb_joint"];
+    parent -> child [require_label="limb_joint"];
   }
 
   subgraph R {
@@ -259,7 +259,7 @@ digraph make_obtuse_lift_limb_joint {
 
 digraph make_backwards_lift_limb_joint {
   subgraph L {
-    parent -> child [label="limb_joint"];
+    parent -> child [require_label="limb_joint"];
   }
 
   subgraph R {

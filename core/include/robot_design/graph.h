@@ -32,6 +32,7 @@ struct NodeAttributes {
   Scalar friction_ = 0.9;
   bool base_ = false;
   Color color_ = {0.45f, 0.5f, 0.55f}; // Slate gray
+  std::string require_label_ = ""; // Only used for rule matching
 
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 };
@@ -60,6 +61,7 @@ struct EdgeAttributes {
   Scalar scale_ = 1.0;
   bool mirror_ = false;
   Color color_ = {1.0f, 0.5f, 0.3f}; // Coral
+  std::string require_label_ = ""; // Only used for rule matching
 
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 };
@@ -151,6 +153,7 @@ struct hash<robot_design::NodeAttributes> {
     hashCombine(seed, node_attrs.friction_);
     hashCombine(seed, node_attrs.base_);
     hashCombine(seed, node_attrs.color_);
+    hashCombine(seed, node_attrs.require_label_);
     return seed;
   }
 };
@@ -189,6 +192,7 @@ struct hash<robot_design::EdgeAttributes> {
     hashCombine(seed, edge_attrs.scale_);
     hashCombine(seed, edge_attrs.mirror_);
     hashCombine(seed, edge_attrs.color_);
+    hashCombine(seed, edge_attrs.require_label_);
     return seed;
   }
 };

@@ -153,8 +153,10 @@ std::vector<GraphMapping> findMatches(const Graph &pattern,
       continue;
     }
 
-    // If pattern node i has a label, target node j must have the same label
-    const std::string &pattern_node_label = pattern.nodes_[i].attrs_.label_;
+    // If pattern node i has a required label, target node j must have a label
+    // with the same value
+    const std::string &pattern_node_label =
+        pattern.nodes_[i].attrs_.require_label_;
     const std::string &target_node_label = target.nodes_[j].attrs_.label_;
     if (!pattern_node_label.empty() &&
         pattern_node_label != target_node_label) {
@@ -165,7 +167,7 @@ std::vector<GraphMapping> findMatches(const Graph &pattern,
     // Edges in pattern incident on i must also be present in target
     bool edge_fail = false;
     for (const Edge &pattern_edge : pattern.edges_) {
-      const std::string &pattern_label = pattern_edge.attrs_.label_;
+      const std::string &pattern_label = pattern_edge.attrs_.require_label_;
       if (pattern_edge.head_ == i && pattern_edge.tail_ <= i) {
         // Pattern edge i_tail -> i requires target edge j_tail -> j
         NodeIndex j_tail = pm.node_mapping_[pattern_edge.tail_];
@@ -212,7 +214,7 @@ std::vector<GraphMapping> findMatches(const Graph &pattern,
       new_match.edge_mapping_.resize(pattern.edges_.size());
       for (EdgeIndex m = 0; m < pattern.edges_.size(); ++m) {
         const Edge &pattern_edge = pattern.edges_[m];
-        const std::string &pattern_label = pattern_edge.attrs_.label_;
+        const std::string &pattern_label = pattern_edge.attrs_.require_label_;
         NodeIndex j_head = new_match.node_mapping_[pattern_edge.head_];
         NodeIndex j_tail = new_match.node_mapping_[pattern_edge.tail_];
         for (EdgeIndex n = 0; n < target.edges_.size(); ++n) {

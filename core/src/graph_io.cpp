@@ -85,6 +85,8 @@ void updateNodeAttributes(
       std::istringstream in(value);
       Color &color = node_attrs.color_;
       in >> color(0) >> color(1) >> color(2);
+    } else if (key == "require_label") {
+      node_attrs.require_label_ = value;
     }
   }
 }
@@ -150,6 +152,8 @@ void updateEdgeAttributes(
       std::istringstream in(value);
       Color &color = edge_attrs.color_;
       in >> color(0) >> color(1) >> color(2);
+    } else if (key == "require_label") {
+      edge_attrs.require_label_ = value;
     }
   }
 }
