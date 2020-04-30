@@ -17,7 +17,7 @@ class TreeNode(object):
     self.blocked = False
 
 class TreeSearch(object):
-  def __init__(self, env, max_tries=100, default_policy=None):
+  def __init__(self, env, max_tries, default_policy=None):
     self.env = env
     self.max_tries = max_tries
     self.nodes = dict() # Mapping from state keys to nodes
@@ -117,6 +117,7 @@ class TreeSearch(object):
         # No valid simulation after max_tries tries, block the last node
         # Next loop iteration will select a different node
         last_node.blocked = True
+        print("Blocked node:", [self.env.rules.index(rule) for rule in last_node.state[1]])
 
     # Backpropagation phase
     for i, state in enumerate(sim_states[:-1]):

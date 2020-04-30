@@ -29,6 +29,16 @@ def has_nonterminals(graph):
       return True
   return False
 
+def make_graph(rules, rule_sequence):
+  graph = make_initial_graph()
+  for r in rule_sequence:
+    matches = list(get_applicable_matches(rules[r], graph))
+    if matches:
+      graph = rd.apply_rule(rules[r], graph, matches[0])
+    else:
+      raise ValueError("Rule in sequence has no applicable matches")
+  return graph
+
 def build_normalized_robot(graph):
   """Build a robot from the graph and normalize the mass of the body links."""
   robot = rd.build_robot(graph)
@@ -92,13 +102,12 @@ def simulate(robot, task, opt_seed, thread_count, episode_count=1):
 
   for episode_idx in range(episode_count):
     optimizer = rd.MPPIOptimizer(1.0, task.discount_factor, dof_count,
-                                 task.interval, task.horizon, 1024,
+                                 task.interval, task.horizon, 512,
                                  thread_count, opt_seed + episode_idx,
                                  make_sim_fn, objective_fn, value_estimator,
                                  input_sampler)
-    for _ in range(10):
-      optimizer.update()
-    optimizer.set_sample_count(128)
+    optimizer.update()
+    optimizer.set_sample_count(64)
 
     main_sim.save_state()
 
@@ -115,6 +124,7 @@ def simulate(robot, task, opt_seed, thread_count, episode_count=1):
       for k in range(task.interval):
         main_sim.set_joint_target_positions(robot_idx,
                                             input_sequence[:,j].reshape(-1, 1))
+        task.add_noise(main_sim, j * task.interval + k)
         main_sim.step()
         rewards[j * task.interval + k] = objective_fn(main_sim)
     value_estimator.get_observation(main_sim, obs[:,-1])
@@ -207,7 +217,7 @@ class RobotDesignEnv(env.Env):
     return hash(state[0])
 
 class RandomSearch(object):
-  def __init__(self, env, max_tries=100):
+  def __init__(self, env, max_tries):
     self.env = env
     self.max_tries = max_tries
 
@@ -272,7 +282,7 @@ def main():
   graphs = rd.load_graphs(args.grammar_file)
   rules = [rd.create_rule_from_graph(g) for g in graphs]
   env = RobotDesignEnv(task, rules, args.seed, args.jobs, args.depth)
-  search_alg = algorithms[args.algorithm](env)
+  search_alg = algorithms[args.algorithm](env, max_tries=1000)
 
   if args.log_file:
     # Resume an existing run

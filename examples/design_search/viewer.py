@@ -1,5 +1,5 @@
 import argparse
-from design_search import RobotDesignEnv, build_normalized_robot, make_initial_graph, presimulate, simulate
+from design_search import RobotDesignEnv, make_graph, build_normalized_robot, presimulate, simulate
 import mcts
 import numpy as np
 import pyrobotdesign as rd
@@ -7,7 +7,7 @@ import random
 import tasks
 import time
 
-def view_trajectory(sim, robot_idx, input_sequence, time_step, interval):
+def view_trajectory(sim, robot_idx, input_sequence, task):
   sim.save_state()
 
   # Get robot bounds
@@ -21,8 +21,8 @@ def view_trajectory(sim, robot_idx, input_sequence, time_step, interval):
   viewer.camera_params.pitch = -np.pi / 6
   viewer.camera_params.distance = 2.0 * np.linalg.norm(upper - lower)
 
-  i = 0
   j = 0
+  k = 0
   sim_time = time.time()
   while not viewer.should_close():
     current_time = time.time()
@@ -30,22 +30,23 @@ def view_trajectory(sim, robot_idx, input_sequence, time_step, interval):
       if input_sequence is not None:
         sim.set_joint_target_positions(robot_idx,
                                        input_sequence[:,j].reshape(-1, 1))
+      task.add_noise(sim, j * task.interval + k)
       sim.step()
       sim.get_robot_world_aabb(robot_idx, lower, upper)
       # Update camera position to track the robot smoothly
       target_pos = 0.5 * (lower + upper)
       camera_pos = viewer.camera_params.position.copy()
-      camera_pos += 5.0 * time_step * (target_pos - camera_pos)
+      camera_pos += 5.0 * task.time_step * (target_pos - camera_pos)
       viewer.camera_params.position = camera_pos
-      viewer.update(time_step)
-      sim_time += time_step
-      i += 1
-      if i >= interval:
-        i = 0
+      viewer.update(task.time_step)
+      sim_time += task.time_step
+      k += 1
+      if k >= task.interval:
         j += 1
+        k = 0
       if input_sequence is not None and j >= input_sequence.shape[1]:
-        i = 0
         j = 0
+        k = 0
         sim.restore_state()
         sim.get_robot_world_aabb(robot_idx, lower, upper)
         viewer.camera_params.position = 0.5 * (lower + upper)
@@ -93,12 +94,7 @@ def main():
     opt_seed = random.getrandbits(32)
     print("Using optimization seed:", opt_seed)
 
-  graph = make_initial_graph()
-  for r in rule_sequence:
-    matches = rd.find_matches(rules[r].lhs, graph)
-    if matches:
-      graph = rd.apply_rule(rules[r], graph, matches[0])
-
+  graph = make_graph(rules, rule_sequence)
   robot = build_normalized_robot(graph)
   finalize_robot(robot)
   if args.optim:
@@ -127,8 +123,7 @@ def main():
   main_sim.add_robot(robot, robot_init_pos, rd.Quaterniond(0.0, 0.0, 1.0, 0.0))
   robot_idx = main_sim.find_robot_index(robot)
 
-  view_trajectory(main_sim, robot_idx, input_sequence, task.time_step,
-                  task.interval)
+  view_trajectory(main_sim, robot_idx, input_sequence, task)
 
 if __name__ == '__main__':
   main()
