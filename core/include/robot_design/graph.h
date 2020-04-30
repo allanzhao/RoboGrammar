@@ -201,6 +201,7 @@ struct hash<robot_design::Graph> {
     using robot_design::Node;
     using robot_design::Edge;
     using robot_design::Subgraph;
+    using robot_design::EdgeAttributes;
     using robot_design::hashCombine;
 
     std::size_t seed = 0;
@@ -208,8 +209,22 @@ struct hash<robot_design::Graph> {
 
     // Hash nodes (order should not matter)
     std::size_t nodes_seed = 0;
-    for (const Node &node : graph.nodes_) {
-      nodes_seed += std::hash<Node>()(node);
+    for (std::size_t i = 0; i < graph.nodes_.size(); ++i) {
+      const Node &node = graph.nodes_[i];
+      std::size_t node_seed = std::hash<Node>()(node);
+      std::size_t head_node_seed = 0;
+      std::size_t tail_node_seed = 0;
+      for (const Edge &edge : graph.edges_) {
+        if (edge.head_ == i) {
+          head_node_seed += std::hash<EdgeAttributes>()(edge.attrs_);
+        }
+        if (edge.tail_ == i) {
+          tail_node_seed += std::hash<EdgeAttributes>()(edge.attrs_);
+        }
+      }
+      hashCombine(node_seed, head_node_seed);
+      hashCombine(node_seed, tail_node_seed);
+      nodes_seed += node_seed;
     }
     hashCombine(seed, nodes_seed);
 
@@ -223,36 +238,6 @@ struct hash<robot_design::Graph> {
       edges_seed += edge_seed;
     }
     hashCombine(seed, edges_seed);
-
-    // Hash subgraphs (order should not matter)
-    std::size_t subgraphs_seed = 0;
-    for (const Subgraph &subgraph : graph.subgraphs_) {
-      std::size_t subgraph_seed = 0;
-      hashCombine(subgraph_seed, subgraph.name_);
-
-      std::size_t subgraph_nodes_seed = 0;
-      for (NodeIndex i : subgraph.nodes_) {
-        subgraph_nodes_seed += std::hash<Node>()(graph.nodes_[i]);
-      }
-      hashCombine(subgraph_seed, subgraph_nodes_seed);
-
-      std::size_t subgraph_edges_seed = 0;
-      for (EdgeIndex m : subgraph.edges_) {
-        const Edge &edge = graph.edges_[m];
-
-        std::size_t subgraph_edge_seed = 0;
-        hashCombine(subgraph_edge_seed, graph.nodes_[edge.head_]);
-        hashCombine(subgraph_edge_seed, graph.nodes_[edge.tail_]);
-        hashCombine(subgraph_edge_seed, edge.attrs_);
-        subgraph_edges_seed += subgraph_edge_seed;
-      }
-      hashCombine(subgraph_seed, subgraph_edges_seed);
-
-      hashCombine(subgraph_seed, subgraph.node_attrs_);
-      hashCombine(subgraph_seed, subgraph.edge_attrs_);
-      subgraphs_seed += subgraph_seed;
-    }
-    hashCombine(seed, subgraphs_seed);
 
     return seed;
   }
