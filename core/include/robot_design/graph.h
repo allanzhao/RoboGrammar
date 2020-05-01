@@ -32,9 +32,22 @@ struct NodeAttributes {
   Scalar friction_ = 0.9;
   bool base_ = false;
   Color color_ = {0.45f, 0.5f, 0.55f}; // Slate gray
-  std::string require_label_ = ""; // Only used for rule matching
+  std::string require_label_ = "";     // Only used for rule matching
 
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+
+  template <typename Visitor, typename... Args>
+  static void accept(Visitor &&visit, Args &&... args) {
+    visit(std::forward<Args>(args).label_...);
+    visit(std::forward<Args>(args).shape_...);
+    visit(std::forward<Args>(args).length_...);
+    visit(std::forward<Args>(args).radius_...);
+    visit(std::forward<Args>(args).density_...);
+    visit(std::forward<Args>(args).friction_...);
+    visit(std::forward<Args>(args).base_...);
+    visit(std::forward<Args>(args).color_...);
+    visit(std::forward<Args>(args).require_label_...);
+  }
 };
 
 struct Node {
@@ -61,9 +74,28 @@ struct EdgeAttributes {
   Scalar scale_ = 1.0;
   bool mirror_ = false;
   Color color_ = {1.0f, 0.5f, 0.3f}; // Coral
-  std::string require_label_ = ""; // Only used for rule matching
+  std::string require_label_ = "";   // Only used for rule matching
 
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+
+  template <typename Visitor, typename... Args>
+  static void accept(Visitor &&visit, Args &&... args) {
+    visit(std::forward<Args>(args).id_...);
+    visit(std::forward<Args>(args).label_...);
+    visit(std::forward<Args>(args).joint_type_...);
+    visit(std::forward<Args>(args).joint_pos_...);
+    visit(std::forward<Args>(args).joint_rot_...);
+    visit(std::forward<Args>(args).joint_axis_...);
+    visit(std::forward<Args>(args).joint_kp_...);
+    visit(std::forward<Args>(args).joint_kd_...);
+    visit(std::forward<Args>(args).joint_torque_...);
+    visit(std::forward<Args>(args).joint_lower_limit_...);
+    visit(std::forward<Args>(args).joint_upper_limit_...);
+    visit(std::forward<Args>(args).scale_...);
+    visit(std::forward<Args>(args).mirror_...);
+    visit(std::forward<Args>(args).color_...);
+    visit(std::forward<Args>(args).require_label_...);
+  }
 };
 
 struct Edge {
@@ -134,34 +166,24 @@ bool checkRuleApplicability(const Rule &rule, const Graph &target,
 Graph applyRule(const Rule &rule, const Graph &target,
                 const GraphMapping &lhs_to_target);
 
+
 } // namespace robot_design
 
 namespace std {
 
-template <>
-struct hash<robot_design::NodeAttributes> {
-  std::size_t operator()(
-      const robot_design::NodeAttributes &node_attrs) const {
+template <> struct hash<robot_design::NodeAttributes> {
+  std::size_t operator()(const robot_design::NodeAttributes &node_attrs) const {
     using robot_design::hashCombine;
 
     std::size_t seed = 0;
-    hashCombine(seed, node_attrs.label_);
-    hashCombine(seed, node_attrs.shape_);
-    hashCombine(seed, node_attrs.length_);
-    hashCombine(seed, node_attrs.radius_);
-    hashCombine(seed, node_attrs.density_);
-    hashCombine(seed, node_attrs.friction_);
-    hashCombine(seed, node_attrs.base_);
-    hashCombine(seed, node_attrs.color_);
-    hashCombine(seed, node_attrs.require_label_);
+    robot_design::NodeAttributes::accept(
+        [&](auto &&value) { hashCombine(seed, value); }, node_attrs);
     return seed;
   }
 };
 
-template <>
-struct hash<robot_design::Node> {
-  std::size_t operator()(
-      const robot_design::Node &node) const {
+template <> struct hash<robot_design::Node> {
+  std::size_t operator()(const robot_design::Node &node) const {
     using robot_design::hashCombine;
 
     std::size_t seed = 0;
@@ -171,42 +193,26 @@ struct hash<robot_design::Node> {
   }
 };
 
-template <>
-struct hash<robot_design::EdgeAttributes> {
-  std::size_t operator()(
-      const robot_design::EdgeAttributes &edge_attrs) const {
+template <> struct hash<robot_design::EdgeAttributes> {
+  std::size_t operator()(const robot_design::EdgeAttributes &edge_attrs) const {
     using robot_design::hashCombine;
 
     std::size_t seed = 0;
-    hashCombine(seed, edge_attrs.id_);
-    hashCombine(seed, edge_attrs.label_);
-    hashCombine(seed, edge_attrs.joint_type_);
-    hashCombine(seed, edge_attrs.joint_pos_);
-    hashCombine(seed, edge_attrs.joint_rot_);
-    hashCombine(seed, edge_attrs.joint_axis_);
-    hashCombine(seed, edge_attrs.joint_kp_);
-    hashCombine(seed, edge_attrs.joint_kd_);
-    hashCombine(seed, edge_attrs.joint_torque_);
-    hashCombine(seed, edge_attrs.joint_lower_limit_);
-    hashCombine(seed, edge_attrs.joint_upper_limit_);
-    hashCombine(seed, edge_attrs.scale_);
-    hashCombine(seed, edge_attrs.mirror_);
-    hashCombine(seed, edge_attrs.color_);
-    hashCombine(seed, edge_attrs.require_label_);
+    robot_design::EdgeAttributes::accept(
+        [&](auto &&value) { hashCombine(seed, value); }, edge_attrs);
     return seed;
   }
 };
 
-template <>
-struct hash<robot_design::Graph> {
+template <> struct hash<robot_design::Graph> {
   std::size_t operator()(const robot_design::Graph &graph) const {
-    using robot_design::NodeIndex;
-    using robot_design::EdgeIndex;
-    using robot_design::Node;
     using robot_design::Edge;
-    using robot_design::Subgraph;
     using robot_design::EdgeAttributes;
+    using robot_design::EdgeIndex;
     using robot_design::hashCombine;
+    using robot_design::Node;
+    using robot_design::NodeIndex;
+    using robot_design::Subgraph;
 
     std::size_t seed = 0;
     hashCombine(seed, graph.name_);
