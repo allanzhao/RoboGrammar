@@ -297,9 +297,16 @@ Graph applyRule(const Rule &rule, const Graph &target,
     target_to_result_node[target_node] = result.nodes_.size() - 1;
     rhs_to_result_node[rhs_node] = result.nodes_.size() - 1;
     // Update the result node's attributes
-    copyNondefaultAttributes(result.nodes_.back().attrs_,
-                             rule.common_.nodes_[i].attrs_);
-    result.nodes_.back().attrs_.require_label_ = "";
+    Node &result_node = result.nodes_.back();
+    const Node &common_node = rule.common_.nodes_[i];
+    copyNondefaultAttributes(result_node.attrs_, common_node.attrs_);
+    // If the rule requires a label to match, replace it with a new label
+    // Otherwise, keep the original target node's label
+    if (!common_node.attrs_.require_label_.empty()) {
+      result_node.attrs_.label_ = common_node.attrs_.label_;
+    }
+    // Nodes in the result graph should never have require_label set
+    result_node.attrs_.require_label_.clear();
   }
 
   // Add RHS nodes which are not in common with the LHS
