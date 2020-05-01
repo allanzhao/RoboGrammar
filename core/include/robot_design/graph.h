@@ -166,6 +166,11 @@ bool checkRuleApplicability(const Rule &rule, const Graph &target,
 Graph applyRule(const Rule &rule, const Graph &target,
                 const GraphMapping &lhs_to_target);
 
+/**
+ * Copy attributes that are different from their default values from src to
+ * dest.
+ */
+void copyNondefaultAttributes(NodeAttributes &dest, const NodeAttributes &src);
 
 } // namespace robot_design
 
