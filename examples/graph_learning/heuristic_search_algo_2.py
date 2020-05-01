@@ -113,7 +113,7 @@ def search_algo_2(args):
     all_labels = set()
     for rule in rules:
         for node in rule.lhs.nodes:
-            all_labels.add(node.attrs.label)
+            all_labels.add(node.attrs.require_label)
     all_labels = sorted(list(all_labels))
     global preprocessor
     preprocessor = Preprocessor(max_nodes = max_nodes, all_labels = all_labels)
