@@ -86,11 +86,6 @@ class RobotGrammarEnv:
                 actions.append(idx)
         return np.array(actions)
 
-    def is_valid(self, state):
-        valid = not has_nonterminals(state)
-
-        return valid
-
     def get_reward(self, robot_graph):
         if self.enable_reward_oracle:
             return None, self.reward_oracle_evaluate(robot_graph)

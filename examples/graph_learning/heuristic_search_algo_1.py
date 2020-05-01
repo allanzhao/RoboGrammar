@@ -148,13 +148,14 @@ def search_algo_1(args):
     graphs = rd.load_graphs(args.grammar_file)
     rules = [rd.create_rule_from_graph(g) for g in graphs]
 
-    # state preprocessor
+    # initialize preprocessor
     # Find all possible link labels, so they can be one-hot encoded
     all_labels = set()
     for rule in rules:
         for node in rule.lhs.nodes:
             all_labels.add(node.attrs.label)
     all_labels = sorted(list(all_labels))
+    
     global preprocessor
     preprocessor = Preprocessor(max_nodes = max_nodes, all_labels = all_labels)
 
@@ -190,25 +191,6 @@ def search_algo_1(args):
     # explored designs
     designs = []
     design_rewards = []
-    
-    # load previously explored designs
-    if args.load_designs_path is not None:
-        fp_csv = open(args.load_designs_path, newline = '')
-        reader = csv.DictReader(fp_csv)
-        for row in reader:
-            rule_seq = ast.literal_eval(row['rule_seq'])
-            reward = float(row['reward'])
-            state = make_initial_graph()
-            for i in range(len(rule_seq)):
-                state = env.transite(state, rule_seq[i])
-            designs.append(state)
-            design_rewards.append(reward)
-            if not np.isclose(V_hat[hash(state)], reward):
-                print(rule_seq)
-                print(V_hat[hash(state)], reward)
-                print_error("Vhat and designs don't match")
-        fp_csv.close()
-        print_info('Loaded pretrained designs from {}'.format(args.load_designs_path))
 
     if not args.test:
         # initialize save folders and files
@@ -258,8 +240,8 @@ def search_algo_1(args):
 
             t_sample, t_update, t_mpc, t_opt = 0, 0, 0, 0
 
-            best_candidate_design, best_candidate_reward = None, -1.0
-            best_candidate_state_seq, best_candidate_rule_seq = None, None
+            selected_design, selected_reward = None, -1.0
+            selected_state_seq, selected_rule_seq = None, None
 
             p = random.random()
             if p < eps_sample:
@@ -269,8 +251,8 @@ def search_algo_1(args):
             
             # use e-greedy to sample a design within maximum #steps.
             for _ in range(num_samples):
-                valid = False
-                while not valid:
+                done = False
+                while not done:
                     t0 = time.time()
 
                     state = env.reset()
@@ -286,23 +268,23 @@ def search_algo_1(args):
                         next_state = env.transite(state, action)
                         state_seq.append(next_state)
                         state = next_state
-                        if env.is_valid(next_state):
-                            valid = True
+                        if not has_nonterminals(next_state):
+                            done = True
                             break
-
+                    
+                    valid = done
+                    
                     t_sample += time.time() - t0
 
                     t0 = time.time()
 
-                    # update the invalid sample's count
                     if not valid:
+                        # update the invalid sample's count
                         if no_action_flag:
                             no_action_samples += 1
                         else:
                             step_exceeded_samples += 1
-
-                    # update the Vhat for invalid designs
-                    if not valid:
+                        # update the Vhat for invalid designs
                         update_Vhat(V_hat, state_seq, 0.0)
                         # update states pool
                         update_states_pool(states_pool, state_seq)
@@ -313,32 +295,32 @@ def search_algo_1(args):
                     t_update += time.time() - t0
 
                 predicted_value = predict(V, state)
-                if predicted_value > best_candidate_reward:
-                    best_candidate_design, best_candidate_reward = state, predicted_value
-                    best_candidate_rule_seq, best_candidate_state_seq = rule_seq, state_seq
+                if predicted_value > selected_reward:
+                    selected_design, selected_reward = state, predicted_value
+                    selected_rule_seq, selected_state_seq = rule_seq, state_seq
 
             t0 = time.time()
 
-            _, reward = env.get_reward(best_candidate_design)
+            _, reward = env.get_reward(selected_design)
 
             t_mpc += time.time() - t0
 
             # save the design and the reward in the list
-            designs.append(best_candidate_rule_seq)
+            designs.append(selected_rule_seq)
             design_rewards.append(reward)
 
             # update best design
             if reward > best_reward:
-                best_design, best_reward = best_candidate_rule_seq, reward
-                print_info('new best: reward = {:.4f}, predicted reward = {:.4f}, num_samples = {}'.format(reward, best_candidate_reward, num_samples))
+                best_design, best_reward = selected_rule_seq, reward
+                print_info('new best: reward = {:.4f}, predicted reward = {:.4f}, num_samples = {}'.format(reward, selected_reward, num_samples))
 
             t0 = time.time()
 
             # update V_hat for the valid design
-            update_Vhat(V_hat, best_candidate_state_seq, reward)
+            update_Vhat(V_hat, selected_state_seq, reward)
 
             # update states pool for the valid design
-            update_states_pool(states_pool, best_candidate_state_seq)
+            update_states_pool(states_pool, selected_state_seq)
 
             t_update += time.time() - t0
 
@@ -411,11 +393,11 @@ def search_algo_1(args):
             avg_reward = np.sum(epoch_rew_his[-len_his:]) / len_his
             print('Epoch {}: T_sample = {:.2f}, T_update = {:.2f}, T_mpc = {:.2f}, T_opt = {:.2f}, eps = {:.3f}, eps_sample = {:.3f}, #samples = {} = {}, training loss = {:.4f}, predicted_reward = {:.4f}, reward = {:.4f}, last 30 epoch reward = {:.4f}, best reward = {:.4f}'.format(\
                 epoch, t_sample, t_update, t_mpc, t_opt, eps, eps_sample, num_samples, \
-                avg_loss, best_candidate_reward, reward, avg_reward, best_reward))
+                avg_loss, selected_reward, reward, avg_reward, best_reward))
 
             fp_log = open(os.path.join(args.save_dir, 'log.txt'), 'a')
             fp_log.write('eps = {:.4f}, eps_sample = {:.4f}, num_samples = {}, T_sample = {:4f}, T_update = {:4f}, T_mpc = {:.4f}, T_opt = {:.4f}, loss = {:.4f}, predicted_reward = {:.4f}, reward = {:.4f}, avg_reward = {:.4f}\n'.format(\
-                eps, eps_sample, num_samples, t_sample, t_update, t_mpc, t_opt, avg_loss, best_candidate_reward, reward, avg_reward))
+                eps, eps_sample, num_samples, t_sample, t_update, t_mpc, t_opt, avg_loss, selected_reward, reward, avg_reward))
             fp_log.close()
 
             if (epoch + 1) % args.log_interval == 0:
@@ -531,7 +513,7 @@ if __name__ == '__main__':
                  '--depth', '25',
                  '--save-dir', './trained_models/FlatTerrainTask/algo1/',
                  '--render-interval', '80',
-                 '--log-interval', '1000',
+                 '--log-interval', '200',
                  '--eval-interval', '1000']
                 #  '--load-V-path', './trained_models/universal_value_function/test_model.pt']
     

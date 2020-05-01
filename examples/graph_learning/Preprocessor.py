@@ -1,12 +1,11 @@
 '''
-class DesignGraph
+class Preprocessor
 
-A design graph includes: adjacent matrix, node features, mask
+convert a robot_graph into the data which can be input into GNN
 
 Two preprocessing:
-    1. The adjacent matrix is processed to be symmetric (undirected graph).
-    2. The size of the graph has been padded to be max_nodes.
-
+    1. build adjacent matrix and features
+    2. pad to be max_nodes
 '''
 import numpy as np
 import quaternion
