@@ -248,7 +248,7 @@ def search_algo_1(args):
                 num_samples = 1
             else:
                 num_samples = args.num_samples
-            
+        
             # use e-greedy to sample a design within maximum #steps.
             for _ in range(num_samples):
                 done = False
@@ -273,7 +273,7 @@ def search_algo_1(args):
                             break
                     
                     valid = done
-                    
+
                     t_sample += time.time() - t0
 
                     t0 = time.time()
@@ -391,7 +391,7 @@ def search_algo_1(args):
             avg_loss = total_loss / args.depth
             len_his = min(len(epoch_rew_his), 30)
             avg_reward = np.sum(epoch_rew_his[-len_his:]) / len_his
-            print('Epoch {}: T_sample = {:.2f}, T_update = {:.2f}, T_mpc = {:.2f}, T_opt = {:.2f}, eps = {:.3f}, eps_sample = {:.3f}, #samples = {} = {}, training loss = {:.4f}, predicted_reward = {:.4f}, reward = {:.4f}, last 30 epoch reward = {:.4f}, best reward = {:.4f}'.format(\
+            print('Epoch {}: T_sample = {:.2f}, T_update = {:.2f}, T_mpc = {:.2f}, T_opt = {:.2f}, eps = {:.3f}, eps_sample = {:.3f}, #samples = {}, training loss = {:.4f}, predicted_reward = {:.4f}, reward = {:.4f}, last 30 epoch reward = {:.4f}, best reward = {:.4f}'.format(\
                 epoch, t_sample, t_update, t_mpc, t_opt, eps, eps_sample, num_samples, \
                 avg_loss, selected_reward, reward, avg_reward, best_reward))
 
@@ -462,7 +462,7 @@ def search_algo_1(args):
                         rule_seq.append(action)
                         next_state = env.transite(state, action)
                         state_seq.append(next_state)
-                        if env.is_valid(state_next):
+                        if not has_nonterminals(next_state):
                             valid = True
                             break
                         state = next_state
