@@ -18,12 +18,21 @@ uniform vec4 cascade_far_splits;
 
 const vec3 view_camera_dir = vec3(0.0, 0.0, 1.0);
 
-float computeShadowFactor(vec4 light_frag_pos, int cascade_idx) {
-  vec3 proj_light_frag_pos = light_frag_pos.xyz / light_frag_pos.w;
+vec4 computeShadowMapCoords(int cascade_idx) {
+  vec3 proj_light_frag_pos =
+      light_frag_pos[cascade_idx].xyz / light_frag_pos[cascade_idx].w;
   vec4 shadow_map_coords;
   shadow_map_coords.xyw = 0.5 * proj_light_frag_pos + 0.5;
   shadow_map_coords.z = cascade_idx;
-  return texture(shadow_map, shadow_map_coords);
+  return shadow_map_coords;
+}
+
+float computeShadowFactor(int cascade_idx) {
+  vec4 sm_coords = computeShadowMapCoords(cascade_idx);
+  vec4 closer_sm_coords = computeShadowMapCoords(max(cascade_idx - 1, 0));
+  // If within bounds of a closer shadow map level, use it instead
+  bool closer_in_bounds = fract(closer_sm_coords.xy) == closer_sm_coords.xy;
+  return texture(shadow_map, closer_in_bounds ? closer_sm_coords : sm_coords);
 }
 
 vec2 tri(vec2 x) {
@@ -58,8 +67,7 @@ void main() {
   vec3 reflect_dir = reflect(-view_light_dir, normal);
   int cascade_idx = int(dot(
       vec4(greaterThan(-view_pos.zzzz, cascade_far_splits)), vec4(1.0)));
-  float shadow_factor = computeShadowFactor(
-      light_frag_pos[cascade_idx], cascade_idx);
+  float shadow_factor = computeShadowFactor(cascade_idx);
 
   vec3 ambient = 0.2 * light_color;
   vec3 diffuse = max(dot(normal, view_light_dir), 0.0) * light_color *
