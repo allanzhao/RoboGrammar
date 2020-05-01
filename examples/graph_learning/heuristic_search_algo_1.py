@@ -139,7 +139,8 @@ def search_algo_1(args):
     random.seed(args.seed)
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
-
+    torch.set_num_threads(1)
+    
     # initialize/load
     # TODO: use 80 to fit the input of trained MPC GNN, use args.depth * 3 later for real mpc
     max_nodes = 80
@@ -413,7 +414,7 @@ def search_algo_1(args):
                 print_info('Invalid samples: #no_action_samples = {}, #step_exceeded_samples = {}, #no_action / #step_exceeded = {}'.format(no_action_samples, step_exceeded_samples, no_action_samples / step_exceeded_samples))
 
             # evaluation
-            if (epoch + 1) % args.eval_interval == 0 or epoch + 1 == args.num_iterations:
+            if (args.eval_interval > 0) and ((epoch + 1) % args.eval_interval == 0 or epoch + 1 == args.num_iterations):
                 print_info('-------- Doing evaluation --------')
                 print_info('#states = {}'.format(len(states_pool)))
                 loss_total = 0.

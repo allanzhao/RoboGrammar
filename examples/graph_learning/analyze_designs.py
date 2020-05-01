@@ -39,7 +39,7 @@ if __name__ == '__main__':
         if hash(state) not in design_cnt:
             design_cnt[hash(state)] = [0, reward]
         design_cnt[hash(state)][0] += 1
-        # if N == 3200:
+        # if N == 2000:
         #     break
 
     fp.close()
