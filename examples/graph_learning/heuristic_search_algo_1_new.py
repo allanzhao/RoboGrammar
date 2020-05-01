@@ -314,6 +314,7 @@ def search_algo_1(args):
 
                     # if valid but has been explored as a valid design before, then put in state pool but resample it
                     if valid and (hash(state) in V_hat) and (V_hat(hash(state)) > 1e-3):
+                        update_Vhat(V_hat, state_seq, V_hat[hash(state)])
                         update_states_pool(states_pool, state_seq)
                         valid = False
 
@@ -334,13 +335,13 @@ def search_algo_1(args):
             t_mpc += time.time() - t0
 
             # save the design and the reward in the list
-            designs.append(rule_seq)
+            designs.append(best_candidate_rule_seq)
             design_rewards.append(reward)
 
             # update best design
             if reward > best_reward:
                 best_design, best_reward = best_candidate_rule_seq, reward
-                print_info('get best: reward = {:.4f}, predicted reward = {:.4f}, num_samples = {}'.format(reward, best_candidate_reward, num_samples))
+                print_info('new best: reward = {:.4f}, predicted reward = {:.4f}, num_samples = {}'.format(reward, best_candidate_reward, num_samples))
 
             t0 = time.time()
 
@@ -441,7 +442,7 @@ def search_algo_1(args):
                 print_info('Invalid samples: #no_action_samples = {}, #step_exceeded_samples = {}, #no_action / #step_exceeded = {}'.format(no_action_samples, step_exceeded_samples, no_action_samples / step_exceeded_samples))
 
             # evaluation
-            if (epoch + 1) % args.eval_interval == 0 or epoch + 1 == args.num_iterations:
+            if args.eval_interval > 0 and ((epoch + 1) % args.eval_interval == 0 or epoch + 1 == args.num_iterations):
                 print_info('-------- Doing evaluation --------')
                 print_info('#states = {}'.format(len(states_pool)))
                 loss_total = 0.
@@ -542,7 +543,7 @@ if __name__ == '__main__':
                  '--save-dir', './trained_models/FlatTerrainTask/algo1/',
                  '--render-interval', '80',
                  '--log-interval', '1000',
-                 '--eval-interval', '1000']
+                 '--eval-interval', '0']
                 #  '--load-V-path', './trained_models/universal_value_function/test_model.pt']
     
     solve_argv_conflict(args_list)

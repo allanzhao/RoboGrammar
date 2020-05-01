@@ -324,13 +324,13 @@ def search_algo_1(args):
             t_mpc += time.time() - t0
 
             # save the design and the reward in the list
-            designs.append(rule_seq)
+            designs.append(best_candidate_rule_seq)
             design_rewards.append(reward)
 
             # update best design
             if reward > best_reward:
                 best_design, best_reward = best_candidate_rule_seq, reward
-                print_info('get best: reward = {:.4f}, predicted reward = {:.4f}, num_samples = {}'.format(reward, best_candidate_reward, num_samples))
+                print_info('new best: reward = {:.4f}, predicted reward = {:.4f}, num_samples = {}'.format(reward, best_candidate_reward, num_samples))
 
             t0 = time.time()
 
