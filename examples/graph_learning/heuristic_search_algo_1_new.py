@@ -276,12 +276,17 @@ def search_algo_1(args):
                     state = env.reset()
                     rule_seq = []
                     state_seq = [state]
+                    random_step_cnt, optimal_step_cnt = 0, 0
                     no_action_flag = False
                     for _ in range(args.depth):
                         action, step_type = select_action(env, V, state, eps)
                         if action is None:
                             no_action_flag = True
                             break
+                        if step_type == 'random':
+                            random_step_cnt += 1
+                        elif step_type == 'optimal':
+                            optimal_step_cnt += 1
                         rule_seq.append(action)
                         next_state = env.transite(state, action)
                         state_seq.append(next_state)
@@ -306,6 +311,11 @@ def search_algo_1(args):
                         update_Vhat(V_hat, state_seq, 0.0)
                         # update states pool
                         update_states_pool(states_pool, state_seq)
+
+                    # if valid but has been explored as a valid design before, then put in state pool but resample it
+                    if valid and (hash(state) in V_hat) and (V_hat(hash(state)) > 1e-3):
+                        update_states_pool(states_pool, state_seq)
+                        valid = False
 
                     # record the sampled design
                     all_sample_designs.append(rule_seq)

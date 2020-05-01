@@ -122,7 +122,7 @@ if __name__ == '__main__':
         ax[2].plot(epoch, avg_reward, c = 'tab:red')
         ax[3].plot(epoch, avg_window_reward, c = 'tab:red')
         ax[4].plot(epoch, best_reward, '--', c = 'tab:red')
-        # ax[4].scatter(epoch, epoch_reward, c = 'tab:purple', s = 5, alpha = 0.2)
+        ax[4].scatter(epoch, epoch_reward, c = 'tab:purple', s = 5, alpha = 0.2)
     
     ax[2].set_ylim(ax[3].get_ylim())
 
