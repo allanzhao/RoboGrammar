@@ -19,6 +19,7 @@ digraph append_body {
   }
 
   subgraph R {
+    tail [label="tail"];
     body [label="body"];
     parent -> body [id="parent_edges"];
     body -> tail [label="body_joint"];
@@ -28,19 +29,15 @@ digraph append_body {
 digraph make_body_with_legs {
   subgraph L {
     body [require_label="body"];
-    parent -> body [id="parent_edges"];
-    body -> child [id="child_edges"];
   }
 
   subgraph R {
-    body_link [shape=capsule, length=0.15, radius=0.045, density=3.0];
+    body [shape=capsule, length=0.15, radius=0.045, density=3.0];
     limb_mount [shape=capsule, length=0.1, radius=0.025];
     limb_link [label="limb_link"];
     limb [label="limb"];
-    parent -> body_link [id="parent_edges"];
-    body_link -> child [id="child_edges"];
-    body_link -> limb_mount [type=fixed, offset=0.5, axis_angle="0 1 0 90"];
-    body_link -> limb_mount [type=fixed, offset=0.5, axis_angle="0 1 0 90",
+    body -> limb_mount [type=fixed, offset=0.5, axis_angle="0 1 0 90"];
+    body -> limb_mount [type=fixed, offset=0.5, axis_angle="0 1 0 90",
                              mirror=true];
     limb_mount -> limb_link [label="limb_joint"];
     limb_link -> limb;
@@ -50,14 +47,10 @@ digraph make_body_with_legs {
 digraph make_body_without_legs {
   subgraph L {
     body [require_label="body"];
-    parent -> body [id="parent_edges"];
-    body -> child [id="child_edges"];
   }
 
   subgraph R {
-    body_link [shape=capsule, length=0.15, radius=0.045, density=3.0];
-    parent -> body_link [id="parent_edges"];
-    body_link -> child [id="child_edges"];
+    body [shape=capsule, length=0.15, radius=0.045, density=3.0];
   }
 }
 
@@ -68,6 +61,7 @@ digraph append_limb_link {
   }
 
   subgraph R {
+    limb [label="limb"];
     limb_link [label="limb_link"];
     parent -> limb_link [label="limb_joint"];
     limb_link -> limb;
@@ -82,38 +76,6 @@ digraph end_limb {
 
   subgraph R {
     parent;
-  }
-}
-
-digraph make_tail_limb {
-  subgraph L {
-    tail [require_label="tail"];
-    parent -> tail;
-  }
-
-  subgraph R {
-    limb_link [label="limb_link"];
-    limb [label="limb"]
-    limb_mount [shape=capsule, length=0.1, radius=0.025];
-    parent -> limb_mount [type=fixed, offset=1.0];
-    limb_mount -> limb_link [label="limb_joint"];
-    limb_link -> limb;
-  }
-}
-
-digraph make_head_limb {
-  subgraph L {
-    head [require_label="head"];
-    head -> child;
-  }
-
-  subgraph R {
-    limb_link [label="limb_link"];
-    limb [label="limb"]
-    limb_mount [shape=capsule, length=0.1, radius=0.025];
-    child -> limb_mount [type=fixed, offset=0.0, axis_angle="0 1 0 180"];
-    limb_mount -> limb_link [label="limb_joint"];
-    limb_link -> limb;
   }
 }
 
@@ -142,28 +104,20 @@ digraph end_head {
 digraph make_normal_limb_link {
   subgraph L {
     limb_link [require_label="limb_link"];
-    parent -> limb_link [id="parent_edges"];
-    limb_link -> child [id="child_edges"];
   }
 
   subgraph R {
-    link [shape=capsule, length=0.1, radius=0.025];
-    parent -> link [id="parent_edges"];
-    link -> child [id="child_edges"];
+    limb_link [shape=capsule, length=0.1, radius=0.025];
   }
 }
 
 digraph make_long_limb_link {
   subgraph L {
     limb_link [require_label="limb_link"];
-    parent -> limb_link [id="parent_edges"];
-    limb_link -> child [id="child_edges"];
   }
 
   subgraph R {
-    link [shape=capsule, length=0.15, radius=0.025];
-    parent -> link [id="parent_edges"];
-    link -> child [id="child_edges"];
+    limb_link [shape=capsule, length=0.15, radius=0.025];
   }
 }
 
