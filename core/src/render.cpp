@@ -177,10 +177,6 @@ Texture2D::Texture2D(GLenum target, GLint level, GLint internal_format,
   glBindTexture(target, texture_);
   glTexImage2D(target, level, internal_format, width, height, 0, format, type,
                data);
-  glTexParameteri(target, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-  glTexParameteri(target, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-  glTexParameteri(target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-  glTexParameteri(target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
 }
 
 Texture2D::~Texture2D() { glDeleteTextures(1, &texture_); }
@@ -203,11 +199,6 @@ Texture3D::Texture3D(GLenum target, GLint level, GLint internal_format,
   glBindTexture(target, texture_);
   glTexImage3D(target, level, internal_format, width, height, depth, 0, format,
                type, data);
-  glTexParameteri(target, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-  glTexParameteri(target, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-  glTexParameteri(target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-  glTexParameteri(target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-  glTexParameteri(target, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_BORDER);
 }
 
 Texture3D::~Texture3D() { glDeleteTextures(1, &texture_); }
@@ -303,6 +294,9 @@ DirectionalLight::DirectionalLight(const Eigen::Vector3f &color,
       sm_cascade_count, GL_DEPTH_COMPONENT, GL_FLOAT);
   sm_depth_array_texture_->setParameter(GL_TEXTURE_MIN_FILTER, GL_LINEAR);
   sm_depth_array_texture_->setParameter(GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  sm_depth_array_texture_->setParameter(GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  sm_depth_array_texture_->setParameter(GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+  sm_depth_array_texture_->setParameter(GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
   sm_depth_array_texture_->setParameter(GL_TEXTURE_COMPARE_MODE,
                                         GL_COMPARE_R_TO_TEXTURE);
   sm_depth_array_texture_->setParameter(GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);

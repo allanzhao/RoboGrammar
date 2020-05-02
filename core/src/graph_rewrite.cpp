@@ -296,6 +296,17 @@ Graph applyRule(const Rule &rule, const Graph &target,
     result.nodes_.push_back(target.nodes_[target_node]);
     target_to_result_node[target_node] = result.nodes_.size() - 1;
     rhs_to_result_node[rhs_node] = result.nodes_.size() - 1;
+    // Update the result node's attributes
+    Node &result_node = result.nodes_.back();
+    const Node &common_node = rule.common_.nodes_[i];
+    copyNondefaultAttributes(result_node.attrs_, common_node.attrs_);
+    // If the rule requires a label to match, replace it with a new label
+    // Otherwise, keep the original target node's label
+    if (!common_node.attrs_.require_label_.empty()) {
+      result_node.attrs_.label_ = common_node.attrs_.label_;
+    }
+    // Nodes in the result graph should never have require_label set
+    result_node.attrs_.require_label_.clear();
   }
 
   // Add RHS nodes which are not in common with the LHS
@@ -359,6 +370,18 @@ Graph applyRule(const Rule &rule, const Graph &target,
   }
 
   return result;
+}
+
+void copyNondefaultAttributes(NodeAttributes &dest, const NodeAttributes &src) {
+  static const NodeAttributes defaults{};
+
+  NodeAttributes::accept(
+      [](auto &dest_value, auto &&src_value, auto &&default_value) {
+        if (src_value != default_value) {
+          dest_value = src_value;
+        }
+      },
+      dest, src, defaults);
 }
 
 } // namespace robot_design
