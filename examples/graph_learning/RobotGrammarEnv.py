@@ -11,17 +11,13 @@ import numpy as np
 
 # import our own packages
 import pyrobotdesign as rd
-from design_search import make_initial_graph, build_normalized_robot, get_applicable_matches, has_nonterminals, simulate
+from design_search import make_initial_graph, build_normalized_robot, get_applicable_matches, has_nonterminals, simulate, presimulate
 from common import *
 from Net import Net
 import torch
 
 '''
-class Result
-
-Store the mpc results for a design. include control sequence and reward
-
-the state of the env is a robot graph.
+class RobotGrammarEnv
 
 Parameters:
     task: a task to be evaluated for the design
@@ -31,16 +27,13 @@ Parameters:
     enable_reward_oracle: whether use the GNN oracle to compute the reward
     preprocessor: the preprocessor concerting a robot_graph into the GNN input, required if enable_reward_oracle is True
 '''
-class Result:
-    def __init__(self, input_sequence, reward):
-        self.input_sequence = deepcopy(input_sequence)
-        self.reward = reward
 
 class RobotGrammarEnv:
     def __init__(self, task, rules, seed = 0, mpc_num_processes = 8, enable_reward_oracle = False, preprocessor = None):
         self.task = task
         self.rules = rules
-        self.mpc_seed = seed
+        self.seed = seed
+        self.rng = random.Random(seed)
         self.mpc_num_processes = mpc_num_processes
         self.enable_reward_oracle = enable_reward_oracle
         if self.enable_reward_oracle:
@@ -86,22 +79,33 @@ class RobotGrammarEnv:
                 actions.append(idx)
         return np.array(actions)
 
+    '''
+    return if the design is valid (has no self-collision)
+    '''
+    def is_valid(self, state):
+        if has_nonterminals(state):
+            return False
+
+        robot = build_normalized_robot(state)
+        _, has_self_collision = presimulate(robot)
+
+        return not has_self_collision
+
     def get_reward(self, robot_graph):
         if self.enable_reward_oracle:
             return None, self.reward_oracle_evaluate(robot_graph)
         else:
-            print('computing reward by mpc: ', self.rule_seq)
-            
             robot = build_normalized_robot(robot_graph)
-            opt_seed = self.mpc_seed
+            opt_seed = self.rng.getrandbits(32)
+            self.last_opt_seed = opt_seed
 
-            robot_hash_key = hash(robot_graph)
-            if robot_hash_key in self.result_cache:
-                results = self.result_cache[robot_hash_key]
-                input_sequence, reward = results.input_sequence, results.reward
-            else:
-                input_sequence, reward = simulate(robot, self.task, opt_seed, self.mpc_num_processes)
-                self.result_cache[robot_hash_key] = Result(input_sequence, reward)
+            input_sequence, reward = simulate(robot, self.task, opt_seed, self.mpc_num_processes, episode_count = 1)
+
+            # if reward is None or (reward is not None and reward > selfself.task.result_bound):
+            #     reward = 0.0
+
+            if reward is None:
+                reward = -2.0
 
             return input_sequence, reward
 

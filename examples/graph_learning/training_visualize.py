@@ -106,7 +106,7 @@ if __name__ == '__main__':
                 best_reward.append(data['reward'])
             else:
                 best_reward.append(max(best_reward[-1], data['reward']))
-
+            
         for i in range(len(eps)):
             his_len = min(i + 1, 10000)
             reward_sum = np.sum(epoch_reward[i - his_len + 1:i + 1])

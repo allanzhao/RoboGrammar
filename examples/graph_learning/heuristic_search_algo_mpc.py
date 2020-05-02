@@ -134,13 +134,13 @@ def show_all_actions(env, V, V_hat, state):
         next_state = env.transite(state, action)
         print('action = ', action, ', V = ', predict(V, next_state), ', V_hat = ', V_hat[hash(next_state)] if hash(next_state) in V_hat else -1.0)
 
-def search_algo_1(args):
+def search_algo(args):
     # iniailize random seed
     random.seed(args.seed)
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
     torch.set_num_threads(1)
-
+    
     # initialize/load
     # TODO: use 80 to fit the input of trained MPC GNN, use args.depth * 3 later for real mpc
     max_nodes = 80
@@ -161,7 +161,7 @@ def search_algo_1(args):
     preprocessor = Preprocessor(max_nodes = max_nodes, all_labels = all_labels)
 
     # initialize the env
-    env = RobotGrammarEnv(task, rules, enable_reward_oracle = True, preprocessor = preprocessor)
+    env = RobotGrammarEnv(task, rules, seed = args.seed, mpc_num_processes = args.mpc_num_processes)
 
     # initialize Value function
     device = 'cpu'
@@ -241,7 +241,7 @@ def search_algo_1(args):
 
             t_sample, t_update, t_mpc, t_opt = 0, 0, 0, 0
 
-            selected_design, selected_reward = None, -1.0
+            selected_design, selected_reward = None, -np.inf
             selected_state_seq, selected_rule_seq = None, None
 
             p = random.random()
@@ -269,11 +269,8 @@ def search_algo_1(args):
                         next_state = env.transite(state, action)
                         state_seq.append(next_state)
                         state = next_state
-                        if not has_nonterminals(next_state):
-                            done = True
-                            break
                     
-                    valid = done
+                    valid = env.is_valid(state)
 
                     t_sample += time.time() - t0
 
@@ -286,12 +283,12 @@ def search_algo_1(args):
                         else:
                             step_exceeded_samples += 1
                         # update the Vhat for invalid designs
-                        update_Vhat(V_hat, state_seq, 0.0)
+                        update_Vhat(V_hat, state_seq, -2.0)
                         # update states pool
                         update_states_pool(states_pool, state_seq)
 
                     # record the sampled design
-                    all_sample_designs.append(rule_seq)
+                    # all_sample_designs.append(rule_seq)
 
                     t_update += time.time() - t0
 
@@ -302,7 +299,11 @@ def search_algo_1(args):
 
             t0 = time.time()
 
-            _, reward = env.get_reward(selected_design)
+            # print_info('computing mpc: rule_seq = {}'.format(selected_rule_seq))
+
+            ctrl_seq, reward = env.get_reward(selected_design)
+            # print_info('reward = {:.4f}, ctrl_seq = {}'.format(reward, ctrl_seq))
+            # print_info('results: reward = {:.4f}, opt_seed = {}, ctrl_seq = {}'.format(reward, env.last_opt_seed, ctrl_seq.shape))
 
             t_mpc += time.time() - t0
 
@@ -373,19 +374,20 @@ def search_algo_1(args):
                 fp = open(save_path, 'wb')
                 pickle.dump(V_hat, fp)
                 fp.close()
-                # save all_sampled_designs
-                save_path = os.path.join(iter_save_dir, 'all_sampled_designs')
-                fp = open(save_path, 'wb')
-                pickle.dump(all_sample_designs, fp)
-                fp.close()
-                # save explored design and its reward
-                fp_csv = open(design_csv_path, 'a')
-                fieldnames = ['rule_seq', 'reward']
-                writer = csv.DictWriter(fp_csv, fieldnames=fieldnames)
-                for i in range(last_checkpoint + 1, len(designs)):
-                    writer.writerow({'rule_seq': str(designs[i]), 'reward': design_rewards[i]})
-                last_checkpoint = len(designs) - 1
-                fp_csv.close()
+                # # save all_sampled_designs
+                # save_path = os.path.join(iter_save_dir, 'all_sampled_designs')
+                # fp = open(save_path, 'wb')
+                # pickle.dump(all_sample_designs, fp)
+                # fp.close()
+
+            # save explored design and its reward
+            fp_csv = open(design_csv_path, 'a')
+            fieldnames = ['rule_seq', 'reward']
+            writer = csv.DictWriter(fp_csv, fieldnames=fieldnames)
+            for i in range(last_checkpoint + 1, len(designs)):
+                writer.writerow({'rule_seq': str(designs[i]), 'reward': design_rewards[i]})
+            last_checkpoint = len(designs) - 1
+            fp_csv.close()
 
             epoch_rew_his.append(reward)
 
@@ -406,11 +408,11 @@ def search_algo_1(args):
                 t_sample_sum = 0.
                 invalid_cnt, valid_cnt = 0, 0
                 for state in states_pool.pool:
-                    if np.isclose(V_hat[hash(state)], 0.):
+                    if np.isclose(V_hat[hash(state)], -2.0):
                         invalid_cnt += 1
                     else:
                         valid_cnt += 1
-                print_info('states_pool size = {}, #valid = {}, #invalid = {}, #valid / #invalid = {}'.format(len(states_pool), valid_cnt, invalid_cnt, valid_cnt / invalid_cnt))
+                print_info('states_pool size = {}, #valid = {}, #invalid = {}, #valid / #invalid = {}'.format(len(states_pool), valid_cnt, invalid_cnt, valid_cnt / invalid_cnt if invalid_cnt > 0 else 10000.0))
                 print_info('Invalid samples: #no_action_samples = {}, #step_exceeded_samples = {}, #no_action / #step_exceeded = {}'.format(no_action_samples, step_exceeded_samples, no_action_samples / step_exceeded_samples))
 
             # evaluation
@@ -498,7 +500,7 @@ if __name__ == '__main__':
     args_list = ['--task', 'FlatTerrainTask',
                  '--grammar-file', '../../data/designs/grammar_jan21.dot',
                  '--num-iterations', '10000',
-                 '--mpc-num-processes', '8',
+                 '--mpc-num-processes', '4',
                  '--lr', '1e-4',
                  '--eps-start', '1.0',
                  '--eps-end', '0.2',
@@ -508,11 +510,12 @@ if __name__ == '__main__':
                  '--eps-sample-end', '0.2',
                  '--eps-sample-decay', '0.3',
                  '--eps-sample-schedule', 'exp-decay',
+                 '--num-samples', '1', 
                  '--opt-iter', '25', 
                  '--batch-size', '32',
                  '--states-pool-capacity', '50000',
                  '--depth', '25',
-                 '--save-dir', './trained_models/FlatTerrainTask/algo1/',
+                 '--save-dir', './trained_models/FlatTerrainTask/mpc/',
                  '--render-interval', '80',
                  '--log-interval', '200',
                  '--eval-interval', '1000']
@@ -533,4 +536,4 @@ if __name__ == '__main__':
         fp.write(str(args_list + sys.argv[1:]))
         fp.close()
 
-    search_algo_1(args)
+    search_algo(args)
