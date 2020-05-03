@@ -285,6 +285,11 @@ def search_algo(args):
                         update_Vhat(V_hat, state_seq, -2.0)
                         # update states pool
                         update_states_pool(states_pool, state_seq)
+                    else:
+                        if (hash(state) in V_hat) and (V_hat[hash(state)] > -2.0 + 1e-3):
+                            update_Vhat(V_hat, state_seq, -2.0)
+                            update_states_pool(states_pool, state_seq)
+                            valid = False
 
                     t_update += time.time() - t0
 
@@ -386,7 +391,7 @@ def search_algo(args):
             len_his = min(len(epoch_rew_his), 30)
             avg_reward = np.sum(epoch_rew_his[-len_his:]) / len_his
             if repeated:
-                print_white('Epoch {}: T_sample = {:.2f}, T_update = {:.2f}, T_mpc = {:.2f}, T_opt = {:.2f}, eps = {:.3f}, eps_sample = {:.3f}, #samples = {}, training loss = {:.4f}, predicted_reward = {:.4f}, reward = {:.4f}, last 30 epoch reward = {:.4f}, best reward = {:.4f}'.format(\
+                print('Epoch {}: T_sample = {:.2f}, T_update = {:.2f}, T_mpc = {:.2f}, T_opt = {:.2f}, eps = {:.3f}, eps_sample = {:.3f}, #samples = {}, training loss = {:.4f}, predicted_reward = {:.4f}, reward = {:.4f}, last 30 epoch reward = {:.4f}, best reward = {:.4f}'.format(\
                     epoch, t_sample, t_update, t_mpc, t_opt, eps, eps_sample, num_samples, \
                     avg_loss, selected_reward, reward, avg_reward, best_reward))
             else:

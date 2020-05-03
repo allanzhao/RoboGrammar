@@ -25,6 +25,7 @@ if __name__ == '__main__':
     design_cnt = dict()
     memory = dict()
     N = 0
+    best_reward = 0.0
     for row in reader:
         N += 1
         design = row['rule_seq']
@@ -39,6 +40,9 @@ if __name__ == '__main__':
         if hash(state) not in design_cnt:
             design_cnt[hash(state)] = [0, reward]
         design_cnt[hash(state)][0] += 1
+        if float(reward )> best_reward:
+            print('best: ', reward, ', hash = ', hash(state), ', rule_seq = ', rule_seq)
+            best_reward = float(reward)
         # if N == 2000:
         #     break
 

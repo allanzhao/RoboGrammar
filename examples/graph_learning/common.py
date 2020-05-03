@@ -11,6 +11,9 @@ def print_warning(*message):
 def print_info(*message):
     print('\033[96m', *message, '\033[0m')
 
+def print_white(*message):
+    print('\033[37m', *message, '\033[0m')
+
 from datetime import datetime
 
 def get_time_stamp():
