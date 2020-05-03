@@ -9,7 +9,7 @@ import pyrobotdesign as rd
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--log-path', type = str, required = True)
-    parser.add_argument('--grammar-file', type = str, default = '../../data/designs/grammar_jan21.dot', help="Grammar file (.dot)")
+    parser.add_argument('--grammar-file', type = str, default = '../../data/designs/grammar_apr30.dot', help="Grammar file (.dot)")
 
     args = parser.parse_args()
 

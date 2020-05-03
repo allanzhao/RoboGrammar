@@ -191,6 +191,7 @@ def search_algo(args):
     # explored designs
     designs = []
     design_rewards = []
+    design_opt_seeds = []
 
     if not args.test:
         # initialize save folders and files
@@ -200,7 +201,7 @@ def search_algo(args):
         fp_eval.close()
         design_csv_path = os.path.join(args.save_dir, 'designs.csv')
         fp_csv = open(design_csv_path, 'w')
-        fieldnames = ['rule_seq', 'reward']
+        fieldnames = ['rule_seq', 'reward', 'opt_seed']
         writer = csv.DictWriter(fp_csv, fieldnames=fieldnames)
         writer.writeheader()
         fp_csv.close()
@@ -306,6 +307,7 @@ def search_algo(args):
             # save the design and the reward in the list
             designs.append(selected_rule_seq)
             design_rewards.append(reward)
+            design_opt_seeds.append(env.last_opt_seed)
 
             # update best design
             if reward > best_reward:
@@ -373,10 +375,10 @@ def search_algo(args):
 
             # save explored design and its reward
             fp_csv = open(design_csv_path, 'a')
-            fieldnames = ['rule_seq', 'reward']
+            fieldnames = ['rule_seq', 'reward', 'opt_seed']
             writer = csv.DictWriter(fp_csv, fieldnames=fieldnames)
             for i in range(last_checkpoint + 1, len(designs)):
-                writer.writerow({'rule_seq': str(designs[i]), 'reward': design_rewards[i]})
+                writer.writerow({'rule_seq': str(designs[i]), 'reward': design_rewards[i], 'opt_seed': design_opt_seeds[i]})
             last_checkpoint = len(designs) - 1
             fp_csv.close()
 
@@ -496,7 +498,7 @@ if __name__ == '__main__':
     args_list = ['--task', 'FlatTerrainTask',
                  '--grammar-file', '../../data/designs/grammar_apr30.dot',
                  '--num-iterations', '10000',
-                 '--mpc-num-processes', '4',
+                 '--mpc-num-processes', '8',
                  '--lr', '1e-4',
                  '--eps-start', '1.0',
                  '--eps-end', '0.2',
