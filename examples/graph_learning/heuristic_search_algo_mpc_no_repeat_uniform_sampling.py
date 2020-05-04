@@ -112,12 +112,12 @@ def update_Vhat(V_hat, state_seq, reward):
             V_hat[state_hash_key] = -np.inf
         V_hat[state_hash_key] = max(V_hat[state_hash_key], reward)
 
-def update_states_pool(states_pool, state_seq):
-    for state in state_seq[2:]: # the first two state in the sequence are always same, so omitted
-        # state_hash_key = hash(state)
-        # if not (state_hash_key in V_hat):
-        #     states_pool.append(state)
-        states_pool.push(state) # try to use state distribution
+def update_states_pool(states_pool, state_seq, states_set):
+    for state in state_seq: # the first two state in the sequence are always same, so omitted
+        state_hash_key = hash(state)
+        if not (state_hash_key in states_set):
+            states_pool.push(state)
+            states_set.add(state_hash_key)
 
 def apply_rules(state, actions, env):
     cur_state = state
@@ -187,6 +187,7 @@ def search_algo(args):
 
     # initialize the seen states pool
     states_pool = StatesPool(capacity = args.states_pool_capacity)
+    states_set = set()
 
     # explored designs
     designs = []
@@ -285,11 +286,11 @@ def search_algo(args):
                         # update the Vhat for invalid designs
                         update_Vhat(V_hat, state_seq, -2.0)
                         # update states pool
-                        update_states_pool(states_pool, state_seq)
+                        update_states_pool(states_pool, state_seq, states_set)
                     else:
                         if (hash(state) in V_hat) and (V_hat[hash(state)] > -2.0 + 1e-3):
                             update_Vhat(V_hat, state_seq, -2.0)
-                            update_states_pool(states_pool, state_seq)
+                            update_states_pool(states_pool, state_seq, states_set)
                             valid = False
 
                     t_update += time.time() - t0
@@ -325,7 +326,7 @@ def search_algo(args):
             update_Vhat(V_hat, selected_state_seq, reward)
 
             # update states pool for the valid design
-            update_states_pool(states_pool, selected_state_seq)
+            update_states_pool(states_pool, selected_state_seq, states_set)
 
             t_update += time.time() - t0
 
@@ -503,20 +504,20 @@ if __name__ == '__main__':
     args_list = ['--task', 'FlatTerrainTask',
                  '--grammar-file', '../../data/designs/grammar_apr30.dot',
                  '--num-iterations', '10000',
-                 '--mpc-num-processes', '8',
+                 '--mpc-num-processes', '32',
                  '--lr', '1e-4',
                  '--eps-start', '1.0',
-                 '--eps-end', '0.2',
+                 '--eps-end', '0.1',
                  '--eps-decay', '0.3',
                  '--eps-schedule', 'exp-decay',
                  '--eps-sample-start', '1.0',
-                 '--eps-sample-end', '0.2',
-                 '--eps-sample-decay', '0.3',
+                 '--eps-sample-end', '0.1',
+                 '--eps-sample-decay', '0.2',
                  '--eps-sample-schedule', 'exp-decay',
-                 '--num-samples', '8', 
+                 '--num-samples', '16', 
                  '--opt-iter', '25', 
                  '--batch-size', '32',
-                 '--states-pool-capacity', '50000',
+                 '--states-pool-capacity', '10000000',
                  '--depth', '25',
                  '--save-dir', './trained_models/FlatTerrainTask/mpc/',
                  '--render-interval', '80',
