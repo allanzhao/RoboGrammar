@@ -105,19 +105,25 @@ def select_action(env, V, state, eps):
     
     return best_action, step_type
 
-def update_Vhat(V_hat, state_seq, reward):
+def update_Vhat(V_hat, state_seq, reward, invalid = False, invalid_cnt = None):
     for state in state_seq:
         state_hash_key = hash(state)
-        if not (state_hash_key in V_hat): # TODO: check the complexity of this line
+        if invalid:
+            if not (state_hash_key in invalid_cnt):
+                invalid_cnt[state_hash_key] = 0
+            invalid_cnt[state_hash_key] += 1
+            if invalid_cnt[state_hash_key] < 1000:
+                continue
+        if not (state_hash_key in V_hat):
             V_hat[state_hash_key] = -np.inf
         V_hat[state_hash_key] = max(V_hat[state_hash_key], reward)
 
-def update_states_pool(states_pool, state_seq):
-    for state in state_seq[2:]: # the first two state in the sequence are always same, so omitted
-        # state_hash_key = hash(state)
-        # if not (state_hash_key in V_hat):
-        #     states_pool.append(state)
-        states_pool.push(state) # try to use state distribution
+def update_states_pool(states_pool, state_seq, states_set, V_hat):
+    for state in state_seq: # the first two state in the sequence are always same, so omitted
+        state_hash_key = hash(state)
+        if (not (state_hash_key in states_set)) and (state_hash_key in V_hat):
+            states_pool.push(state)
+            states_set.add(state_hash_key)
 
 def apply_rules(state, actions, env):
     cur_state = state
@@ -185,8 +191,12 @@ def search_algo(args):
         V_hat_fp.close()
         print_info('Loaded pretrained Vhat from {}'.format(args.load_Vhat_path))
 
+    # initialize invalid_his
+    invalid_his = dict()
+
     # initialize the seen states pool
     states_pool = StatesPool(capacity = args.states_pool_capacity)
+    states_set = set()
 
     # explored designs
     designs = []
@@ -283,9 +293,14 @@ def search_algo(args):
                         else:
                             step_exceeded_samples += 1
                         # update the Vhat for invalid designs
-                        update_Vhat(V_hat, state_seq, -2.0)
+                        update_Vhat(V_hat, state_seq, -2.0, invalid = True, invalid_cnt = invalid_his)
                         # update states pool
-                        update_states_pool(states_pool, state_seq)
+                        update_states_pool(states_pool, state_seq, states_set, V_hat)
+                    else:
+                        if (hash(state) in V_hat) and (V_hat[hash(state)] > -2.0 + 1e-3):
+                            update_Vhat(V_hat, state_seq, -2.0)
+                            update_states_pool(states_pool, state_seq)
+                            valid = False
 
                     t_update += time.time() - t0
 
@@ -320,7 +335,7 @@ def search_algo(args):
             update_Vhat(V_hat, selected_state_seq, reward)
 
             # update states pool for the valid design
-            update_states_pool(states_pool, selected_state_seq)
+            update_states_pool(states_pool, selected_state_seq, states_set, V_hat)
 
             t_update += time.time() - t0
 
@@ -404,7 +419,7 @@ def search_algo(args):
             if (epoch + 1) % args.log_interval == 0:
                 print_info('Avg sampling time for last {} epoch: {:.4f} second'.format(args.log_interval, t_sample_sum / args.log_interval))
                 t_sample_sum = 0.
-                
+                invalid_cnt, valid_cnt = 0, 0
                 for state in states_pool.pool:
                     if np.isclose(V_hat[hash(state)], -2.0):
                         invalid_cnt += 1
@@ -497,28 +512,28 @@ if __name__ == '__main__':
     torch.set_default_dtype(torch.float64)
     args_list = ['--task', 'FlatTerrainTask',
                  '--grammar-file', '../../data/designs/grammar_apr30.dot',
-                 '--num-iterations', '10000',
-                 '--mpc-num-processes', '8',
+                 '--num-iterations', '5000',
+                 '--mpc-num-processes', '32',
                  '--lr', '1e-4',
                  '--eps-start', '1.0',
-                 '--eps-end', '0.2',
-                 '--eps-decay', '0.3',
+                 '--eps-end', '0.1',
+                 '--eps-decay', '0.2',
                  '--eps-schedule', 'exp-decay',
                  '--eps-sample-start', '1.0',
-                 '--eps-sample-end', '0.2',
-                 '--eps-sample-decay', '0.3',
+                 '--eps-sample-end', '0.1',
+                 '--eps-sample-decay', '0.2',
                  '--eps-sample-schedule', 'exp-decay',
-                 '--num-samples', '1', 
+                 '--num-samples', '16', 
                  '--opt-iter', '25', 
                  '--batch-size', '32',
-                 '--states-pool-capacity', '50000',
+                 '--states-pool-capacity', '10000000',
                  '--depth', '25',
                  '--save-dir', './trained_models/FlatTerrainTask/mpc/',
                  '--render-interval', '80',
                  '--log-interval', '200',
                  '--eval-interval', '1000']
                 #  '--load-V-path', './trained_models/universal_value_function/test_model.pt']
-    
+
     solve_argv_conflict(args_list)
     parser = get_parser()
     args = parser.parse_args(args_list + sys.argv[1:])

@@ -44,6 +44,7 @@ if __name__ == '__main__':
         if hash(state) not in design_cnt:
             design_cnt[hash(state)] = [0, reward]
         design_cnt[hash(state)][0] += 1
+        design_cnt[hash(state)][1] = max(design_cnt[hash(state)][1], reward)
         if len(best_reward) == 0:
             best_reward = [reward]
         else:
