@@ -112,7 +112,7 @@ def update_Vhat(V_hat, state_seq, reward, invalid = False, invalid_cnt = None):
             if not (state_hash_key in invalid_cnt):
                 invalid_cnt[state_hash_key] = 0
             invalid_cnt[state_hash_key] += 1
-            if invalid_cnt[state_hash_key] < 1000:
+            if invalid_cnt[state_hash_key] < 100:
                 continue
         if not (state_hash_key in V_hat):
             V_hat[state_hash_key] = -np.inf
