@@ -129,7 +129,9 @@ def show_all_actions(env, V, V_hat, state):
         next_state = env.transite(state, action)
         print('action = ', action, ', V = ', predict(V, next_state), ', V_hat = ', V_hat[hash(next_state)] if hash(next_state) in V_hat else -1.0)
 
-def sample_design(args, task_id, seed, env, V, eps, results_queue, done_event):
+def sample_design(args, task_id, seed, env, V, eps, results_queue, time_queue, done_event):
+    tt0 = time.time()
+
     random.seed(seed)
 
     valid = False
@@ -163,6 +165,9 @@ def sample_design(args, task_id, seed, env, V, eps, results_queue, done_event):
         else:
             samples.append(Sample(task_id, rule_seq, predict(V, state), info = 'valid'))
 
+    tt = time.time() - tt0
+    time_queue.put(tt)
+    
     results_queue.put(samples)
 
     done_event.wait()
@@ -270,7 +275,6 @@ def search_algo(args):
 
         # define state0
         state0 = make_initial_graph()
-        seed_cnt = 0
         for epoch in range(args.num_iterations):
             t_start = time.time()
 
@@ -299,18 +303,21 @@ def search_algo(args):
                 num_samples = 1
             else:
                 num_samples = args.num_samples
-
+            num_samples = 16
             # use e-greedy to sample a design within maximum #steps.
             results_queue = Queue()
             done_event = Event()
+            time_queue = Queue()
             for task_id in range(num_samples):
-                p = Process(target = sample_design, args = (args, task_id, args.seed + task_id + seed_cnt, env, V, eps, results_queue, done_event))
-                seed_cnt += 1
+                seed = random.getrandbits(32)
+                p = Process(target = sample_design, args = (args, task_id, seed, env, V, eps, results_queue, time_queue, done_event))
                 p.start()
 
-            sampled_rewards = [0.0 for _ in range(num_samples)]            
+            sampled_rewards = [0.0 for _ in range(num_samples)]   
+            thread_time = [0.0 for _ in range(num_samples)]         
             for _ in range(num_samples):
                 samples = results_queue.get()
+                thread_time = time_queue.get()
                 for i in range(len(samples) - 1):
                     assert samples[i].info != 'valid'
                     if samples[i].info == 'no_action':
@@ -337,6 +344,8 @@ def search_algo(args):
                 sampled_rewards[samples[-1].task_id] = samples[-1].predicted_reward
 
             done_event.set()
+            
+            print('Time = {}'.format(thread_time))
 
             # print('all sampled designs:')
             # print(sampled_rewards)
@@ -452,6 +461,7 @@ def search_algo(args):
 
             if (epoch + 1) % args.log_interval == 0:
                 print_info('Avg sampling time for last {} epoch: {:.4f} second'.format(args.log_interval, t_sample_sum / args.log_interval))
+                t_sample_sum = 0
                 print_info('size of states_pool = {}'.format(len(states_pool)))
                 print_info('#valid samples = {}, #invalid samples = {}, #valid / #invalid = {}'.format(num_valid_samples, num_invalid_samples, num_valid_samples / num_invalid_samples if num_invalid_samples > 0 else 10000.0))
                 print_info('Invalid samples: #no_action_samples = {}, #step_exceeded_samples = {}, #self_collision_samples = {}'.format(no_action_samples, step_exceeded_samples, self_collision_samples))
@@ -537,7 +547,7 @@ if __name__ == '__main__':
     args_list = ['--task', 'FlatTerrainTask',
                  '--grammar-file', '../../data/designs/grammar_apr30.dot',
                  '--num-iterations', '1000',
-                 '--mpc-num-processes', '32',
+                 '--mpc-num-processes', '16',
                  '--lr', '1e-4',
                  '--eps-start', '1.0',
                  '--eps-end', '0.1',
