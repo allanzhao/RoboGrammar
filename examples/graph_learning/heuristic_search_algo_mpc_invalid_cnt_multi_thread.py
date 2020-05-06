@@ -338,8 +338,8 @@ def search_algo(args):
 
             done_event.set()
 
-            print('all sampled designs:')
-            print(sampled_rewards)
+            # print('all sampled designs:')
+            # print(sampled_rewards)
 
             t_sample += time.time() - t0
 
@@ -541,11 +541,11 @@ if __name__ == '__main__':
                  '--lr', '1e-4',
                  '--eps-start', '1.0',
                  '--eps-end', '0.1',
-                 '--eps-decay', '0.2',
+                 '--eps-decay', '0.3',
                  '--eps-schedule', 'exp-decay',
                  '--eps-sample-start', '1.0',
                  '--eps-sample-end', '0.1',
-                 '--eps-sample-decay', '0.2',
+                 '--eps-sample-decay', '0.3',
                  '--eps-sample-schedule', 'exp-decay',
                  '--num-samples', '16', 
                  '--opt-iter', '25', 
