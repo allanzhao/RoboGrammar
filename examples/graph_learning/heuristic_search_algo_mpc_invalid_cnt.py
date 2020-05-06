@@ -30,26 +30,18 @@ import torch
 from torch import optim
 import torch.nn.functional as F
 from torch_geometric.data.data import Data
-from multiprocessing import Process, Queue, Event
 
 # import our own packages
 from arguments import get_parser
 from utils import solve_argv_conflict
 from common import *
-from design_search import make_initial_graph, build_normalized_robot, get_applicable_matches, has_nonterminals, simulate
+from design_search import make_initial_graph, build_normalized_robot, get_applicable_matches, has_nonterminals
 import tasks
 import pyrobotdesign as rd
 from RobotGrammarEnv import RobotGrammarEnv
 from Net import Net
 from Preprocessor import Preprocessor
 from states_pool import StatesPool
-
-class Sample:
-    def __init__(self, task_id, rule_seq, predicted_reward, info):
-        self.rule_seq = rule_seq
-        self.predicted_reward = predicted_reward
-        self.info = info
-        self.task_id = task_id
 
 # predict without grad
 def predict(V, state):
@@ -76,6 +68,23 @@ def predict_batch(V, states):
         masks = torch.tensor(masks_np)
         output, _, _ = V(features, adj_matrix, masks)
     return output[:, 0].detach().numpy()
+
+def select_action_serial(env, V, state, eps):
+    available_actions = env.get_available_actions(state)
+    if len(available_actions) == 0:
+        return None
+    sample = random.random()
+    if sample > eps:
+        best_action, best_V = -1, -np.inf
+        for action in available_actions:
+            next_state = env.transite(state, action)
+            next_V = predict(V, next_state)
+            if next_V > best_V:
+                best_action, best_V = action, next_V
+    else:
+        best_action = available_actions[random.randrange(len(available_actions))]
+    
+    return best_action
 
 def select_action(env, V, state, eps):
     available_actions = env.get_available_actions(state)
@@ -129,49 +138,6 @@ def show_all_actions(env, V, V_hat, state):
         next_state = env.transite(state, action)
         print('action = ', action, ', V = ', predict(V, next_state), ', V_hat = ', V_hat[hash(next_state)] if hash(next_state) in V_hat else -1.0)
 
-def sample_design(args, task_id, seed, env, V, eps, results_queue, time_queue, done_event):
-    tt0 = time.time()
-
-    random.seed(seed)
-
-    valid = False
-    samples = []
-    while not valid:
-        state = make_initial_graph()
-        rule_seq = []
-        no_action_flag = False
-        for _ in range(args.depth):
-            action, step_type = select_action(env, V, state, eps)
-            if action is None:
-                no_action_flag = True
-                break
-            rule_seq.append(action)
-            next_state = env.transite(state, action)
-            state = next_state
-            if not has_nonterminals(state):
-                break
-
-        valid = env.is_valid(state)
-
-        if not valid:
-            # update the invalid sample's count
-            if no_action_flag:
-                info = 'no_action'
-            elif has_nonterminals(state):
-                info = 'step_exceeded'
-            else:
-                info = 'self_collision'
-            samples.append(Sample(task_id, rule_seq, -2.0, info))
-        else:
-            samples.append(Sample(task_id, rule_seq, predict(V, state), info = 'valid'))
-
-    tt = time.time() - tt0
-    time_queue.put(tt)
-
-    results_queue.put(samples)
-
-    done_event.wait()
-
 def search_algo(args):
     # iniailize random seed
     random.seed(args.seed)
@@ -211,7 +177,6 @@ def search_algo(args):
     sample_adj_matrix, sample_features, sample_masks = preprocessor.preprocess(state)
     num_features = sample_features.shape[1]
     V = Net(max_nodes = max_nodes, num_channels = num_features, num_outputs = 1).to(device)
-    # V.share_memory()
 
     # load pretrained V function
     if args.load_V_path is not None:
@@ -274,8 +239,6 @@ def search_algo(args):
         # record the count for invalid samples
         no_action_samples, step_exceeded_samples, self_collision_samples = 0, 0, 0
 
-        # define state0
-        state0 = make_initial_graph()
         for epoch in range(args.num_iterations):
             t_start = time.time()
 
@@ -292,9 +255,7 @@ def search_algo(args):
             elif args.eps_sample_schedule == 'exp-decay':
                 eps_sample = args.eps_sample_end + (args.eps_sample_start - args.eps_sample_end) * np.exp(-1.0 * epoch / args.num_iterations / args.eps_sample_decay)
 
-            t_sample, t_mpc, t_opt = 0, 0, 0
-
-            t0 = time.time()
+            t_sample, t_update, t_mpc, t_opt = 0, 0, 0, 0
 
             selected_design, selected_reward = None, -np.inf
             selected_state_seq, selected_rule_seq = None, None
@@ -304,66 +265,58 @@ def search_algo(args):
                 num_samples = 1
             else:
                 num_samples = args.num_samples
-            
+        
             # use e-greedy to sample a design within maximum #steps.
-            results_queue = Queue()
-            done_event = Event()
-            time_queue = Queue()
-            tt0 = time.time()
-            processes = []
-            for task_id in range(num_samples):
-                seed = random.getrandbits(32)
-                p = Process(target = sample_design, args = (args, task_id, seed, env, V, eps, results_queue, time_queue, done_event))
-                p.start()
-                processes.append(p)
-            t_start = time.time() - tt0
-
-            sampled_rewards = [0.0 for _ in range(num_samples)]   
-            thread_times = []
-            t_update = 0
             for _ in range(num_samples):
-                samples = results_queue.get()
-                thread_time = time_queue.get()
-                thread_times.append(thread_time)
-                tt0 = time.time()
-                for i in range(len(samples) - 1):
-                    assert samples[i].info != 'valid'
-                    if samples[i].info == 'no_action':
-                        no_action_samples += 1
-                    elif samples[i].info == 'step_exceeded':
-                        step_exceeded_samples += 1
+                valid = False
+                while not valid:
+                    t0 = time.time()
+
+                    state = env.reset()
+                    rule_seq = []
+                    state_seq = [state]
+                    no_action_flag = False
+                    for _ in range(args.depth):
+                        action, step_type = select_action(env, V, state, eps)
+                        if action is None:
+                            no_action_flag = True
+                            break
+                        rule_seq.append(action)
+                        next_state = env.transite(state, action)
+                        state_seq.append(next_state)
+                        state = next_state
+                        if not has_nonterminals(state):
+                            break
+
+                    valid = env.is_valid(state)
+
+                    t_sample += time.time() - t0
+
+                    t0 = time.time()
+
+                    if not valid:
+                        # update the invalid sample's count
+                        if no_action_flag:
+                            no_action_samples += 1
+                        elif has_nonterminals(state):
+                            step_exceeded_samples += 1
+                        else:
+                            self_collision_samples += 1
+
+                        # update the Vhat for invalid designs
+                        update_Vhat(args, V_hat, state_seq, -2.0, invalid = True, invalid_cnt = invalid_his)
+                        # update states pool
+                        update_states_pool(states_pool, state_seq, V_hat)
+                        num_invalid_samples += 1
                     else:
-                        self_collision_samples += 1
+                        num_valid_samples += 1
 
-                    state, state_seq = apply_rules(state0, samples[i].rule_seq, env)
-                    # update the Vhat for invalid designs
-                    update_Vhat(args, V_hat, state_seq, -2.0, invalid = True, invalid_cnt = invalid_his)
-                    # update states pool
-                    update_states_pool(states_pool, state_seq, V_hat)
-                    num_invalid_samples += 1
+                    t_update += time.time() - t0
 
-                assert samples[-1].info == 'valid'
-                state, state_seq = apply_rules(state0, samples[-1].rule_seq, env)
-                num_valid_samples += 1
-                if samples[-1].predicted_reward > selected_reward:
-                    selected_design, selected_reward = state, samples[-1].predicted_reward
-                    selected_rule_seq, selected_state_seq = samples[-1].rule_seq, state_seq
-
-                sampled_rewards[samples[-1].task_id] = samples[-1].predicted_reward
-                t_update += time.time() - tt0
-
-            done_event.set()
-            
-            for p in processes:
-                p.join()
-
-            print('thread time = {}'.format(thread_times))
-            print('t_update = {}, t_start = {}'.format(t_update, t_start))
-
-            # print('all sampled designs:')
-            # print(sampled_rewards)
-
-            t_sample += time.time() - t0
+                predicted_value = predict(V, state)
+                if predicted_value > selected_reward:
+                    selected_design, selected_reward = state, predicted_value
+                    selected_rule_seq, selected_state_seq = rule_seq, state_seq
 
             t0 = time.time()
 
@@ -373,7 +326,7 @@ def search_algo(args):
                 repeated_cnt += 1
 
             ctrl_seq, reward = env.get_reward(selected_design)
-    
+
             t_mpc += time.time() - t0
 
             # save the design and the reward in the list
@@ -386,11 +339,15 @@ def search_algo(args):
                 best_design, best_reward = selected_rule_seq, reward
                 print_info('new best: reward = {:.4f}, predicted reward = {:.4f}, num_samples = {}'.format(reward, selected_reward, num_samples))
 
+            t0 = time.time()
+
             # update V_hat for the valid design
             update_Vhat(args, V_hat, selected_state_seq, reward)
 
             # update states pool for the valid design
             update_states_pool(states_pool, selected_state_seq, V_hat)
+
+            t_update += time.time() - t0
 
             t0 = time.time()
 
@@ -459,22 +416,22 @@ def search_algo(args):
             avg_prediction_error = prediction_error_sum / (epoch + 1)
 
             if repeated:
-                print_white('Epoch {:4}: T_sample = {:5.2f}, T_mpc = {:5.2f}, T_opt = {:5.2f}, eps = {:5.3f}, eps_sample = {:5.3f}, #samples = {:2}, training loss = {:7.4f}, pred_error = {:6.4f}, predicted_reward = {:6.4f}, reward = {:6.4f}, last 30 epoch reward = {:6.4f}, best reward = {:6.4f}'.format(\
-                    epoch, t_sample, t_mpc, t_opt, eps, eps_sample, num_samples, \
+                print_white('Epoch {:4}: T_sample = {:5.2f}, T_update = {:5.2f}, T_mpc = {:5.2f}, T_opt = {:5.2f}, eps = {:5.3f}, eps_sample = {:5.3f}, #samples = {:2}, training loss = {:7.4f}, pred_error = {:6.4f}, predicted_reward = {:6.4f}, reward = {:6.4f}, last 30 epoch reward = {:6.4f}, best reward = {:6.4f}'.format(\
+                    epoch, t_sample, t_update, t_mpc, t_opt, eps, eps_sample, num_samples, \
                     avg_loss, avg_prediction_error, selected_reward, reward, avg_reward, best_reward))
             else:
-                print_warning('Epoch {:4}: T_sample = {:5.2f}, T_mpc = {:5.2f}, T_opt = {:5.2f}, eps = {:5.3f}, eps_sample = {:5.3f}, #samples = {:2}, training loss = {:7.4f}, pred_error = {:6.4f}, predicted_reward = {:6.4f}, reward = {:6.4f}, last 30 epoch reward = {:6.4f}, best reward = {:6.4f}'.format(\
-                    epoch, t_sample, t_mpc, t_opt, eps, eps_sample, num_samples, \
+                print_warning('Epoch {:4}: T_sample = {:5.2f}, T_update = {:5.2f}, T_mpc = {:5.2f}, T_opt = {:5.2f}, eps = {:5.3f}, eps_sample = {:5.3f}, #samples = {:2}, training loss = {:7.4f}, pred_error = {:6.4f}, predicted_reward = {:6.4f}, reward = {:6.4f}, last 30 epoch reward = {:6.4f}, best reward = {:6.4f}'.format(\
+                    epoch, t_sample, t_update, t_mpc, t_opt, eps, eps_sample, num_samples, \
                     avg_loss, avg_prediction_error, selected_reward, reward, avg_reward, best_reward))
 
             fp_log = open(os.path.join(args.save_dir, 'log.txt'), 'a')
-            fp_log.write('eps = {:.4f}, eps_sample = {:.4f}, num_samples = {}, T_sample = {:4f}, T_mpc = {:.4f}, T_opt = {:.4f}, loss = {:.4f}, predicted_reward = {:.4f}, reward = {:.4f}, avg_reward = {:.4f}\n'.format(\
-                eps, eps_sample, num_samples, t_sample, t_mpc, t_opt, avg_loss, selected_reward, reward, avg_reward))
+            fp_log.write('eps = {:.4f}, eps_sample = {:.4f}, num_samples = {}, T_sample = {:4f}, T_update = {:4f}, T_mpc = {:.4f}, T_opt = {:.4f}, loss = {:.4f}, predicted_reward = {:.4f}, reward = {:.4f}, avg_reward = {:.4f}\n'.format(\
+                eps, eps_sample, num_samples, t_sample, t_update, t_mpc, t_opt, avg_loss, selected_reward, reward, avg_reward))
             fp_log.close()
 
             if (epoch + 1) % args.log_interval == 0:
                 print_info('Avg sampling time for last {} epoch: {:.4f} second'.format(args.log_interval, t_sample_sum / args.log_interval))
-                t_sample_sum = 0
+                t_sample_sum = 0.
                 print_info('size of states_pool = {}'.format(len(states_pool)))
                 print_info('#valid samples = {}, #invalid samples = {}, #valid / #invalid = {}'.format(num_valid_samples, num_invalid_samples, num_valid_samples / num_invalid_samples if num_invalid_samples > 0 else 10000.0))
                 print_info('Invalid samples: #no_action_samples = {}, #step_exceeded_samples = {}, #self_collision_samples = {}'.format(no_action_samples, step_exceeded_samples, self_collision_samples))
@@ -560,7 +517,7 @@ if __name__ == '__main__':
     args_list = ['--task', 'FlatTerrainTask',
                  '--grammar-file', '../../data/designs/grammar_apr30.dot',
                  '--num-iterations', '1000',
-                 '--mpc-num-processes', '16',
+                 '--mpc-num-processes', '32',
                  '--lr', '1e-4',
                  '--eps-start', '1.0',
                  '--eps-end', '0.1',
@@ -577,7 +534,7 @@ if __name__ == '__main__':
                  '--depth', '25',
                  '--save-dir', './trained_models/FlatTerrainTask/mpc/',
                  '--render-interval', '80',
-                 '--log-interval', '10',
+                 '--log-interval', '100',
                  '--eval-interval', '1000',
                  '--max-trials', '100']
     
