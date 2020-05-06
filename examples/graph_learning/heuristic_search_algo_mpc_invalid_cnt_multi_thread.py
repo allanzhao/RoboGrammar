@@ -211,6 +211,7 @@ def search_algo(args):
     sample_adj_matrix, sample_features, sample_masks = preprocessor.preprocess(state)
     num_features = sample_features.shape[1]
     V = Net(max_nodes = max_nodes, num_channels = num_features, num_outputs = 1).to(device)
+    # V.share_memory()
 
     # load pretrained V function
     if args.load_V_path is not None:
