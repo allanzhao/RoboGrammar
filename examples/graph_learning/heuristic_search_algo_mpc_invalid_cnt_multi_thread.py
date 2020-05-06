@@ -167,7 +167,7 @@ def sample_design(args, task_id, seed, env, V, eps, results_queue, time_queue, d
 
     tt = time.time() - tt0
     time_queue.put(tt)
-    
+
     results_queue.put(samples)
 
     done_event.wait()
@@ -314,10 +314,13 @@ def search_algo(args):
                 p.start()
 
             sampled_rewards = [0.0 for _ in range(num_samples)]   
-            thread_time = [0.0 for _ in range(num_samples)]         
+            thread_times = []
+            t_update = 0
             for _ in range(num_samples):
                 samples = results_queue.get()
                 thread_time = time_queue.get()
+                thread_times.append(thread_time)
+                tt0 = time.time()
                 for i in range(len(samples) - 1):
                     assert samples[i].info != 'valid'
                     if samples[i].info == 'no_action':
@@ -342,11 +345,13 @@ def search_algo(args):
                     selected_rule_seq, selected_state_seq = samples[-1].rule_seq, state_seq
 
                 sampled_rewards[samples[-1].task_id] = samples[-1].predicted_reward
+                t_update += time.time() - tt0
 
             done_event.set()
             
-            print('Time = {}'.format(thread_time))
-
+            print('thread time = {}'.format(thread_time))
+            print('t_update = {}'.format(t_update))
+            
             # print('all sampled designs:')
             # print(sampled_rewards)
 
