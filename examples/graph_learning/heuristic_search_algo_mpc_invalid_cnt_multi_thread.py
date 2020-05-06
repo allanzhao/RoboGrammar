@@ -30,6 +30,7 @@ import torch
 from torch import optim
 import torch.nn.functional as F
 from torch_geometric.data.data import Data
+from multiprocessing import Process, Queue, Event
 
 # import our own packages
 from arguments import get_parser
@@ -42,6 +43,13 @@ from RobotGrammarEnv import RobotGrammarEnv
 from Net import Net
 from Preprocessor import Preprocessor
 from states_pool import StatesPool
+
+class Sample:
+    def __init__(self, task_id, rule_seq, predicted_reward, info):
+        self.rule_seq = rule_seq
+        self.predicted_reward = predicted_reward
+        self.info = info
+        self.task_id = task_id
 
 # predict without grad
 def predict(V, state):
@@ -69,23 +77,6 @@ def predict_batch(V, states):
         output, _, _ = V(features, adj_matrix, masks)
     return output[:, 0].detach().numpy()
 
-def select_action_serial(env, V, state, eps):
-    available_actions = env.get_available_actions(state)
-    if len(available_actions) == 0:
-        return None
-    sample = random.random()
-    if sample > eps:
-        best_action, best_V = -1, -np.inf
-        for action in available_actions:
-            next_state = env.transite(state, action)
-            next_V = predict(V, next_state)
-            if next_V > best_V:
-                best_action, best_V = action, next_V
-    else:
-        best_action = available_actions[random.randrange(len(available_actions))]
-    
-    return best_action
-
 def select_action(env, V, state, eps):
     available_actions = env.get_available_actions(state)
     if len(available_actions) == 0:
@@ -105,25 +96,23 @@ def select_action(env, V, state, eps):
     
     return best_action, step_type
 
-def update_Vhat(V_hat, state_seq, reward, invalid = False, invalid_cnt = None):
+def update_Vhat(args, V_hat, state_seq, reward, invalid = False, invalid_cnt = None):
     for state in state_seq:
         state_hash_key = hash(state)
         if invalid:
             if not (state_hash_key in invalid_cnt):
                 invalid_cnt[state_hash_key] = 0
             invalid_cnt[state_hash_key] += 1
-            if invalid_cnt[state_hash_key] < 100:
+            if invalid_cnt[state_hash_key] < args.max_trials:
                 continue
         if not (state_hash_key in V_hat):
             V_hat[state_hash_key] = -np.inf
         V_hat[state_hash_key] = max(V_hat[state_hash_key], reward)
 
-def update_states_pool(states_pool, state_seq, states_set, V_hat):
-    for state in state_seq: # the first two state in the sequence are always same, so omitted
-        state_hash_key = hash(state)
-        if (not (state_hash_key in states_set)) and (state_hash_key in V_hat):
-            states_pool.push(state)
-            states_set.add(state_hash_key)
+def update_states_pool(states_pool, state_seq, V_hat):
+    for state in state_seq[2:]: # the first two state in the sequence are always same, so omitted
+        if hash(state) in V_hat:
+            states_pool.push(state) # try to use state distribution
 
 def apply_rules(state, actions, env):
     cur_state = state
@@ -140,6 +129,44 @@ def show_all_actions(env, V, V_hat, state):
         next_state = env.transite(state, action)
         print('action = ', action, ', V = ', predict(V, next_state), ', V_hat = ', V_hat[hash(next_state)] if hash(next_state) in V_hat else -1.0)
 
+def sample_design(args, task_id, seed, env, V, eps, results_queue, done_event):
+    random.seed(seed)
+
+    valid = False
+    samples = []
+    while not valid:
+        state = make_initial_graph()
+        rule_seq = []
+        no_action_flag = False
+        for _ in range(args.depth):
+            action, step_type = select_action(env, V, state, eps)
+            if action is None:
+                no_action_flag = True
+                break
+            rule_seq.append(action)
+            next_state = env.transite(state, action)
+            state = next_state
+            if not has_nonterminals(state):
+                break
+
+        valid = env.is_valid(state)
+
+        if not valid:
+            # update the invalid sample's count
+            if no_action_flag:
+                info = 'no_action'
+            elif has_nonterminals(state):
+                info = 'step_exceeded'
+            else:
+                info = 'self_collision'
+            samples.append(Sample(task_id, rule_seq, -2.0, info))
+        else:
+            samples.append(Sample(task_id, rule_seq, predict(V, state), info = 'valid'))
+
+    results_queue.put(samples)
+
+    done_event.wait()
+
 def search_algo(args):
     # iniailize random seed
     random.seed(args.seed)
@@ -151,7 +178,11 @@ def search_algo(args):
     # TODO: use 80 to fit the input of trained MPC GNN, use args.depth * 3 later for real mpc
     max_nodes = 80
     task_class = getattr(tasks, args.task)
-    task = task_class()
+    if not args.no_noise:
+        task = task_class()
+    else:
+        task = task_class(force_std = 0.0, torque_std = 0.0)
+
     graphs = rd.load_graphs(args.grammar_file)
     rules = [rd.create_rule_from_graph(g) for g in graphs]
 
@@ -191,17 +222,21 @@ def search_algo(args):
         V_hat_fp.close()
         print_info('Loaded pretrained Vhat from {}'.format(args.load_Vhat_path))
 
-    # initialize invalid_his
+    # initialize invalid_cnt
     invalid_his = dict()
+    num_invalid_samples, num_valid_samples = 0, 0
+    repeated_cnt = 0
 
     # initialize the seen states pool
     states_pool = StatesPool(capacity = args.states_pool_capacity)
-    states_set = set()
 
     # explored designs
     designs = []
     design_rewards = []
     design_opt_seeds = []
+
+    # record prediction error
+    prediction_error_sum = 0.0
 
     if not args.test:
         # initialize save folders and files
@@ -231,8 +266,11 @@ def search_algo(args):
         t_sample_sum = 0.
 
         # record the count for invalid samples
-        no_action_samples, step_exceeded_samples = 0, 0
+        no_action_samples, step_exceeded_samples, self_collision_samples = 0, 0, 0
 
+        # define state0
+        state0 = make_initial_graph()
+        seed_cnt = 0
         for epoch in range(args.num_iterations):
             t_start = time.time()
 
@@ -249,7 +287,9 @@ def search_algo(args):
             elif args.eps_sample_schedule == 'exp-decay':
                 eps_sample = args.eps_sample_end + (args.eps_sample_start - args.eps_sample_end) * np.exp(-1.0 * epoch / args.num_iterations / args.eps_sample_decay)
 
-            t_sample, t_update, t_mpc, t_opt = 0, 0, 0, 0
+            t_sample, t_mpc, t_opt = 0, 0, 0
+
+            t0 = time.time()
 
             selected_design, selected_reward = None, -np.inf
             selected_state_seq, selected_rule_seq = None, None
@@ -259,56 +299,56 @@ def search_algo(args):
                 num_samples = 1
             else:
                 num_samples = args.num_samples
-        
+
             # use e-greedy to sample a design within maximum #steps.
+            results_queue = Queue()
+            done_event = Event()
+            for task_id in range(num_samples):
+                p = Process(target = sample_design, args = (args, task_id, args.seed + task_id + seed_cnt, env, V, eps, results_queue, done_event))
+                seed_cnt += 1
+                p.start()
+
+            sampled_rewards = [0.0 for _ in range(num_samples)]            
             for _ in range(num_samples):
-                valid = False
-                while not valid:
-                    t0 = time.time()
+                samples = results_queue.get()
+                for i in range(len(samples) - 1):
+                    assert samples[i].info != 'valid'
+                    if samples[i].info == 'no_action':
+                        no_action_samples += 1
+                    elif samples[i].info == 'step_exceeded':
+                        step_exceeded_samples += 1
+                    else:
+                        self_collision_samples += 1
 
-                    state = env.reset()
-                    rule_seq = []
-                    state_seq = [state]
-                    no_action_flag = False
-                    for _ in range(args.depth):
-                        action, step_type = select_action(env, V, state, eps)
-                        if action is None:
-                            no_action_flag = True
-                            break
-                        rule_seq.append(action)
-                        next_state = env.transite(state, action)
-                        state_seq.append(next_state)
-                        state = next_state
-                    
-                    valid = env.is_valid(state)
+                    state, state_seq = apply_rules(state0, samples[i].rule_seq, env)
+                    # update the Vhat for invalid designs
+                    update_Vhat(args, V_hat, state_seq, -2.0, invalid = True, invalid_cnt = invalid_his)
+                    # update states pool
+                    update_states_pool(states_pool, state_seq, V_hat)
+                    num_invalid_samples += 1
 
-                    t_sample += time.time() - t0
+                assert samples[-1].info == 'valid'
+                state, state_seq = apply_rules(state0, samples[-1].rule_seq, env)
+                num_valid_samples += 1
+                if samples[-1].predicted_reward > selected_reward:
+                    selected_design, selected_reward = state, samples[-1].predicted_reward
+                    selected_rule_seq, selected_state_seq = samples[-1].rule_seq, state_seq
 
-                    t0 = time.time()
+                sampled_rewards[samples[-1].task_id] = samples[-1].predicted_reward
 
-                    if not valid:
-                        # update the invalid sample's count
-                        if no_action_flag:
-                            no_action_samples += 1
-                        else:
-                            step_exceeded_samples += 1
-                        # update the Vhat for invalid designs
-                        update_Vhat(V_hat, state_seq, -2.0, invalid = True, invalid_cnt = invalid_his)
-                        # update states pool
-                        update_states_pool(states_pool, state_seq, states_set, V_hat)
+            done_event.set()
 
-                    t_update += time.time() - t0
+            print('all sampled designs:')
+            print(sampled_rewards)
 
-                predicted_value = predict(V, state)
-                if predicted_value > selected_reward:
-                    selected_design, selected_reward = state, predicted_value
-                    selected_rule_seq, selected_state_seq = rule_seq, state_seq
+            t_sample += time.time() - t0
 
             t0 = time.time()
 
             repeated = False
             if (hash(selected_design) in V_hat) and (V_hat[hash(selected_design)] > -2.0 + 1e-3):
                 repeated = True
+                repeated_cnt += 1
 
             ctrl_seq, reward = env.get_reward(selected_design)
 
@@ -324,15 +364,11 @@ def search_algo(args):
                 best_design, best_reward = selected_rule_seq, reward
                 print_info('new best: reward = {:.4f}, predicted reward = {:.4f}, num_samples = {}'.format(reward, selected_reward, num_samples))
 
-            t0 = time.time()
-
             # update V_hat for the valid design
-            update_Vhat(V_hat, selected_state_seq, reward)
+            update_Vhat(args, V_hat, selected_state_seq, reward)
 
             # update states pool for the valid design
-            update_states_pool(states_pool, selected_state_seq, states_set, V_hat)
-
-            t_update += time.time() - t0
+            update_states_pool(states_pool, selected_state_seq, V_hat)
 
             t0 = time.time()
 
@@ -397,44 +433,37 @@ def search_algo(args):
             avg_loss = total_loss / args.opt_iter
             len_his = min(len(epoch_rew_his), 30)
             avg_reward = np.sum(epoch_rew_his[-len_his:]) / len_his
+            prediction_error_sum += (selected_reward - reward) ** 2
+            avg_prediction_error = prediction_error_sum / (epoch + 1)
+
             if repeated:
-                print_white('Epoch {}: T_sample = {:.2f}, T_update = {:.2f}, T_mpc = {:.2f}, T_opt = {:.2f}, eps = {:.3f}, eps_sample = {:.3f}, #samples = {}, training loss = {:.4f}, predicted_reward = {:.4f}, reward = {:.4f}, last 30 epoch reward = {:.4f}, best reward = {:.4f}'.format(\
-                    epoch, t_sample, t_update, t_mpc, t_opt, eps, eps_sample, num_samples, \
-                    avg_loss, selected_reward, reward, avg_reward, best_reward))
+                print_white('Epoch {:4}: T_sample = {:5.2f}, T_mpc = {:5.2f}, T_opt = {:5.2f}, eps = {:5.3f}, eps_sample = {:5.3f}, #samples = {:2}, training loss = {:7.4f}, pred_error = {:6.4f}, predicted_reward = {:6.4f}, reward = {:6.4f}, last 30 epoch reward = {:6.4f}, best reward = {:6.4f}'.format(\
+                    epoch, t_sample, t_mpc, t_opt, eps, eps_sample, num_samples, \
+                    avg_loss, avg_prediction_error, selected_reward, reward, avg_reward, best_reward))
             else:
-                print_warning('Epoch {}: T_sample = {:.2f}, T_update = {:.2f}, T_mpc = {:.2f}, T_opt = {:.2f}, eps = {:.3f}, eps_sample = {:.3f}, #samples = {}, training loss = {:.4f}, predicted_reward = {:.4f}, reward = {:.4f}, last 30 epoch reward = {:.4f}, best reward = {:.4f}'.format(\
-                    epoch, t_sample, t_update, t_mpc, t_opt, eps, eps_sample, num_samples, \
-                    avg_loss, selected_reward, reward, avg_reward, best_reward))
+                print_warning('Epoch {:4}: T_sample = {:5.2f}, T_mpc = {:5.2f}, T_opt = {:5.2f}, eps = {:5.3f}, eps_sample = {:5.3f}, #samples = {:2}, training loss = {:7.4f}, pred_error = {:6.4f}, predicted_reward = {:6.4f}, reward = {:6.4f}, last 30 epoch reward = {:6.4f}, best reward = {:6.4f}'.format(\
+                    epoch, t_sample, t_mpc, t_opt, eps, eps_sample, num_samples, \
+                    avg_loss, avg_prediction_error, selected_reward, reward, avg_reward, best_reward))
 
             fp_log = open(os.path.join(args.save_dir, 'log.txt'), 'a')
-            fp_log.write('eps = {:.4f}, eps_sample = {:.4f}, num_samples = {}, T_sample = {:4f}, T_update = {:4f}, T_mpc = {:.4f}, T_opt = {:.4f}, loss = {:.4f}, predicted_reward = {:.4f}, reward = {:.4f}, avg_reward = {:.4f}\n'.format(\
-                eps, eps_sample, num_samples, t_sample, t_update, t_mpc, t_opt, avg_loss, selected_reward, reward, avg_reward))
+            fp_log.write('eps = {:.4f}, eps_sample = {:.4f}, num_samples = {}, T_sample = {:4f}, T_mpc = {:.4f}, T_opt = {:.4f}, loss = {:.4f}, predicted_reward = {:.4f}, reward = {:.4f}, avg_reward = {:.4f}\n'.format(\
+                eps, eps_sample, num_samples, t_sample, t_mpc, t_opt, avg_loss, selected_reward, reward, avg_reward))
             fp_log.close()
 
             if (epoch + 1) % args.log_interval == 0:
                 print_info('Avg sampling time for last {} epoch: {:.4f} second'.format(args.log_interval, t_sample_sum / args.log_interval))
-                t_sample_sum = 0.
-                invalid_cnt, valid_cnt = 0, 0
-                for state in states_pool.pool:
-                    if np.isclose(V_hat[hash(state)], -2.0):
-                        invalid_cnt += 1
-                    else:
-                        valid_cnt += 1
-                print_info('states_pool size = {}, #valid = {}, #invalid = {}, #valid / #invalid = {}'.format(len(states_pool), valid_cnt, invalid_cnt, valid_cnt / invalid_cnt if invalid_cnt > 0 else 10000.0))
-                print_info('Invalid samples: #no_action_samples = {}, #step_exceeded_samples = {}, #no_action / #step_exceeded = {}'.format(no_action_samples, step_exceeded_samples, no_action_samples / step_exceeded_samples))
+                print_info('size of states_pool = {}'.format(len(states_pool)))
+                print_info('#valid samples = {}, #invalid samples = {}, #valid / #invalid = {}'.format(num_valid_samples, num_invalid_samples, num_valid_samples / num_invalid_samples if num_invalid_samples > 0 else 10000.0))
+                print_info('Invalid samples: #no_action_samples = {}, #step_exceeded_samples = {}, #self_collision_samples = {}'.format(no_action_samples, step_exceeded_samples, self_collision_samples))
+                max_trials, cnt = 0, 0
+                for key in invalid_his.keys():
+                    if invalid_his[key] > max_trials:
+                        max_trials = invalid_his[key]
+                    if invalid_his[key] > args.max_trials:
+                        cnt += 1
 
-            # # evaluation
-            # if (args.eval_interval > 0) and ((epoch + 1) % args.eval_interval == 0 or epoch + 1 == args.num_iterations):
-            #     print_info('-------- Doing evaluation --------')
-            #     print_info('#states = {}'.format(len(states_pool)))
-            #     loss_total = 0.
-            #     for state in states_pool.pool:
-            #         value = predict(V, state)
-            #         loss_total += (V_hat[hash(state)] - value) ** 2
-            #     print_info('Loss = {:.3f}'.format(loss_total / len(states_pool)))
-            #     fp_eval = open(os.path.join(args.save_dir, 'eval.txt'), 'a')
-            #     fp_eval.write('epoch = {}, loss = {:.3f}\n'.format(epoch + 1, loss_total / len(states_pool)))
-            #     fp_eval.close()
+                print_info('max invalid_trials = {}, #failed nodes = {}'.format(max_trials, cnt))
+                print_info('repeated rate = {}'.format(repeated_cnt / (epoch + 1)))
 
         save_path = os.path.join(args.save_dir, 'model_state_dict_final.pt')
         torch.save(V.state_dict(), save_path)
@@ -508,27 +537,27 @@ if __name__ == '__main__':
     args_list = ['--task', 'FlatTerrainTask',
                  '--grammar-file', '../../data/designs/grammar_apr30.dot',
                  '--num-iterations', '1000',
-                 '--mpc-num-processes', '4',
+                 '--mpc-num-processes', '32',
                  '--lr', '1e-4',
                  '--eps-start', '1.0',
                  '--eps-end', '0.1',
-                 '--eps-decay', '0.3',
+                 '--eps-decay', '0.2',
                  '--eps-schedule', 'exp-decay',
                  '--eps-sample-start', '1.0',
                  '--eps-sample-end', '0.1',
-                 '--eps-sample-decay', '0.3',
+                 '--eps-sample-decay', '0.2',
                  '--eps-sample-schedule', 'exp-decay',
                  '--num-samples', '16', 
                  '--opt-iter', '25', 
                  '--batch-size', '32',
-                 '--states-pool-capacity', '10000000',
+                 '--states-pool-capacity', '50000',
                  '--depth', '25',
                  '--save-dir', './trained_models/FlatTerrainTask/mpc/',
                  '--render-interval', '80',
-                 '--log-interval', '200',
-                 '--eval-interval', '1000']
-                #  '--load-V-path', './trained_models/universal_value_function/test_model.pt']
-
+                 '--log-interval', '10',
+                 '--eval-interval', '1000',
+                 '--max-trials', '100']
+    
     solve_argv_conflict(args_list)
     parser = get_parser()
     args = parser.parse_args(args_list + sys.argv[1:])

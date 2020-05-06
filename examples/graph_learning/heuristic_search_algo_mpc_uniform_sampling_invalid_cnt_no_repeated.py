@@ -112,7 +112,7 @@ def update_Vhat(V_hat, state_seq, reward, invalid = False, invalid_cnt = None):
             if not (state_hash_key in invalid_cnt):
                 invalid_cnt[state_hash_key] = 0
             invalid_cnt[state_hash_key] += 1
-            if invalid_cnt[state_hash_key] < 100:
+            if invalid_cnt[state_hash_key] < 30:
                 continue
         if not (state_hash_key in V_hat):
             V_hat[state_hash_key] = -np.inf
@@ -299,7 +299,7 @@ def search_algo(args):
                     else:
                         if (hash(state) in V_hat) and (V_hat[hash(state)] > -2.0 + 1e-3):
                             update_Vhat(V_hat, state_seq, -2.0)
-                            update_states_pool(states_pool, state_seq)
+                            update_states_pool(states_pool, state_seq, states_set, V_hat)
                             valid = False
 
                     t_update += time.time() - t0
@@ -512,16 +512,16 @@ if __name__ == '__main__':
     torch.set_default_dtype(torch.float64)
     args_list = ['--task', 'FlatTerrainTask',
                  '--grammar-file', '../../data/designs/grammar_apr30.dot',
-                 '--num-iterations', '5000',
-                 '--mpc-num-processes', '32',
+                 '--num-iterations', '1000',
+                 '--mpc-num-processes', '4',
                  '--lr', '1e-4',
                  '--eps-start', '1.0',
                  '--eps-end', '0.1',
-                 '--eps-decay', '0.2',
+                 '--eps-decay', '0.3',
                  '--eps-schedule', 'exp-decay',
                  '--eps-sample-start', '1.0',
                  '--eps-sample-end', '0.1',
-                 '--eps-sample-decay', '0.2',
+                 '--eps-sample-decay', '0.3',
                  '--eps-sample-schedule', 'exp-decay',
                  '--num-samples', '16', 
                  '--opt-iter', '25', 

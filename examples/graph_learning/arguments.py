@@ -22,6 +22,8 @@ def get_parser():
     parser.add_argument('--opt-iter', type = int, default = 25, help = 'number of iterations for optimizer')
     parser.add_argument('--batch-size', type = int, default = 32, help = 'batch size for optimizer')
     parser.add_argument('--states-pool-capacity', type = int, default = 10000000, help = 'the maximum size of states pool')
+    parser.add_argument('--max-trials', type = int, default = 100, help = 'the max number of trials before determining invalid')
+    parser.add_argument('--no-noise', default = False, action = 'store_true', help = 'if remove noise from simulation')
 
     parser.add_argument('--load-V-path', type = str, default = None, help = 'the path to load pretrained value function')
     parser.add_argument('--load-Vhat-path', type = str, default = None, help = 'the path to load pretrained value_target table')
@@ -31,6 +33,7 @@ def get_parser():
     parser.add_argument('--render-interval', type=int, default = 0)
     parser.add_argument('--log-interval', type = int, default = 1)
     parser.add_argument('--eval-interval', type = int, default = 1000)
+
     parser.add_argument('--test', default = False, action = 'store_true')
     
     return parser

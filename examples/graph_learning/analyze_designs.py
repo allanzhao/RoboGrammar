@@ -34,6 +34,10 @@ if __name__ == '__main__':
         N += 1
         design = row['rule_seq']
         reward = float(row['reward'])
+        if 'opt_seed' in row:
+            opt_seed = row['opt_seed']
+        else:
+            opt_seed = None
         if design not in memory:
             memory[design] = 0
         memory[design] += 1
@@ -51,7 +55,7 @@ if __name__ == '__main__':
             if reward > best_reward[-1]:
                 best_design = state
                 best_rule_seq = design
-                print('best: {}, {}, hash = {}'.format(reward, design, hash(state)))
+                print('best: {}, {}, hash = {}, opt_seed = {}'.format(reward, design, hash(state), opt_seed))
 
             best_reward.append(max(reward, best_reward[-1]))
         rewards.append(reward)
