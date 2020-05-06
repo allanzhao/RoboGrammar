@@ -308,10 +308,12 @@ def search_algo(args):
             results_queue = Queue()
             done_event = Event()
             time_queue = Queue()
+            tt0 = time.time()
             for task_id in range(num_samples):
                 seed = random.getrandbits(32)
                 p = Process(target = sample_design, args = (args, task_id, seed, env, V, eps, results_queue, time_queue, done_event))
                 p.start()
+            t_start = time.time() - tt0
 
             sampled_rewards = [0.0 for _ in range(num_samples)]   
             thread_times = []
@@ -349,9 +351,9 @@ def search_algo(args):
 
             done_event.set()
             
-            print('thread time = {}'.format(thread_time))
-            print('t_update = {}'.format(t_update))
-            
+            print('thread time = {}'.format(thread_times))
+            print('t_update = {}, t_start = {}'.format(t_update, t_start))
+
             # print('all sampled designs:')
             # print(sampled_rewards)
 
