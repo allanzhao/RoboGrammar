@@ -438,9 +438,13 @@ def search_algo(args):
                 max_trials, cnt = 0, 0
                 for key in invalid_his.keys():
                     if invalid_his[key] > max_trials:
-                        max_trials = invalid_his[key]
-                    if invalid_his[key] > args.max_trials:
-                        cnt += 1
+                        if key not in V_hat:
+                            max_trials = invalid_his[key]
+                        elif V_hat[key] < -2.0 + 1e-3:
+                            max_trials = invalid_his[key]
+                    if invalid_his[key] >= args.max_trials:
+                        if V_hat[key] < -2.0 + 1e-3:
+                            cnt += 1
 
                 print_info('max invalid_trials = {}, #failed nodes = {}'.format(max_trials, cnt))
                 print_info('repeated rate = {}'.format(repeated_cnt / (epoch + 1)))
@@ -517,7 +521,7 @@ if __name__ == '__main__':
     args_list = ['--task', 'FlatTerrainTask',
                  '--grammar-file', '../../data/designs/grammar_apr30.dot',
                  '--num-iterations', '1000',
-                 '--mpc-num-processes', '32',
+                 '--mpc-num-processes', '4',
                  '--lr', '1e-4',
                  '--eps-start', '1.0',
                  '--eps-end', '0.1',
