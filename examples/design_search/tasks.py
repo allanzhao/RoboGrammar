@@ -109,23 +109,35 @@ class GapTerrainTask(ForwardSpeedTask):
     sim.add_prop(self.floor, [self.floor_x, -2.0, 0.0],
                  rd.Quaterniond(1.0, 0.0, 0.0, 0.0))
 
-class StairsTerrainTask(ForwardSpeedTask):
+class SteppedTerrainTask(ForwardSpeedTask):
   """
-  Task where the objective is to move forward as quickly as possible on stairs.
+  Task where the objective is to move forward as quickly as possible on stepped
+  terrain.
   """
 
-  def __init__(self, **kwargs):
+  def __init__(self, x_min=-20.0, x_max=20.0, seed=0, **kwargs):
     super().__init__(**kwargs)
+    self.seed = seed
 
-    self.floor = rd.Prop(rd.PropShape.BOX, 0.0, 0.5, [10.0, 1.0, 10.0])
-    self.step = rd.Prop(rd.PropShape.BOX, 0.0, 0.5, [0.25, 1.0, 10.0])
+    rng = np.random.RandomState(self.seed)
+    edge_x = np.arange(0.0, x_max, 0.5)
+    edge_x += rng.normal(0.0, 0.1, size=edge_x.shape)
+    platform_x_min = np.concatenate(([x_min], edge_x))
+    platform_x_max = np.concatenate((edge_x, [x_max]))
+    platform_x = 0.5 * (platform_x_min + platform_x_max)
+    platform_half_widths = 0.5 * (platform_x_max - platform_x_min)
+
+    self.platform_x = platform_x
+    self.platforms = [
+        rd.Prop(rd.PropShape.BOX, 0.0, 0.5, [half_width, 1.0, 10.0]) for
+        half_width in platform_half_widths]
 
   def add_terrain(self, sim):
-    sim.add_prop(self.floor, [0.0, -1.0, 0.0],
-                 rd.Quaterniond(1.0, 0.0, 0.0, 0.0))
-    for i in range(18):
-      sim.add_prop(self.step, [1.25 + 0.5 * i, -1.0 + 0.15 * (i + 1), 0.0],
-                   rd.Quaterniond(1.0, 0.0, 0.0, 0.0))
+    rng = np.random.RandomState(self.seed)
+    y = -1.0
+    for i, (x, platform) in enumerate(zip(self.platform_x, self.platforms)):
+      sim.add_prop(platform, [x, y, 0.0], rd.Quaterniond(1.0, 0.0, 0.0, 0.0))
+      y += rng.normal(0.0, min(0.015 * i, 0.1))
 
 class FrozenLakeTask(ForwardSpeedTask):
   """
