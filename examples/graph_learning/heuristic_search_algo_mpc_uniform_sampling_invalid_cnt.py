@@ -151,7 +151,10 @@ def search_algo(args):
     # TODO: use 80 to fit the input of trained MPC GNN, use args.depth * 3 later for real mpc
     max_nodes = 80
     task_class = getattr(tasks, args.task)
-    task = task_class()
+    if args.no_noise:
+        task = task_class(force_std = 0.0, torque_std = 0.0)
+    else:
+        task = task_class()
     graphs = rd.load_graphs(args.grammar_file)
     rules = [rd.create_rule_from_graph(g) for g in graphs]
 
@@ -524,11 +527,11 @@ if __name__ == '__main__':
                  '--lr', '1e-4',
                  '--eps-start', '1.0',
                  '--eps-end', '0.1',
-                 '--eps-decay', '0.2',
+                 '--eps-decay', '0.3',
                  '--eps-schedule', 'exp-decay',
                  '--eps-sample-start', '1.0',
                  '--eps-sample-end', '0.1',
-                 '--eps-sample-decay', '0.2',
+                 '--eps-sample-decay', '0.3',
                  '--eps-sample-schedule', 'exp-decay',
                  '--num-samples', '16', 
                  '--opt-iter', '25', 

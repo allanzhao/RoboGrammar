@@ -83,8 +83,7 @@ def main():
   args = parser.parse_args()
 
   task_class = getattr(tasks, args.task)
-  # task = task_class()
-  task = task_class(force_std = 0.0)
+  task = task_class()
   graphs = rd.load_graphs(args.grammar_file)
   rules = [rd.create_rule_from_graph(g) for g in graphs]
 

@@ -74,7 +74,7 @@ if __name__ == '__main__':
     for key in design_cnt.keys():
         repeat += design_cnt[key][0] - 1
         if design_cnt[key][0] > 10:
-            print('reward = ', design_cnt[key][1], ', repeated: ', design_cnt[key][0])
+            print('reward = ', design_cnt[key][1], ', hash = ', key, ', repeated: ', design_cnt[key][0])
 
     print('repeat = ', repeat, '/', N, ', ratio = ', repeat / N)
 
