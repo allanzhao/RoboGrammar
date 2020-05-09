@@ -547,7 +547,7 @@ if __name__ == '__main__':
                  '--render-interval', '80',
                  '--log-interval', '100',
                  '--eval-interval', '1000',
-                 '--max-trials', '30',
+                 '--max-trials', '1000',
                  '--num-eval', '1']
                 #  '--load-V-path', './trained_models/universal_value_function/test_model.pt']
 

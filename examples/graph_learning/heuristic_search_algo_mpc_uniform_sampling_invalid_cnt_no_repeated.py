@@ -313,7 +313,7 @@ def search_algo(args):
                     else:
                         num_valid_samples += 1
                         if (hash(state) in V_hat) and (V_hat[hash(state)] > -2.0 + 1e-3):
-                            update_Vhat(V_hat, state_seq, -2.0)
+                            update_Vhat(args, V_hat, state_seq, V_hat[hash(state)])
                             update_states_pool(states_pool, state_seq, states_set, V_hat)
                             valid = False
 
@@ -551,7 +551,7 @@ if __name__ == '__main__':
                  '--render-interval', '80',
                  '--log-interval', '100',
                  '--eval-interval', '1000',
-                 '--max-trials', '30',
+                 '--max-trials', '1000',
                  '--num-eval', '4']
                 #  '--load-V-path', './trained_models/universal_value_function/test_model.pt']
 
