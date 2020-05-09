@@ -149,7 +149,7 @@ def search_algo(args):
     
     # initialize/load
     # TODO: use 80 to fit the input of trained MPC GNN, use args.depth * 3 later for real mpc
-    max_nodes = 80
+    max_nodes = args.depth * 3
     task_class = getattr(tasks, args.task)
     if args.no_noise:
         task = task_class(force_std = 0.0, torque_std = 0.0)
@@ -542,7 +542,7 @@ if __name__ == '__main__':
                  '--opt-iter', '25', 
                  '--batch-size', '32',
                  '--states-pool-capacity', '10000000',
-                 '--depth', '25',
+                 '--depth', '40',
                  '--save-dir', './trained_models/FlatTerrainTask/mpc/',
                  '--render-interval', '80',
                  '--log-interval', '100',
