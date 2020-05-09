@@ -84,6 +84,7 @@ def main():
 
   task_class = getattr(tasks, args.task)
   task = task_class()
+  # task = task_class(force_std = 1.0)
   graphs = rd.load_graphs(args.grammar_file)
   rules = [rd.create_rule_from_graph(g) for g in graphs]
 

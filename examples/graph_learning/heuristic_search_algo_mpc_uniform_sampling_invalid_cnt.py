@@ -327,14 +327,19 @@ def search_algo(args):
                 repeated = True
                 repeated_cnt += 1
 
-            ctrl_seq, reward = env.get_reward(selected_design)
+            reward, best_seed = -np.inf, None
+            
+            for _ in range(args.num_eval):
+                _, rew = env.get_reward(selected_design)
+                if rew > reward:
+                    reward, best_seed = rew, env.last_opt_seed
 
             t_mpc += time.time() - t0
 
             # save the design and the reward in the list
             designs.append(selected_rule_seq)
             design_rewards.append(reward)
-            design_opt_seeds.append(env.last_opt_seed)
+            design_opt_seeds.append(best_seed)
 
             # update best design
             if reward > best_reward:
@@ -542,7 +547,8 @@ if __name__ == '__main__':
                  '--render-interval', '80',
                  '--log-interval', '100',
                  '--eval-interval', '1000',
-                 '--max-trials', '30']
+                 '--max-trials', '30',
+                 '--num-eval', '1']
                 #  '--load-V-path', './trained_models/universal_value_function/test_model.pt']
 
     solve_argv_conflict(args_list)

@@ -102,7 +102,7 @@ class RobotGrammarEnv:
             input_sequence, reward = simulate(robot, self.task, opt_seed, self.mpc_num_processes, episode_count = 1)
 
             if reward is None or (reward is not None and reward > self.task.result_bound):
-                reward = 0.0
+                reward = -2.0
 
             # if reward is None:
             #     reward = -2.0
