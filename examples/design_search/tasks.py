@@ -4,7 +4,7 @@ import pyrobotdesign as rd
 
 class ForwardSpeedTask(ABC):
   def __init__(self, time_step=1.0/240, discount_factor=0.99, interval=16,
-               horizon=16, episode_len=128, noise_seed=0, force_std=10.0,
+               horizon=16, episode_len=128, noise_seed=0, force_std=1.0,
                torque_std=0.0):
     self.time_step = time_step
     self.discount_factor = discount_factor
