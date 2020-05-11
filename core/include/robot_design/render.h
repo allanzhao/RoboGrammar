@@ -341,8 +341,8 @@ class Viewer {
 public:
   virtual ~Viewer() {}
   virtual void update(double dt) = 0;
-  virtual void render(const Simulation &sim) = 0;
-  virtual void getImage(unsigned char *pixels) const = 0;
+  virtual void render(const Simulation &sim,
+                      unsigned char *pixels = nullptr) = 0;
   virtual void getFramebufferSize(int &width, int &height) const = 0;
   virtual void setFramebufferSize(int width, int height) = 0;
 };

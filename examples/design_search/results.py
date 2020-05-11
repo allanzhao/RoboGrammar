@@ -45,9 +45,7 @@ def get_robot_image(robot, task):
     viewer.camera_params.distance = 5.0
 
   viewer.update(task.time_step)
-  viewer.render(sim)
-  viewer.render(sim) # Necessary to avoid occasional blank images
-  return viewer.get_image()
+  return viewer.render_array(sim)
 
 def save_robot_video_frames(robot, task, opt_seed, thread_count, save_image_dir,
                             frame_interval):

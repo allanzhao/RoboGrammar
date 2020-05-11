@@ -52,8 +52,8 @@ public:
   GLFWViewer(const GLFWViewer &other) = delete;
   GLFWViewer &operator=(const GLFWViewer &other) = delete;
   virtual void update(double dt) override;
-  virtual void render(const Simulation &sim) override;
-  virtual void getImage(unsigned char *pixels) const override;
+  virtual void render(const Simulation &sim,
+                      unsigned char *pixels = nullptr) override;
   virtual void getFramebufferSize(int &width, int &height) const override;
   virtual void setFramebufferSize(int width, int height) override;
   bool shouldClose() const;
