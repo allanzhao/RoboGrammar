@@ -44,7 +44,12 @@ void initRender(py::module &m) {
              self->render(sim, result.mutable_data());
              return result;
            })
-      .def("get_framebuffer_size", &rd::Viewer::getFramebufferSize)
+      .def("get_framebuffer_size",
+           [](const rd::Viewer *self) {
+             int fb_width, fb_height;
+             self->getFramebufferSize(fb_width, fb_height);
+             return py::make_tuple(fb_width, fb_height);
+           })
       .def("set_framebuffer_size", &rd::Viewer::setFramebufferSize);
 
   py::class_<rd::GLFWViewer, rd::Viewer>(m, "GLFWViewer")
