@@ -33,16 +33,23 @@ void initRender(py::module &m) {
 
   py::class_<rd::Viewer>(m, "Viewer")
       .def("update", &rd::Viewer::update)
-      .def("render", &rd::Viewer::render)
-      .def("get_image", [](const rd::Viewer *self) {
-        int fb_width, fb_height;
-        self->getFramebufferSize(fb_width, fb_height);
-        // Each pixel has 4 color components (RGBA)
-        auto result = py::array_t<unsigned char>({fb_height, fb_width, 4});
-        self->getImage(result.mutable_data());
-        return result;
-      })
-      .def("get_framebuffer_size", &rd::Viewer::getFramebufferSize)
+      .def("render", [](rd::Viewer *self,
+                        const rd::Simulation &sim) { self->render(sim); })
+      .def("render_array",
+           [](rd::Viewer *self, const rd::Simulation &sim) {
+             int fb_width, fb_height;
+             self->getFramebufferSize(fb_width, fb_height);
+             // Each pixel has 4 color components (RGBA)
+             auto result = py::array_t<unsigned char>({fb_height, fb_width, 4});
+             self->render(sim, result.mutable_data());
+             return result;
+           })
+      .def("get_framebuffer_size",
+           [](const rd::Viewer *self) {
+             int fb_width, fb_height;
+             self->getFramebufferSize(fb_width, fb_height);
+             return py::make_tuple(fb_width, fb_height);
+           })
       .def("set_framebuffer_size", &rd::Viewer::setFramebufferSize);
 
   py::class_<rd::GLFWViewer, rd::Viewer>(m, "GLFWViewer")
@@ -50,6 +57,5 @@ void initRender(py::module &m) {
       .def(py::init<bool>())
       .def("should_close", &rd::GLFWViewer::shouldClose)
       .def_readwrite("camera_params", &rd::GLFWViewer::camera_params_)
-      .def_readwrite("camera_controller",
-                     &rd::GLFWViewer::camera_controller_);
+      .def_readwrite("camera_controller", &rd::GLFWViewer::camera_controller_);
 }

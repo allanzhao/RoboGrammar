@@ -155,12 +155,11 @@ int main(int argc, char **argv) {
     GLFWViewer viewer(/*hidden=*/false);
     viewer.camera_params_.distance_ = 1.0;
     viewer.update(time_step);
-    viewer.render(*main_sim);
     int fb_width, fb_height;
     viewer.getFramebufferSize(fb_width, fb_height);
     std::unique_ptr<unsigned char[]> rgba(
         new unsigned char[4 * fb_width * fb_height]);
-    viewer.getImage(rgba.get());
+    viewer.render(*main_sim, rgba.get());
     std::unique_ptr<unsigned char[]> rgba_flipped(
         new unsigned char[4 * fb_width * fb_height]);
     for (int i = 0; i < fb_height; ++i) {

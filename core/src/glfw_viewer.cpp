@@ -136,7 +136,7 @@ void GLFWViewer::update(double dt) {
   camera_controller_.update(camera_params_, dt);
 }
 
-void GLFWViewer::render(const Simulation &sim) {
+void GLFWViewer::render(const Simulation &sim, unsigned char *pixels) {
   int width, height;
   getFramebufferSize(width, height);
   float aspect_ratio = static_cast<float>(width) / height;
@@ -144,15 +144,13 @@ void GLFWViewer::render(const Simulation &sim) {
 
   renderer_->render(sim, camera_params_, width, height);
 
-  glfwSwapBuffers(window_);
-  glfwPollEvents();
-}
-
-void GLFWViewer::getImage(unsigned char *pixels) const {
-  int width, height;
-  getFramebufferSize(width, height);
-  glReadBuffer(GL_FRONT);
-  glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+  if (pixels) {
+    glReadBuffer(GL_BACK);
+    glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+  } else {
+    glfwSwapBuffers(window_);
+    glfwPollEvents();
+  }
 }
 
 void GLFWViewer::getFramebufferSize(int &width, int &height) const {

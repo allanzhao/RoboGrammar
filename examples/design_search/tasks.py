@@ -4,7 +4,7 @@ import pyrobotdesign as rd
 
 class ForwardSpeedTask(ABC):
   def __init__(self, time_step=1.0/240, discount_factor=0.99, interval=16,
-               horizon=16, episode_len=128, noise_seed=0, force_std=10.0,
+               horizon=16, episode_len=128, noise_seed=0, force_std=1.0,
                torque_std=0.0):
     self.time_step = time_step
     self.discount_factor = discount_factor
@@ -138,6 +138,33 @@ class SteppedTerrainTask(ForwardSpeedTask):
     for i, (x, platform) in enumerate(zip(self.platform_x, self.platforms)):
       sim.add_prop(platform, [x, y, 0.0], rd.Quaterniond(1.0, 0.0, 0.0, 0.0))
       y += rng.normal(0.0, min(0.015 * i, 0.1))
+
+class WallTerrainTask(ForwardSpeedTask):
+  """
+  Task where the objective is to move forward as quickly as possible around a
+  series of walls.
+  """
+
+  def __init__(self, seed=0, **kwargs):
+    super().__init__(horizon=32, **kwargs)
+    self.seed = seed
+
+    self.floor = rd.Prop(rd.PropShape.BOX, 0.0, 0.5, [20.0, 1.0, 10.0])
+    self.wall = rd.Prop(rd.PropShape.BOX, 0.0, 0.5, [0.05, 0.5, 0.25])
+    self.side_wall = rd.Prop(rd.PropShape.BOX, 0.0, 0.5, [20, 0.5, 0.05])
+
+  def add_terrain(self, sim):
+    rng = np.random.RandomState(self.seed)
+    sim.add_prop(self.floor, [0.0, -1.0, 0.0],
+                 rd.Quaterniond(1.0, 0.0, 0.0, 0.0))
+    sim.add_prop(self.side_wall, [0.0, 0.0, 1.0],
+                 rd.Quaterniond(1.0, 0.0, 0.0, 0.0))
+    sim.add_prop(self.side_wall, [0.0, 0.0, -1.0],
+                 rd.Quaterniond(1.0, 0.0, 0.0, 0.0))
+    for i in range(10):
+      sim.add_prop(self.wall,
+                   [rng.normal(2.0 * i + 0.5, 0.1), 0.0, rng.normal(i % 2 - 0.5, 0.1)],
+                   rd.Quaterniond(1.0, 0.0, 0.0, 0.0))
 
 class FrozenLakeTask(ForwardSpeedTask):
   """
