@@ -46,7 +46,9 @@ from states_pool import StatesPool
 # predict without grad
 def predict(V, state):
     global preprocessor
-    adj_matrix_np, features_np, masks_np = preprocessor.preprocess(state)
+    # adj_matrix_np, features_np, masks_np = preprocessor.preprocess(state)
+    adj_matrix_np, features_np, _ = preprocessor.preprocess(state)
+    masks_np = np.full(len(features_np), True)
     with torch.no_grad():
         features = torch.tensor(features_np).unsqueeze(0)
         adj_matrix = torch.tensor(adj_matrix_np).unsqueeze(0)
@@ -57,11 +59,21 @@ def predict(V, state):
 def predict_batch(V, states):
     global preprocessor
     adj_matrix_np, features_np, masks_np = [], [], []
+    max_nodes = 0
     for state in states:
-        adj_matrix, features, masks = preprocessor.preprocess(state)
+        # adj_matrix, features, masks = preprocessor.preprocess(state)
+        adj_matrix, features, _ = preprocessor.preprocess(state)
+        max_nodes = max(max_nodes, len(features))
         adj_matrix_np.append(adj_matrix)
         features_np.append(features)
+        # masks_np.append(masks)
+
+    # TODO: check correctedness, if V(state) keeps same after padding
+    for i in range(len(states)):
+        adj_matrix_np[i], features_np[i], masks = \
+            preprocessor.pad_graph(adj_matrix_np[i], features_np[i], max_nodes)
         masks_np.append(masks)
+
     with torch.no_grad():
         adj_matrix = torch.tensor(adj_matrix_np)
         features = torch.tensor(features_np)
@@ -148,8 +160,6 @@ def search_algo(args):
     torch.set_num_threads(1)
     
     # initialize/load
-    # TODO: use 80 to fit the input of trained MPC GNN, use args.depth * 3 later for real mpc
-    max_nodes = args.depth * 3
     task_class = getattr(tasks, args.task)
     if args.no_noise:
         task = task_class(force_std = 0.0, torque_std = 0.0)
@@ -166,8 +176,12 @@ def search_algo(args):
             all_labels.add(node.attrs.require_label)
     all_labels = sorted(list(all_labels))
     
+    # TODO: use 80 to fit the input of trained MPC GNN, use args.depth * 3 later for real mpc
+    max_nodes = args.depth * 3
+
     global preprocessor
-    preprocessor = Preprocessor(max_nodes = max_nodes, all_labels = all_labels)
+    # preprocessor = Preprocessor(max_nodes = max_nodes, all_labels = all_labels)
+    preprocessor = Preprocessor(all_labels = all_labels)
 
     # initialize the env
     env = RobotGrammarEnv(task, rules, seed = args.seed, mpc_num_processes = args.mpc_num_processes)
@@ -365,15 +379,22 @@ def search_algo(args):
                 minibatch = states_pool.sample(min(len(states_pool), args.batch_size))
                 
                 train_adj_matrix, train_features, train_masks, train_reward = [], [], [], []
+                max_nodes = 0
                 for robot_graph in minibatch:
                     hash_key = hash(robot_graph)
                     target_reward = V_hat[hash_key]
-                    adj_matrix, features, masks = preprocessor.preprocess(robot_graph)
+                    # adj_matrix, features, masks = preprocessor.preprocess(robot_graph)
+                    adj_matrix, features, _ = preprocessor.preprocess(robot_graph)
+                    max_nodes = max(max_nodes, len(features))
                     train_adj_matrix.append(adj_matrix)
                     train_features.append(features)
-                    train_masks.append(masks)
+                    # train_masks.append(masks)
                     train_reward.append(target_reward)
-                
+                for i in range(len(minibatch)):
+                    train_adj_matrix[i], train_features[i], masks = \
+                        preprocessor.pad_graph(train_adj_matrix[i], train_features[i], max_nodes)
+                    train_masks.append(masks)
+
                 train_adj_matrix_torch = torch.tensor(train_adj_matrix)
                 train_features_torch = torch.tensor(train_features)
                 train_masks_torch = torch.tensor(train_masks)

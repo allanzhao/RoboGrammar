@@ -62,6 +62,7 @@ def predict_batch(V, states):
         adj_matrix_np.append(adj_matrix)
         features_np.append(features)
         masks_np.append(masks)
+
     with torch.no_grad():
         adj_matrix = torch.tensor(adj_matrix_np)
         features = torch.tensor(features_np)
@@ -149,7 +150,7 @@ def search_algo(args):
     
     # initialize/load
     # TODO: use 80 to fit the input of trained MPC GNN, use args.depth * 3 later for real mpc
-    max_nodes = 80
+    max_nodes = args.depth * 3
     task_class = getattr(tasks, args.task)
     if args.no_noise:
         task = task_class(force_std = 0.0, torque_std = 0.0)
@@ -531,8 +532,8 @@ if __name__ == '__main__':
     torch.set_default_dtype(torch.float64)
     args_list = ['--task', 'FlatTerrainTask',
                  '--grammar-file', '../../data/designs/grammar_apr30.dot',
-                 '--num-iterations', '1000',
-                 '--mpc-num-processes', '32',
+                 '--num-iterations', '2000',
+                 '--mpc-num-processes', '8',
                  '--lr', '1e-4',
                  '--eps-start', '1.0',
                  '--eps-end', '0.1',
@@ -552,7 +553,7 @@ if __name__ == '__main__':
                  '--log-interval', '100',
                  '--eval-interval', '1000',
                  '--max-trials', '1000',
-                 '--num-eval', '4']
+                 '--num-eval', '1']
                 #  '--load-V-path', './trained_models/universal_value_function/test_model.pt']
 
     solve_argv_conflict(args_list)

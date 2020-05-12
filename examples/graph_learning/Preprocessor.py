@@ -50,7 +50,7 @@ class Preprocessor:
 
     input a robot graph, output the adjacent matrix, features, and masks
     '''
-    def preprocess(self, robot_graph):
+    def preprocess(self, robot_graph, max_nodes = None):
         robot = build_normalized_robot(robot_graph)
 
         # Find the world position and rotation of links
@@ -99,9 +99,15 @@ class Preprocessor:
 
         masks = None
 
-        if self.max_nodes is not None:
-            adj_matrix, link_features, masks = self.pad_graph(adj_matrix, link_features, self.max_nodes)
-
+        if max_nodes is None:
+            max_nodes = self.max_nodes
+        
+        if max_nodes is not None:
+            if max_nodes > len(link_features):
+                adj_matrix, link_features, masks = self.pad_graph(adj_matrix, link_features, max_nodes)
+            else:
+                masks = np.full(len(link_features), True)
+                
         return adj_matrix, link_features, masks
 
     def pad_graph(self, adj_matrix, features, max_nodes):
