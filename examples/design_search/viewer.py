@@ -81,11 +81,15 @@ def main():
   parser.add_argument("--input_sequence_file", type=str,
                       help="File to save input sequence to (.csv)")
   parser.add_argument("-l", "--episode_len", type=int, default=128, help="lenth of episode")
+  parser.add_argument("--no-noise", default=False, action='store_true')
   args = parser.parse_args()
 
   task_class = getattr(tasks, args.task)
-  task = task_class(episode_len = args.episode_len)
-  # task = task_class(force_std = 0.0, episode_len = args.episode_len)
+  if args.no_noise:
+    task = task_class(force_std = 0.0, episode_len = args.episode_len)
+  else:
+    task = task_class(episode_len = args.episode_len)
+  
   graphs = rd.load_graphs(args.grammar_file)
   rules = [rd.create_rule_from_graph(g) for g in graphs]
 

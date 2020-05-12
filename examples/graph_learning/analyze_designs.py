@@ -55,7 +55,7 @@ if __name__ == '__main__':
             if reward > best_reward[-1]:
                 best_design = state
                 best_rule_seq = design
-                print('best: {}, {}, hash = {}, opt_seed = {}'.format(reward, design, hash(state), opt_seed))
+                print('best: iter = {}, reward: {}, rule_seq: {}, hash = {}, opt_seed = {}'.format(N, reward, design, hash(state), opt_seed))
 
             best_reward.append(max(reward, best_reward[-1]))
         rewards.append(reward)
