@@ -86,9 +86,9 @@ def main():
 
   task_class = getattr(tasks, args.task)
   if args.no_noise:
-    task = task_class(force_std = 10.0, episode_len = args.episode_len)
-  else:
     task = task_class(episode_len = args.episode_len)
+  else:
+    task = task_class(force_std = 10.0, episode_len = args.episode_len)
   
   graphs = rd.load_graphs(args.grammar_file)
   rules = [rd.create_rule_from_graph(g) for g in graphs]
