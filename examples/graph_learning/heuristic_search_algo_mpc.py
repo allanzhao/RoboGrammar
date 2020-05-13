@@ -181,22 +181,6 @@ def search_algo(args):
         V_hat_fp.close()
         print_info('Loaded pretrained Vhat from {}'.format(args.load_Vhat_path))
 
-    # initialize stats variables
-    num_invalid_samples, num_valid_samples = 0, 0
-    repeated_cnt = 0
-    
-    # initialize the seen states pool
-    states_pool = StatesPool(capacity = args.states_pool_capacity)
-    states_set = set()
-
-    # explored designs
-    designs = []
-    design_rewards = []
-    design_opt_seeds = []
-
-    # record prediction error
-    prediction_error_sum = 0.0
-
     if not args.test:
         # initialize save folders and files
         fp_log = open(os.path.join(args.save_dir, 'log.txt'), 'w')
@@ -214,6 +198,15 @@ def search_algo(args):
         global optimizer
         optimizer = torch.optim.Adam(V.parameters(), lr = args.lr)
 
+        # initialize the seen states pool
+        states_pool = StatesPool(capacity = args.states_pool_capacity)
+        states_set = set()
+
+        # explored designs
+        designs = []
+        design_rewards = []
+        design_opt_seeds = []
+        
         # initialize best design rule sequence
         best_design, best_reward = None, -np.inf
 
@@ -223,10 +216,19 @@ def search_algo(args):
 
         # recording time
         t_sample_sum = 0.
+        num_samples_interval = 0
+        max_seen_nodes = 0
 
         # record the count for invalid samples
         no_action_samples, step_exceeded_samples, self_collision_samples = 0, 0, 0
 
+        # initialize stats variables
+        num_invalid_samples, num_valid_samples = 0, 0
+        repeated_cnt = 0
+
+        # record prediction error
+        prediction_error = []
+        
         for epoch in range(args.num_iterations):
             t_start = time.time()
 
@@ -293,6 +295,8 @@ def search_algo(args):
                         num_invalid_samples += 1
                     else:
                         num_valid_samples += 1
+                    
+                    num_samples_interval += 1
 
                     t_update += time.time() - t0
 
@@ -355,6 +359,9 @@ def search_algo(args):
                     train_adj_matrix.append(adj_matrix)
                     train_features.append(features)
                     train_reward.append(target_reward)
+
+                max_seen_nodes = max(max_seen_nodes, max_nodes)
+
                 for i in range(len(minibatch)):
                     train_adj_matrix[i], train_features[i], masks = \
                         preprocessor.pad_graph(train_adj_matrix[i], train_features[i], max_nodes)
@@ -405,16 +412,16 @@ def search_algo(args):
             avg_loss = total_loss / args.opt_iter
             len_his = min(len(epoch_rew_his), 30)
             avg_reward = np.sum(epoch_rew_his[-len_his:]) / len_his
-            prediction_error_sum += (selected_reward - reward) ** 2
-            avg_prediction_error = prediction_error_sum / (epoch + 1)
+            prediction_error.append(np.abs(selected_reward - reward))
+            avg_prediction_error = np.sum(prediction_error[-len_his:]) / len_his
 
             if repeated:
-                print_white('Epoch {:4}: T_sample = {:5.2f}, T_update = {:5.2f}, T_mpc = {:5.2f}, T_opt = {:5.2f}, eps = {:5.3f}, eps_sample = {:5.3f}, #samples = {:2}, training loss = {:7.4f}, pred_error = {:6.4f}, predicted_reward = {:6.4f}, reward = {:6.4f}, last 30 epoch reward = {:6.4f}, best reward = {:6.4f}'.format(\
-                    epoch, t_sample, t_update, t_mpc, t_opt, eps, eps_sample, num_samples, \
+                print_white('Epoch {:4}: T_sample = {:5.2f}, T_mpc = {:5.2f}, T_opt = {:5.2f}, eps = {:5.3f}, eps_sample = {:5.3f}, #samples = {:2}, training loss = {:7.4f}, avg_pred_error = {:6.4f}, predicted_reward = {:6.4f}, reward = {:6.4f}, last 30 epoch reward = {:6.4f}, best reward = {:6.4f}'.format(\
+                    epoch, t_sample, t_mpc, t_opt, eps, eps_sample, num_samples, \
                     avg_loss, avg_prediction_error, selected_reward, reward, avg_reward, best_reward))
             else:
-                print_warning('Epoch {:4}: T_sample = {:5.2f}, T_update = {:5.2f}, T_mpc = {:5.2f}, T_opt = {:5.2f}, eps = {:5.3f}, eps_sample = {:5.3f}, #samples = {:2}, training loss = {:7.4f}, pred_error = {:6.4f}, predicted_reward = {:6.4f}, reward = {:6.4f}, last 30 epoch reward = {:6.4f}, best reward = {:6.4f}'.format(\
-                    epoch, t_sample, t_update, t_mpc, t_opt, eps, eps_sample, num_samples, \
+                print_warning('Epoch {:4}: T_sample = {:5.2f}, T_mpc = {:5.2f}, T_opt = {:5.2f}, eps = {:5.3f}, eps_sample = {:5.3f}, #samples = {:2}, training loss = {:7.4f}, avg_pred_error = {:6.4f}, predicted_reward = {:6.4f}, reward = {:6.4f}, last 30 epoch reward = {:6.4f}, best reward = {:6.4f}'.format(\
+                    epoch, t_sample, t_mpc, t_opt, eps, eps_sample, num_samples, \
                     avg_loss, avg_prediction_error, selected_reward, reward, avg_reward, best_reward))
 
             fp_log = open(os.path.join(args.save_dir, 'log.txt'), 'a')
@@ -423,8 +430,10 @@ def search_algo(args):
             fp_log.close()
 
             if (epoch + 1) % args.log_interval == 0:
-                print_info('Avg sampling time for last {} epoch: {:.4f} second'.format(args.log_interval, t_sample_sum / args.log_interval))
+                print_info('Avg sampling time for last {} epoch: {:.4f} second / sample'.format(args.log_interval, t_sample_sum / num_samples_interval))
                 t_sample_sum = 0.
+                num_samples_interval = 0
+                print_info('max seen nodes = {}'.format(max_seen_nodes))
                 print_info('size of states_pool = {}'.format(len(states_pool)))
                 print_info('#valid samples = {}, #invalid samples = {}, #valid / #invalid = {}'.format(num_valid_samples, num_invalid_samples, num_valid_samples / num_invalid_samples if num_invalid_samples > 0 else 10000.0))
                 print_info('Invalid samples: #no_action_samples = {}, #step_exceeded_samples = {}, #self_collision_samples = {}'.format(no_action_samples, step_exceeded_samples, self_collision_samples))
