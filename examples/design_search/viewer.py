@@ -86,7 +86,7 @@ def main():
 
   task_class = getattr(tasks, args.task)
   if args.no_noise:
-    task = task_class(force_std = 0.0, episode_len = args.episode_len)
+    task = task_class(force_std = 10.0, episode_len = args.episode_len)
   else:
     task = task_class(episode_len = args.episode_len)
   
