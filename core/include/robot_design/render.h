@@ -325,6 +325,7 @@ private:
   static std::string loadString(const std::string &path);
 
   std::shared_ptr<Program> default_program_;
+  std::shared_ptr<Program> flat_program_;
   std::shared_ptr<Program> depth_program_;
   std::shared_ptr<Program> msdf_program_;
   std::shared_ptr<Mesh> box_mesh_;

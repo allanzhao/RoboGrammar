@@ -20,6 +20,14 @@ GLRenderer::GLRenderer(const std::string &data_dir) {
   default_program_ =
       std::make_shared<Program>(default_vs_source, default_fs_source);
 
+  // Create flat shader program
+  std::string flat_vs_source =
+      loadString(data_dir + "shaders/default.vert.glsl");
+  std::string flat_fs_source =
+      loadString(data_dir + "shaders/flat.frag.glsl");
+  flat_program_ =
+      std::make_shared<Program>(flat_vs_source, flat_fs_source);
+
   // Create depth shader program
   std::string depth_vs_source =
       loadString(data_dir + "shaders/depth.vert.glsl");
@@ -52,13 +60,16 @@ GLRenderer::GLRenderer(const std::string &data_dir) {
   font_ = std::make_shared<BitmapFont>(data_dir + "fonts/OpenSans-Regular.fnt",
                                        data_dir + "fonts");
 
-  // Enable depth test
   glEnable(GL_DEPTH_TEST);
-
-  // Enable alpha blending
   glEnable(GL_BLEND);
+
+  // Set OpenGL parameters in advance if they don't change
   // Use premultiplied alpha
   glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+  glPolygonOffset(2.0f, 1.0f);
+  glLineWidth(2.0f);
+  // Note: face culling is only used for drawing outlines
+  glCullFace(GL_FRONT);
 }
 
 void GLRenderer::render(const Simulation &sim,
@@ -74,7 +85,6 @@ void GLRenderer::render(const Simulation &sim,
   dir_light_->sm_framebuffer_->bind();
   glViewport(0, 0, dir_light_->sm_width_, dir_light_->sm_height_);
   glEnable(GL_POLYGON_OFFSET_FILL);
-  glPolygonOffset(2.0f, 1.0f);
   depth_program_->use();
   ProgramState depth_program_state;
   for (int i = 0; i < dir_light_->sm_cascade_count_; ++i) {
@@ -86,8 +96,9 @@ void GLRenderer::render(const Simulation &sim,
         dir_light_->view_matrices_.block<4, 4>(0, 4 * i));
     drawOpaque(sim, *depth_program_, depth_program_state);
   }
+  glDisable(GL_POLYGON_OFFSET_FILL);
 
-  // Render camera view, using the shadow maps as input
+  // Render main camera view
   if (target_framebuffer) {
     target_framebuffer->bind();
   } else {
@@ -96,7 +107,19 @@ void GLRenderer::render(const Simulation &sim,
   glViewport(0, 0, width, height);
   glClearColor(0.4f, 0.6f, 0.8f, 1.0f); // Cornflower blue
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-  glDisable(GL_POLYGON_OFFSET_FILL);
+
+  // Render object outlines
+  glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+  glEnable(GL_CULL_FACE);
+  flat_program_->use();
+  ProgramState flat_program_state;
+  flat_program_state.setProjectionMatrix(proj_matrix);
+  flat_program_state.setViewMatrix(view_matrix);
+  drawOpaque(sim, *flat_program_, flat_program_state);
+  glDisable(GL_CULL_FACE);
+  glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+  // Render objects with lighting and shadows
   default_program_->use();
   ProgramState default_program_state;
   default_program_state.setProjectionMatrix(proj_matrix);
