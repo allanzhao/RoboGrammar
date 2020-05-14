@@ -142,7 +142,7 @@ void GLFWViewer::render(const Simulation &sim, unsigned char *pixels) {
   float aspect_ratio = static_cast<float>(width) / height;
   camera_params_.aspect_ratio_ = aspect_ratio;
 
-  renderer_->render(sim, camera_params_, width, height);
+  renderer_->render(sim, camera_params_, render_params_, width, height);
 
   if (pixels) {
     glReadBuffer(GL_BACK);

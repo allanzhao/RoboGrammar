@@ -69,6 +69,7 @@ public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
   CameraParameters camera_params_;
+  RenderParameters render_params_;
   FPSCameraController camera_controller_;
 
 private:

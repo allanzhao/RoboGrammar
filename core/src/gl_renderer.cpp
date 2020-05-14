@@ -23,10 +23,8 @@ GLRenderer::GLRenderer(const std::string &data_dir) {
   // Create flat shader program
   std::string flat_vs_source =
       loadString(data_dir + "shaders/default.vert.glsl");
-  std::string flat_fs_source =
-      loadString(data_dir + "shaders/flat.frag.glsl");
-  flat_program_ =
-      std::make_shared<Program>(flat_vs_source, flat_fs_source);
+  std::string flat_fs_source = loadString(data_dir + "shaders/flat.frag.glsl");
+  flat_program_ = std::make_shared<Program>(flat_vs_source, flat_fs_source);
 
   // Create depth shader program
   std::string depth_vs_source =
@@ -73,7 +71,8 @@ GLRenderer::GLRenderer(const std::string &data_dir) {
 }
 
 void GLRenderer::render(const Simulation &sim,
-                        const CameraParameters &camera_params, int width,
+                        const CameraParameters &camera_params,
+                        const RenderParameters &render_params, int width,
                         int height, const Framebuffer *target_framebuffer) {
   Eigen::Matrix4f proj_matrix = camera_params.getProjMatrix();
   Eigen::Matrix4f view_matrix = camera_params.getViewMatrix();
@@ -105,7 +104,9 @@ void GLRenderer::render(const Simulation &sim,
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
   }
   glViewport(0, 0, width, height);
-  glClearColor(0.4f, 0.6f, 0.8f, 1.0f); // Cornflower blue
+  glClearColor(
+      render_params.background_color_(0), render_params.background_color_(1),
+      render_params.background_color_(2), render_params.background_color_(3));
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
   // Render object outlines
@@ -424,8 +425,8 @@ void GLRenderer::drawHeightfield(const Eigen::Matrix4f &transform,
       (2.0 * half_extents).array() /
       Eigen::Vector3f(heightfield.rows() - 1, 1.0, heightfield.cols() - 1)
           .array();
-  Eigen::Affine3f local_transform(
-      Eigen::Translation3f(-half_extents) * Eigen::Scaling(local_scaling));
+  Eigen::Affine3f local_transform(Eigen::Translation3f(-half_extents) *
+                                  Eigen::Scaling(local_scaling));
   heightfield_mesh_->bind();
   program_state.setTexCoordsMatrix(local_transform.matrix());
   program_state.setModelMatrix(transform * local_transform.matrix());
