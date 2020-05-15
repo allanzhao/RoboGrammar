@@ -21,6 +21,11 @@ void initRender(py::module &m) {
       .def_readwrite("pitch", &rd::CameraParameters::pitch_)
       .def_readwrite("distance", &rd::CameraParameters::distance_);
 
+  py::class_<rd::RenderParameters>(m, "RenderParameters")
+      .def(py::init<>())
+      .def_readwrite("background_color",
+                     &rd::RenderParameters::background_color_);
+
   py::class_<rd::FPSCameraController>(m, "FPSCameraController")
       .def(py::init<>())
       .def(py::init<float, float, float>())
@@ -57,5 +62,6 @@ void initRender(py::module &m) {
       .def(py::init<bool>())
       .def("should_close", &rd::GLFWViewer::shouldClose)
       .def_readwrite("camera_params", &rd::GLFWViewer::camera_params_)
+      .def_readwrite("render_params", &rd::GLFWViewer::render_params_)
       .def_readwrite("camera_controller", &rd::GLFWViewer::camera_controller_);
 }

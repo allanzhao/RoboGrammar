@@ -184,6 +184,11 @@ struct CameraParameters {
   float distance_ = 2.0f;
 };
 
+struct RenderParameters {
+  // Cornflower blue
+  Eigen::Vector4f background_color_ = Eigen::Vector4f(0.4f, 0.6f, 0.8f, 1.0f);
+};
+
 struct DirectionalLight {
   DirectionalLight() {}
   DirectionalLight(const Eigen::Vector3f &color, const Eigen::Vector3f &dir,
@@ -294,7 +299,7 @@ class GLRenderer {
 public:
   GLRenderer(const std::string &data_dir);
   void render(const Simulation &sim, const CameraParameters &camera_params,
-              int width, int height,
+              const RenderParameters &render_params, int width, int height,
               const Framebuffer *target_framebuffer = nullptr);
 
 private:
@@ -325,6 +330,7 @@ private:
   static std::string loadString(const std::string &path);
 
   std::shared_ptr<Program> default_program_;
+  std::shared_ptr<Program> flat_program_;
   std::shared_ptr<Program> depth_program_;
   std::shared_ptr<Program> msdf_program_;
   std::shared_ptr<Mesh> box_mesh_;
