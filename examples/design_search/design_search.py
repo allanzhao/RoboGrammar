@@ -106,6 +106,7 @@ def simulate(robot, task, opt_seed, thread_count, episode_count=1):
                                  thread_count, opt_seed + episode_idx,
                                  make_sim_fn, objective_fn, value_estimator,
                                  input_sampler)
+
     optimizer.update()
     optimizer.set_sample_count(64)
 
