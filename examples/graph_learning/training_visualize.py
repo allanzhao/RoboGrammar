@@ -65,13 +65,13 @@ if __name__ == '__main__':
     epoch = list(range(0, len(eps)))
     
     # plot eps
-    ax[0][0].plot(epoch, eps, c = 'tab:blue')
+    ax[0][0].plot(epoch, eps, c = 'tab:green', zorder = 10)
     ax[0][0].set_title('eps')
     ax[0][0].set_xlabel('epoch')
     ax[0][0].set_ylabel('eps')
 
     # plot loss
-    ax[0][1].plot(epoch, loss, c = 'tab:red')
+    ax[0][1].plot(epoch, loss, c = 'tab:green', zorder = 10)
     ax[0][1].set_title('Training Loss')
     ax[0][1].set_xlabel('epoch')
     ax[0][1].set_ylabel('training loss')
@@ -98,6 +98,8 @@ if __name__ == '__main__':
     ax[1][0].set_xlabel('epoch')
     ax[1][0].set_ylabel('time(s)')
 
+    print('best reward = ', best_reward[-1])
+
     # for compare
     if args.log_path_compare is not None:
         log_path_compare = args.log_path_compare
@@ -108,14 +110,16 @@ if __name__ == '__main__':
 
         print('total {} lines'.format(len(datalines)))
 
-        eps, loss, epoch_reward, avg_reward, avg_window_reward, best_reward, prediction_error, avg_window_pred_error = [], [], [], [], [], [], [], []
+        eps, loss, epoch_reward, avg_reward, avg_window_reward, best_reward, prediction_error, avg_window_pred_error, t_sample, avg_window_t_sample, num_samples = [], [], [], [], [], [], [], [], [], [], []
         for dataline in datalines:
             data = parse(dataline)
             eps.append(data['eps'])
             loss.append(data['loss'])
             epoch_reward.append(data['reward'])
             avg_reward.append(data['avg_reward'])
-            prediction_error.append((data['predicted_reward'] - data['reward']) ** 2)
+            prediction_error.append(np.abs(data['predicted_reward'] - data['reward']))
+            t_sample.append(data['T_sample'])
+            num_samples.append(data['num_samples'])
             if len(best_reward) == 0:
                 best_reward.append(data['reward'])
             else:
@@ -143,12 +147,16 @@ if __name__ == '__main__':
 
         epoch = list(range(0, len(eps)))
 
+        ax[0][0].plot(epoch, eps, c = 'tab:red')
+        ax[0][1].plot(epoch, loss, c = 'tab:red')
         ax[0][2].plot(epoch, avg_window_pred_error, c = 'tab:red')
         ax[0][3].plot(epoch, avg_window_reward, c = 'tab:red')
         ax[0][4].plot(epoch, best_reward, '--', c = 'tab:red')
         ax[0][4].scatter(epoch, epoch_reward, c = 'tab:purple', s = 5, alpha = 0.2)
         ax[1][0].plot(epoch, avg_window_t_sample, c = 'tab:red')
 
+        print('best reward = ', best_reward[-1])
+        
     plt.show()
 
 
