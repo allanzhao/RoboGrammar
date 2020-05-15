@@ -69,11 +69,11 @@ void main() {
       vec4(greaterThan(-view_pos.zzzz, cascade_far_splits)), vec4(1.0)));
   float shadow_factor = computeShadowFactor(cascade_idx);
 
-  vec3 ambient = 0.2 * light_color;
-  vec3 diffuse = max(dot(normal, view_light_dir), 0.0) * light_color *
+  vec3 ambient = 0.5 * light_color;
+  vec3 diffuse = 0.5 * max(dot(normal, view_light_dir), 0.0) * light_color *
                  shadow_factor;
   float spec_factor = pow(max(dot(view_camera_dir, reflect_dir), 0.0), 32);
-  vec3 specular = 0.5 * spec_factor * light_color * shadow_factor;
+  vec3 specular = 0.25 * spec_factor * light_color * shadow_factor;
 
   vec3 p = 2.0 * texture_coords;
   float color_factor = 0.9 + 0.1 * procTextureGrad(p, dFdx(p), dFdy(p),
