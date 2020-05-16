@@ -544,7 +544,6 @@ if __name__ == '__main__':
                  '--depth', '40',
                  '--max-nodes', '80',
                  '--save-dir', './trained_models/',
-                 '--render-interval', '80',
                  '--log-interval', '100',
                  '--eval-interval', '1000',
                  '--max-trials', '1000',
