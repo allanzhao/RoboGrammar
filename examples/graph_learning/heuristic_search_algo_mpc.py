@@ -542,7 +542,7 @@ if __name__ == '__main__':
                  '--batch-size', '32',
                  '--states-pool-capacity', '10000000',
                  '--depth', '40',
-                 '--max-nodes', '40',
+                 '--max-nodes', '80',
                  '--save-dir', './trained_models/',
                  '--render-interval', '80',
                  '--log-interval', '100',
