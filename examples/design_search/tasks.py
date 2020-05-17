@@ -216,13 +216,24 @@ class NewRidgedTerrainTask(ForwardSpeedTask):
     self.floor = rd.Prop(rd.PropShape.BOX, 0.0, 0.5, [20.0, 1.0, 10.0])
     self.bump = rd.Prop(rd.PropShape.BOX, 0.0, 0.5, [0.1, 0.2, 10.0])
 
+    # self.objective_fn.base_dir_weight = np.array([-0.5, 0.0, 0.0])
+    # self.objective_fn.base_up_weight = np.array([0.0, 0.5, 0.0])
+    # self.objective_fn.base_vel_weight = np.array([6.0, 0.0, 0.0])
+
+    self.objective_fn.base_dir_weight = np.array([-1.0, 0.0, 0.0])
+    self.objective_fn.base_up_weight = np.array([0.0, 1.0, 0.0])
+    self.objective_fn.base_vel_weight = np.array([8.0, 0.0, 0.0])
+
   def add_terrain(self, sim):
     rng = np.random.RandomState(self.seed)
     sim.add_prop(self.floor, [0.0, -1.0, 0.0],
                  rd.Quaterniond(1.0, 0.0, 0.0, 0.0))
     for i in range(20):
+      # sim.add_prop(self.bump,
+      #              [rng.normal(0.5, 0.05) + i, -0.2 + rng.uniform(0.06, 0.22), 0.0],
+      #              rd.Quaterniond(1.0, 0.0, 0.0, 0.0))
       sim.add_prop(self.bump,
-                   [rng.normal(0.5, 0.05) + i, -0.2 + rng.uniform(0.06, 0.22), 0.0],
+                   [rng.normal(0.5, 0.05) + i, -0.2 + rng.uniform(0.06, min(0.20, 0.09 * (i + 1))), 0.0],
                    rd.Quaterniond(1.0, 0.0, 0.0, 0.0))
 
 '''

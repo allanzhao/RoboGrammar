@@ -98,7 +98,7 @@ if __name__ == '__main__':
                 rule_seq_str = rule_seq_str + str(rule_seqs[args.index - 1][i])
             else:
                 rule_seq_str = rule_seq_str + ', ' + str(rule_seqs[args.index - 1][i])
-        print('python examples/design_search/viewer.py {} data/designs/grammar_apr30.dot -j16 {} -o -s {} --no-noise'.format(task_name, rule_seq_str, opt_seeds[args.index - 1]))
+        print('python examples/design_search/viewer.py {} data/designs/grammar_apr30.dot -j16 {} -o -s {}'.format(task_name, rule_seq_str, opt_seeds[args.index - 1]))
     else:
         iters = list(range(0, len(rewards)))
         fig, ax = plt.subplots()
