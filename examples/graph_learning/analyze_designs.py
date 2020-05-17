@@ -33,6 +33,7 @@ if __name__ == '__main__':
     opt_seeds = []
     best_design = None
     best_rule_seq = None
+    best_designs = []
     for row in reader:
         N += 1
         design = row['rule_seq']
@@ -59,6 +60,7 @@ if __name__ == '__main__':
         else:
             if reward > best_reward[-1]:
                 best_design = state
+                best_designs.append(state)
                 best_rule_seq = design
                 if design_cnt[hash(state)][0] > 1:
                     new_design = False
@@ -79,9 +81,13 @@ if __name__ == '__main__':
     repeat = 0
     for key in design_cnt.keys():
         repeat += design_cnt[key][0] - 1
-        if design_cnt[key][0] > 10:
-            print('reward = {:.4f}'.format(design_cnt[key][1]), ', avg reward: {:.4f}'.format(design_cnt[key][3] / design_cnt[key][0]), ', hash = ', key, ', repeated: ', design_cnt[key][0])
+        # if design_cnt[key][0] > 10:
+        #     print('reward = {:.4f}'.format(design_cnt[key][1]), ', avg reward: {:.4f}'.format(design_cnt[key][3] / design_cnt[key][0]), ', hash = ', key, ', repeated: ', design_cnt[key][0])
 
+    for state in best_designs:
+        key = hash(state)
+        print('reward = {:.4f}'.format(design_cnt[key][1]), ', avg reward: {:.4f}'.format(design_cnt[key][3] / design_cnt[key][0]), ', hash = ', key, ', repeated: ', design_cnt[key][0])
+        
     print('repeat = ', repeat, '/', N, ', ratio = ', repeat / N)
 
     print('best rule seq = {}, best reward = {:.4f}, avg reward = {:.4f}'.format(best_rule_seq, design_cnt[hash(best_design)][1], design_cnt[hash(best_design)][3] / design_cnt[hash(best_design)][0]))
@@ -91,6 +97,8 @@ if __name__ == '__main__':
         split_path = args.log_path.split('/')
         for folder in split_path:
             if folder[-4:] == 'Task':
+                task_name = folder
+            if folder[-5:-1] == 'Task':
                 task_name = folder
         rule_seq_str = ''
         for i in range(len(rule_seqs[args.index - 1])):
