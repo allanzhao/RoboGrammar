@@ -94,6 +94,15 @@ int main(int argc, char **argv) {
       edge.attrs_.joint_type_ = JointType::FIXED;
     }
   }
+  // If LHS, display require_label_ instead of label_
+  if (args::get(side_arg) == RuleSide::LHS) {
+    for (Node &node : robot_graph.nodes_) {
+      node.attrs_.label_ = node.attrs_.require_label_;
+    }
+    for (Edge &edge : robot_graph.edges_) {
+      edge.attrs_.label_ = edge.attrs_.require_label_;
+    }
+  }
   // Color nodes and edges which are added or removed
   std::unordered_set<NodeIndex> nodes_in_common;
   std::unordered_set<EdgeIndex> edges_in_common;
