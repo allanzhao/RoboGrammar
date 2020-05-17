@@ -27,6 +27,12 @@ def get_parser():
     parser.add_argument('--no-noise', default = False, action = 'store_true', help = 'if remove noise from simulation')
     parser.add_argument('--num-eval', default = 1, type = int, help = 'number of evaluation for each design')
 
+    # parameters for multi-objs case
+    parser.add_argument('--task1', type = str, default = 'FlatTerrainTask', help = 'Task1 (Python class name')
+    parser.add_argument('--task2', type = str, default = 'FrozenLakeTask', help = 'Task2 (Python class name')
+    parser.add_argument('--weight1', type = float, default = 0.5, help = 'scalarization weight for task1')
+    parser.add_argument('--weight2', type = float, default = 0.5, help = 'scalarization weight for task2')
+    
     parser.add_argument('--load-V-path', type = str, default = None, help = 'the path to load pretrained value function')
     parser.add_argument('--load-Vhat-path', type = str, default = None, help = 'the path to load pretrained value_target table')
     parser.add_argument('--load-designs-path', type = str, default = None, help = 'the path to load explored designs')

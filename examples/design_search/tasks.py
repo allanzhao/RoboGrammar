@@ -232,9 +232,21 @@ class NewRidgedTerrainTask(ForwardSpeedTask):
       # sim.add_prop(self.bump,
       #              [rng.normal(0.5, 0.05) + i, -0.2 + rng.uniform(0.06, 0.22), 0.0],
       #              rd.Quaterniond(1.0, 0.0, 0.0, 0.0))
-      sim.add_prop(self.bump,
-                   [rng.normal(0.5, 0.05) + i, -0.2 + rng.uniform(0.06, min(0.20, 0.09 * (i + 1))), 0.0],
-                   rd.Quaterniond(1.0, 0.0, 0.0, 0.0))
+      # sim.add_prop(self.bump,
+      #              [rng.normal(0.5, 0.05) + i, -0.2 + rng.uniform(0.06, min(0.20, 0.09 * (i + 1))), 0.0],
+      #              rd.Quaterniond(1.0, 0.0, 0.0, 0.0))
+      if i == 0:
+        sim.add_prop(self.bump,
+                [rng.normal(0.5, 0.05) + i, -0.2 + 0.06, 0.0],
+                rd.Quaterniond(1.0, 0.0, 0.0, 0.0))
+      if i == 1:
+        sim.add_prop(self.bump,
+            [rng.normal(0.5, 0.05) + i, -0.2 + 0.12, 0.0],
+            rd.Quaterniond(1.0, 0.0, 0.0, 0.0))
+      if i > 1:
+        sim.add_prop(self.bump,
+                    [rng.normal(0.5, 0.05) + i, -0.2 + 0.18, 0.0],
+                    rd.Quaterniond(1.0, 0.0, 0.0, 0.0))
 
 '''
 wider gaps at beginning
