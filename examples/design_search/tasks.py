@@ -216,9 +216,34 @@ class NewRidgedTerrainTask(ForwardSpeedTask):
     self.floor = rd.Prop(rd.PropShape.BOX, 0.0, 0.5, [20.0, 1.0, 10.0])
     self.bump = rd.Prop(rd.PropShape.BOX, 0.0, 0.5, [0.1, 0.2, 10.0])
 
-    # self.objective_fn.base_dir_weight = np.array([-0.5, 0.0, 0.0])
-    # self.objective_fn.base_up_weight = np.array([0.0, 0.5, 0.0])
-    # self.objective_fn.base_vel_weight = np.array([6.0, 0.0, 0.0])
+    self.objective_fn.base_dir_weight = np.array([-1.0, 0.0, 0.0])
+    self.objective_fn.base_up_weight = np.array([0.0, 1.0, 0.0])
+    self.objective_fn.base_vel_weight = np.array([8.0, 0.0, 0.0])
+
+  def add_terrain(self, sim):
+    rng = np.random.RandomState(self.seed)
+    sim.add_prop(self.floor, [0.0, -1.0, 0.0],
+                 rd.Quaterniond(1.0, 0.0, 0.0, 0.0))
+    for i in range(20):
+      sim.add_prop(self.bump,
+                   [rng.normal(0.5, 0.05) + i, -0.2 + rng.uniform(0.06, min(0.20, 0.09 * (i + 1))), 0.0],
+                   rd.Quaterniond(1.0, 0.0, 0.0, 0.0))
+
+'''
+higher ridges at beginning
+'''
+class NewRidgedTerrainTask2(ForwardSpeedTask):
+  """
+  Task where the objective is to move forward as quickly as possible over ridged
+  terrain.
+  """
+
+  def __init__(self, seed=0, **kwargs):
+    super().__init__(**kwargs)
+    self.seed = seed
+
+    self.floor = rd.Prop(rd.PropShape.BOX, 0.0, 0.5, [20.0, 1.0, 10.0])
+    self.bump = rd.Prop(rd.PropShape.BOX, 0.0, 0.5, [0.1, 0.2, 10.0])
 
     self.objective_fn.base_dir_weight = np.array([-1.0, 0.0, 0.0])
     self.objective_fn.base_up_weight = np.array([0.0, 1.0, 0.0])
@@ -229,12 +254,6 @@ class NewRidgedTerrainTask(ForwardSpeedTask):
     sim.add_prop(self.floor, [0.0, -1.0, 0.0],
                  rd.Quaterniond(1.0, 0.0, 0.0, 0.0))
     for i in range(20):
-      # sim.add_prop(self.bump,
-      #              [rng.normal(0.5, 0.05) + i, -0.2 + rng.uniform(0.06, 0.22), 0.0],
-      #              rd.Quaterniond(1.0, 0.0, 0.0, 0.0))
-      # sim.add_prop(self.bump,
-      #              [rng.normal(0.5, 0.05) + i, -0.2 + rng.uniform(0.06, min(0.20, 0.09 * (i + 1))), 0.0],
-      #              rd.Quaterniond(1.0, 0.0, 0.0, 0.0))
       if i == 0:
         sim.add_prop(self.bump,
                 [rng.normal(0.5, 0.05) + i, -0.2 + 0.06, 0.0],
@@ -288,12 +307,8 @@ class NewGapTerrainTask(ForwardSpeedTask):
   def add_terrain(self, sim):
     rng = np.random.RandomState(self.seed)
     for i, (x, platform) in enumerate(zip(self.platform_x, self.platforms)):
-      if i == 0:
-        sim.add_prop(platform, [x, -1.0, 0.0],
-                    rd.Quaterniond(1.0, 0.0, 0.0, 0.0))
-      else:
-        sim.add_prop(platform, [x, -1.0, 0.0],
-                    rd.Quaterniond(1.0, 0.0, 0.0, 0.0))
+      sim.add_prop(platform, [x, -1.0, 0.0],
+                  rd.Quaterniond(1.0, 0.0, 0.0, 0.0))
     sim.add_prop(self.floor, [self.floor_x, -2.0, 0.0],
                  rd.Quaterniond(1.0, 0.0, 0.0, 0.0))
 
@@ -428,3 +443,34 @@ class NewSteppedTerrainTask4(ForwardSpeedTask):
     rng = np.random.RandomState(self.seed)
     for i, (x, platform) in enumerate(zip(self.platform_x, self.platforms)):
       sim.add_prop(platform, [0.5 + x, -5.0 + i * 0.1, 0.0], rd.Quaterniond(1.0, 0.0, 0.0, 0.0))
+
+class NewWallTerrainTask(ForwardSpeedTask):
+  """
+  Task where the objective is to move forward as quickly as possible around a
+  series of walls.
+  """
+
+  def __init__(self, seed=0, **kwargs):
+    super().__init__(horizon=32, **kwargs)
+    self.seed = seed
+
+    self.floor = rd.Prop(rd.PropShape.BOX, 0.0, 0.5, [20.0, 1.0, 10.0])
+    self.wall = rd.Prop(rd.PropShape.BOX, 0.0, 0.5, [0.05, 0.5, 0.45])
+    self.side_wall = rd.Prop(rd.PropShape.BOX, 0.0, 0.5, [20, 0.5, 0.05])
+
+    self.objective_fn.base_dir_weight = np.array([-1.0, 0.0, 0.0])
+    self.objective_fn.base_up_weight = np.array([0.0, 1.0, 0.0])
+    self.objective_fn.base_vel_weight = np.array([8.0, 0.0, 0.0])
+
+  def add_terrain(self, sim):
+    rng = np.random.RandomState(self.seed)
+    sim.add_prop(self.floor, [0.0, -1.0, 0.0],
+                 rd.Quaterniond(1.0, 0.0, 0.0, 0.0))
+    sim.add_prop(self.side_wall, [0.0, 0.0, 1.0],
+                 rd.Quaterniond(1.0, 0.0, 0.0, 0.0))
+    sim.add_prop(self.side_wall, [0.0, 0.0, -1.0],
+                 rd.Quaterniond(1.0, 0.0, 0.0, 0.0))
+    for i in range(10):
+      sim.add_prop(self.wall,
+                   [1.5 * i + 0.5, 0.0, i % 2 - 0.5],
+                   rd.Quaterniond(1.0, 0.0, 0.0, 0.0))
