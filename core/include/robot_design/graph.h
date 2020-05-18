@@ -71,6 +71,7 @@ struct EdgeAttributes {
   Scalar joint_torque_ = 1.0;
   Scalar joint_lower_limit_ = 0.0;
   Scalar joint_upper_limit_ = 0.0;
+  JointControlMode joint_control_mode_ = JointControlMode::POSITION;
   Scalar scale_ = 1.0;
   bool mirror_ = false;
   Color color_ = {1.0f, 0.5f, 0.3f}; // Coral
@@ -91,6 +92,7 @@ struct EdgeAttributes {
     visit(std::forward<Args>(args).joint_torque_...);
     visit(std::forward<Args>(args).joint_lower_limit_...);
     visit(std::forward<Args>(args).joint_upper_limit_...);
+    visit(std::forward<Args>(args).joint_control_mode_...);
     visit(std::forward<Args>(args).scale_...);
     visit(std::forward<Args>(args).mirror_...);
     visit(std::forward<Args>(args).color_...);

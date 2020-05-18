@@ -22,6 +22,7 @@ Robot buildRobot(const Graph &graph) {
     Scalar joint_kp_;
     Scalar joint_kd_;
     Scalar joint_torque_;
+    JointControlMode joint_control_mode_;
     Color joint_color_;
     std::string joint_label_;
     // Cumulative scaling factor
@@ -63,8 +64,9 @@ Robot buildRobot(const Graph &graph) {
       /*node=*/root_node, /*parent_link=*/-1, /*joint_type=*/JointType::FREE,
       /*joint_pos=*/0.0, /*joint_rot=*/Quaternion::Identity(),
       /*joint_axis=*/Vector3::Zero(), /*joint_kp=*/0.0, /*joint_kd=*/0.0,
-      /*joint_torque=*/1.0, /*joint_color=*/Color::Zero(), /*joint_label=*/"",
-      /*scale=*/1.0, /*mirror=*/false}};
+      /*joint_torque=*/1.0, /*joint_control_mode=*/JointControlMode::POSITION,
+      /*joint_color=*/Color::Zero(), /*joint_label=*/"", /*scale=*/1.0,
+      /*mirror=*/false}};
   while (!entries_to_expand.empty()) {
     NodeEntry &entry = entries_to_expand.front();
     const Node &node = graph.nodes_[entry.node_];
@@ -85,9 +87,10 @@ Robot buildRobot(const Graph &graph) {
         /*length=*/node.attrs_.length_, /*radius=*/node.attrs_.radius_,
         /*density=*/node.attrs_.density_, /*friction=*/node.attrs_.friction_,
         /*joint_kp=*/entry.joint_kp_, /*joint_kd=*/entry.joint_kd_,
-        /*joint_torque=*/entry.joint_torque_, /*color=*/node.attrs_.color_,
-        /*joint_color=*/entry.joint_color_, /*label=*/node.attrs_.label_,
-        /*joint_label=*/entry.joint_label_);
+        /*joint_torque=*/entry.joint_torque_,
+        /*joint_control_mode=*/entry.joint_control_mode_,
+        /*color=*/node.attrs_.color_, /*joint_color=*/entry.joint_color_,
+        /*label=*/node.attrs_.label_, /*joint_label=*/entry.joint_label_);
 
     for (const Edge &edge : graph.edges_) {
       if (edge.tail_ == entry.node_) {
@@ -101,6 +104,7 @@ Robot buildRobot(const Graph &graph) {
              /*joint_kp=*/edge.attrs_.joint_kp_,
              /*joint_kd=*/edge.attrs_.joint_kd_,
              /*joint_torque=*/edge.attrs_.joint_torque_,
+             /*joint_control_mode=*/edge.attrs_.joint_control_mode_,
              /*joint_color=*/edge.attrs_.color_,
              /*joint_label=*/edge.attrs_.label_,
              /*scale=*/entry.scale_ * edge.attrs_.scale_,

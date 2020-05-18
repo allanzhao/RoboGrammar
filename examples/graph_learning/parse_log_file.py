@@ -40,6 +40,7 @@ def featurize_edge(edge_attrs):
                    edge_attrs.joint_torque,
                    edge_attrs.joint_lower_limit,
                    edge_attrs.joint_upper_limit,
+                   edge_attrs.joint_control_mode,
                    edge_attrs.scale,
                    edge_attrs.mirror])
 
@@ -56,7 +57,8 @@ def featurize_link(link):
                    link.friction,
                    link.joint_kp,
                    link.joint_kd,
-                   link.joint_torque])
+                   link.joint_torque,
+                   link.joint_control_mode])
 
 def main(log_file=None, grammar_file=None):
   parser = argparse.ArgumentParser(

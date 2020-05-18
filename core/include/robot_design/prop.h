@@ -39,4 +39,4 @@ struct HeightfieldProp : Prop {
   MatrixX heightfield_;
 };
 
-} // namespace drbs
+} // namespace robot_design
