@@ -387,15 +387,19 @@ void BulletSimulation::setJointTargets(Index robot_idx,
     // The first non-base link in Bullet has index 0
     const btMultibodyLink &link = wrapper.multi_body_->getLink(i - 1);
     for (int j = 0; j < link.m_dofCount; ++j) {
+      Scalar joint_target;
       switch (robot->links_[i].joint_control_mode_) {
       case JointControlMode::POSITION:
-        wrapper.joint_target_pos_(dof_idx) = target(dof_idx);
+        joint_target = target(dof_idx);
+        wrapper.joint_target_pos_(dof_idx) = joint_target;
         wrapper.joint_target_vel_(dof_idx) = 0.0;
         break;
       case JointControlMode::VELOCITY:
+        // TODO: allow changing this scaling factor
+        joint_target = 5.0 * target(dof_idx);
         wrapper.joint_target_pos_(dof_idx) =
-            link.m_jointPos[j] + target(dof_idx) * time_step_;
-        wrapper.joint_target_vel_(dof_idx) = target(dof_idx);
+            link.m_jointPos[j] + joint_target * time_step_;
+        wrapper.joint_target_vel_(dof_idx) = joint_target;
         break;
       default:
         throw std::runtime_error("Unexpected joint control mode");
