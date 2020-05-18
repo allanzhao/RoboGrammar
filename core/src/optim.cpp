@@ -169,7 +169,7 @@ Scalar MPPIOptimizer::runSimulation(unsigned int sample_seed, int sample_idx) {
   Scalar discount_prod = 1.0;
   for (int j = 0; j < horizon_; ++j) {
     for (int i = 0; i < interval_; ++i) {
-      sim.setJointTargetPositions(robot_idx, rand_input_seq.col(j));
+      sim.setJointTargets(robot_idx, rand_input_seq.col(j));
       sim.step();
       sim_return += objective_fn_(sim) * discount_prod;
     }
@@ -186,7 +186,7 @@ void MPPIOptimizer::advanceSimulation(int sample_idx, int step_count) {
   Index robot_idx = 0; // TODO: don't assume there is only one robot
   for (int j = 0; j < step_count; ++j) {
     for (int i = 0; i < interval_; ++i) {
-      sim.setJointTargetPositions(robot_idx, input_sequence_.col(j));
+      sim.setJointTargets(robot_idx, input_sequence_.col(j));
       sim.step();
     }
   }

@@ -123,8 +123,8 @@ def simulate(robot, task, opt_seed, thread_count, episode_count=1):
 
       value_estimator.get_observation(main_sim, obs[:,j])
       for k in range(task.interval):
-        main_sim.set_joint_target_positions(robot_idx,
-                                            input_sequence[:,j].reshape(-1, 1))
+        main_sim.set_joint_targets(robot_idx,
+                                   input_sequence[:,j].reshape(-1, 1))
         task.add_noise(main_sim, j * task.interval + k)
         main_sim.step()
         rewards[j * task.interval + k] = objective_fn(main_sim)
