@@ -19,6 +19,10 @@ void initRobot(py::module &m) {
       .value("HINGE", rd::JointType::HINGE)
       .value("FIXED", rd::JointType::FIXED);
 
+  py::enum_<rd::JointControlMode>(m, "JointControlMode")
+      .value("POSITION", rd::JointControlMode::POSITION)
+      .value("VELOCITY", rd::JointControlMode::VELOCITY);
+
   py::class_<rd::Link>(m, "Link")
       .def(py::init<rd::Index, rd::JointType, rd::Scalar,
                     const rd::Quaternion &, const rd::Vector3 &, rd::LinkShape,
