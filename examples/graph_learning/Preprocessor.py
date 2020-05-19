@@ -39,7 +39,7 @@ def featurize_link(link):
                     link.joint_kp,
                     link.joint_kd,
                     link.joint_torque,
-                    link.joint_control_mode])
+                    *one_hot_encode(link.joint_control_mode)])
 
 class Preprocessor:
     def __init__(self, all_labels = None, max_nodes = None):
