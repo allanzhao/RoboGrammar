@@ -93,4 +93,13 @@ template <> struct hash<robot_design::JointType> {
   }
 };
 
+template <> struct hash<robot_design::JointControlMode> {
+  std::size_t
+  operator()(const robot_design::JointControlMode &joint_control_mode) const {
+    using type =
+        typename std::underlying_type<robot_design::JointControlMode>::type;
+    return std::hash<type>()(static_cast<type>(joint_control_mode));
+  }
+};
+
 } // namespace std
