@@ -30,6 +30,7 @@ void initRender(py::module &m) {
       .def(py::init<>())
       .def(py::init<float, float, float>())
       .def("update", &rd::FPSCameraController::update)
+      .def("should_record", &rd::FPSCameraController::shouldRecord)
       .def_readwrite("move_speed", &rd::FPSCameraController::move_speed_)
       .def_readwrite("mouse_sensitivity",
                      &rd::FPSCameraController::mouse_sensitivity_)
