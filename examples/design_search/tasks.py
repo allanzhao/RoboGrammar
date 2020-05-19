@@ -309,6 +309,9 @@ class NewGapTerrainTask(ForwardSpeedTask):
     for i, (x, platform) in enumerate(zip(self.platform_x, self.platforms)):
       sim.add_prop(platform, [x, -1.0, 0.0],
                   rd.Quaterniond(1.0, 0.0, 0.0, 0.0))
+    # for i, (x, platform) in enumerate(zip(self.platform_x, self.platforms)):
+    #   sim.add_prop(platform, [x, -1.0 + rng.normal(0.0, 0.01 * i), 0.0],
+    #             rd.Quaterniond(1.0, 0.0, 0.0, 0.0))
     sim.add_prop(self.floor, [self.floor_x, -2.0, 0.0],
                  rd.Quaterniond(1.0, 0.0, 0.0, 0.0))
 

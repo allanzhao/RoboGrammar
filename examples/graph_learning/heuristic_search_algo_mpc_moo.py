@@ -568,7 +568,8 @@ if __name__ == '__main__':
                  '--log-interval', '100',
                  '--eval-interval', '1000',
                  '--max-trials', '1000',
-                 '--num-eval', '1']
+                 '--num-eval', '1'
+                 '--no-noise']
 
     solve_argv_conflict(args_list)
     parser = get_parser()
