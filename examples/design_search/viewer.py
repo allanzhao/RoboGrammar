@@ -1,13 +1,28 @@
 import argparse
 from design_search import RobotDesignEnv, make_graph, build_normalized_robot, presimulate, simulate
+import export_mesh
 import mcts
 import numpy as np
+import os
 import pyrobotdesign as rd
 import random
 import tasks
 import time
 
+def run_trajectory(sim, robot_idx, input_sequence, task, step_callback):
+  step_callback(0)
+
+  for j in range(input_sequence.shape[1]):
+    for k in range(task.interval):
+      step_idx = j * task.interval + k
+      sim.set_joint_targets(robot_idx, input_sequence[:,j].reshape(-1, 1))
+      task.add_noise(sim, step_idx)
+      sim.step()
+      step_callback(step_idx + 1)
+
 def view_trajectory(sim, robot_idx, input_sequence, task):
+  record_step_indices = set()
+
   sim.save_state()
 
   # Get robot bounds
@@ -27,9 +42,10 @@ def view_trajectory(sim, robot_idx, input_sequence, task):
   while not viewer.should_close():
     current_time = time.time()
     while sim_time < current_time:
+      step_idx = j * task.interval + k
       if input_sequence is not None:
         sim.set_joint_targets(robot_idx, input_sequence[:,j].reshape(-1, 1))
-      task.add_noise(sim, j * task.interval + k)
+      task.add_noise(sim, step_idx)
       sim.step()
       sim.get_robot_world_aabb(robot_idx, lower, upper)
       # Update camera position to track the robot smoothly
@@ -38,6 +54,8 @@ def view_trajectory(sim, robot_idx, input_sequence, task):
       camera_pos += 5.0 * task.time_step * (target_pos - camera_pos)
       viewer.camera_params.position = camera_pos
       viewer.update(task.time_step)
+      if viewer.camera_controller.should_record():
+        record_step_indices.add(step_idx)
       sim_time += task.time_step
       k += 1
       if k >= task.interval:
@@ -50,6 +68,10 @@ def view_trajectory(sim, robot_idx, input_sequence, task):
         sim.get_robot_world_aabb(robot_idx, lower, upper)
         viewer.camera_params.position = 0.5 * (lower + upper)
     viewer.render(sim)
+
+  sim.restore_state()
+
+  return record_step_indices
 
 def finalize_robot(robot):
   for link in robot.links:
@@ -79,6 +101,8 @@ def main():
                       help="Number of jobs/threads")
   parser.add_argument("--input_sequence_file", type=str,
                       help="File to save input sequence to (.csv)")
+  parser.add_argument("--save_obj_dir", type=str,
+                      help="Directory to save .obj files to")
   parser.add_argument("-l", "--episode_len", type=int, default=128,
                       help="Length of episode")
   args = parser.parse_args()
@@ -124,7 +148,46 @@ def main():
   main_sim.add_robot(robot, robot_init_pos, rd.Quaterniond(0.0, 0.0, 1.0, 0.0))
   robot_idx = main_sim.find_robot_index(robot)
 
-  view_trajectory(main_sim, robot_idx, input_sequence, task)
+  record_step_indices = view_trajectory(main_sim, robot_idx, input_sequence,
+                                        task)
+
+  if args.save_obj_dir and input_sequence is not None:
+    print("Saving .obj files for {} steps".format(len(record_step_indices)))
+
+    os.makedirs(args.save_obj_dir, exist_ok=True)
+
+    # Save the props/terrain once
+    obj_file_name = os.path.join(args.save_obj_dir, 'terrain.obj')
+    mtl_file_name = os.path.join(args.save_obj_dir, 'terrain.mtl')
+    with open(obj_file_name, 'w') as obj_file, \
+         open(mtl_file_name, 'w') as mtl_file:
+      dumper = export_mesh.ObjDumper(obj_file, mtl_file)
+      obj_file.write("mtllib {}\n".format(os.path.split(mtl_file_name)[-1]))
+      for prop_idx in range(main_sim.get_prop_count()):
+        export_mesh.dump_prop(prop_idx, main_sim, dumper)
+      dumper.finish()
+
+    # Save the robot once per step
+    def save_obj_callback(step_idx):
+      if record_step_indices:
+        if step_idx not in record_step_indices:
+          return
+      else:
+        if step_idx % 128 != 0:
+          return
+
+      obj_file_name = os.path.join(args.save_obj_dir,
+                                   'robot_{:04}.obj'.format(step_idx))
+      # Use one .mtl file for all steps
+      mtl_file_name = os.path.join(args.save_obj_dir, 'robot.mtl')
+      with open(obj_file_name, 'w') as obj_file, \
+           open(mtl_file_name, 'w') as mtl_file:
+        dumper = export_mesh.ObjDumper(obj_file, mtl_file)
+        obj_file.write("mtllib {}\n".format(os.path.split(mtl_file_name)[-1]))
+        export_mesh.dump_robot(robot_idx, main_sim, dumper)
+        dumper.finish()
+
+    run_trajectory(main_sim, robot_idx, input_sequence, task, save_obj_callback)
 
 if __name__ == '__main__':
   main()
