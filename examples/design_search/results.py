@@ -75,8 +75,7 @@ def save_robot_video_frames(robot, task, opt_seed, thread_count, save_image_dir,
   frame_index = 0
   for j in range(input_sequence.shape[1]):
     for k in range(task.interval):
-      sim.set_joint_target_positions(robot_idx,
-                                     input_sequence[:,j].reshape(-1, 1))
+      sim.set_joint_targets(robot_idx, input_sequence[:,j].reshape(-1, 1))
       sim.step()
       sim.get_link_transform(robot_idx, 0, base_tf)
       # Update camera position to track the robot smoothly

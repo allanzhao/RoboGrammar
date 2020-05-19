@@ -2,6 +2,7 @@ import argparse
 import ast
 from design_search import make_graph, build_normalized_robot
 import glob
+import itertools
 import json
 import matplotlib.pyplot as plt
 import os
@@ -14,40 +15,52 @@ import tasks
 def is_negative_objective(obj_name):
     return obj_name == 'ServoCount'
 
-def plot_iterations(ax, df):
+def plot_iterations(df):
     df['reward_max'] = df.groupby(['task', 'algorithm'])['reward'].cummax()
 
+    fig, ax = plt.subplots()
     sns.scatterplot(x='iteration', y='reward', hue='algorithm', data=df,
                     ax=ax, alpha=0.2)
     sns.lineplot(x='iteration', y='reward_max', hue='algorithm', data=df, ax=ax,
                  legend=False)
     ax.set(xlabel='iteration', ylabel='reward')
+    fig.tight_layout()
+    plt.show()
 
-def plot_pareto(ax, df):
+def plot_pareto(df):
     tasks = df['task'].unique()
-    if len(tasks) != 2:
-        raise ValueError("Only two tasks are supported")
+    if len(tasks) < 2:
+        raise ValueError("At least two tasks are required to plot Pareto sets")
 
     # Keep only the highest reward for each (task, hash) combination
     df = df.loc[df.groupby(['task', 'hash'])['reward'].idxmax()]
 
-    df_task0 = df[df['task'] == tasks[0]]
-    df_task1 = df[df['task'] == tasks[1]]
-    df = df_task0.merge(df_task1, on='hash', validate='one_to_one')
+    for task0, task1 in itertools.product(tasks, tasks):
+        if task0 >= task1:
+            continue
 
-    df.sort_values('reward_x', ascending=is_negative_objective(tasks[0]),
-                   inplace=True)
-    if is_negative_objective(tasks[1]):
-        pareto_df = df[df['reward_y'] < df['reward_y'].shift(1, fill_value=float('inf')).cummin()]
-    else:
-        pareto_df = df[df['reward_y'] > df['reward_y'].shift(1, fill_value=float('-inf')).cummax()]
+        df_task0 = df[df['task'] == task0]
+        df_task1 = df[df['task'] == task1]
+        df_merged = df_task0.merge(df_task1, on='hash', validate='one_to_one')
 
-    sns.scatterplot(x='reward_x', y='reward_y', data=df, alpha=0.2)
-    sns.scatterplot(x='reward_x', y='reward_y', data=pareto_df)
-    ax.set(xlabel=tasks[0], ylabel=tasks[1])
+        df_merged.sort_values('reward_x',
+                              ascending=is_negative_objective(task0),
+                              inplace=True)
+        if is_negative_objective(task1):
+            df_pareto = df_merged[df_merged['reward_y'] < df_merged['reward_y'].shift(1, fill_value=float('inf')).cummin()]
+        else:
+            df_pareto = df_merged[df_merged['reward_y'] > df_merged['reward_y'].shift(1, fill_value=float('-inf')).cummax()]
 
-    for _, row in pareto_df.iterrows():
-        print(row['rule_seq_x'])
+        fig, ax = plt.subplots()
+        sns.scatterplot(x='reward_x', y='reward_y', data=df_merged, alpha=0.2)
+        sns.scatterplot(x='reward_x', y='reward_y', data=df_pareto)
+        ax.set(xlabel=task0, ylabel=task1)
+
+        for _, row in df_pareto.iterrows():
+            print(row['rule_seq_x'])
+
+    fig.tight_layout()
+    plt.show()
 
 def main():
     sns.set_context('paper')
@@ -87,8 +100,13 @@ def main():
         # Load the .csv data
         csv_file_names = glob.glob(os.path.join(log_dir, '*.csv'))
         if len(csv_file_names) != 1:
-            print("Directory '{}' does not contain exactly one .csv file, skipping", file=sys.stderr)
-        log_df = pd.read_csv(csv_file_names[0])
+            print("Directory '{}' does not contain exactly one .csv file, skipping".format(log_dir), file=sys.stderr)
+
+        try:
+            log_df = pd.read_csv(csv_file_names[0])
+        except FileNotFoundError:
+            print("File '{}' does not exist, skipping".format(csv_file_names[0]), file=sys.stderr)
+            continue
 
         if 'iteration' not in log_df.columns:
             log_df['iteration'] = log_df.index
@@ -146,9 +164,7 @@ def main():
 
     df['hash'] = df['rule_seq'].map(rule_seq_hashes)
 
-    fig, ax = plt.subplots()
-    args.func(ax, df)
-    plt.show()
+    args.func(df)
 
 if __name__ == '__main__':
   main()

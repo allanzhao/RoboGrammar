@@ -46,6 +46,8 @@ public:
                                         Ref<VectorX> target_vel) const = 0;
   virtual void getJointMotorTorques(Index robot_idx,
                                     Ref<VectorX> motor_torques) const = 0;
+  virtual void setJointTargets(Index robot_idx,
+                               const Ref<const VectorX> &target) = 0;
   virtual void
   setJointTargetPositions(Index robot_idx,
                           const Ref<const VectorX> &target_pos) = 0;
@@ -137,6 +139,8 @@ public:
                                         Ref<VectorX> target_vel) const override;
   virtual void getJointMotorTorques(Index robot_idx,
                                     Ref<VectorX> motor_torques) const override;
+  virtual void setJointTargets(Index robot_idx,
+                               const Ref<const VectorX> &target) override;
   virtual void
   setJointTargetPositions(Index robot_idx,
                           const Ref<const VectorX> &target_pos) override;
@@ -160,8 +164,9 @@ public:
 
 private:
   struct OverlapFilterCallback : public btOverlapFilterCallback {
-    virtual bool needBroadphaseCollision(
-        btBroadphaseProxy *proxy0, btBroadphaseProxy *proxy1) const override;
+    virtual bool
+    needBroadphaseCollision(btBroadphaseProxy *proxy0,
+                            btBroadphaseProxy *proxy1) const override;
   };
 
   void unregisterRobotWrapper(BulletRobotWrapper &robot_wrapper);

@@ -198,7 +198,8 @@ Index BulletSimulation::addProp(std::shared_ptr<const Prop> prop,
         heightfield.rows(), heightfield.cols(), heightfield.data(),
         /*heightScale=*/1.0, /*minHeight=*/0.0, /*maxHeight=*/1.0,
         /*upAxis=*/1, /*heightDataType=*/PHY_FLOAT, /*flipQuadEdges=*/false);
-    Vector3 local_scaling = (2.0 * heightfield_prop.half_extents_).array() /
+    Vector3 local_scaling =
+        (2.0 * heightfield_prop.half_extents_).array() /
         Vector3(heightfield.rows() - 1, 1.0, heightfield.cols() - 1).array();
     col_shape->setLocalScaling(bulletVector3FromEigen(local_scaling));
     col_shape->buildAccelerator();
@@ -373,6 +374,39 @@ void BulletSimulation::getJointTargetVelocities(Index robot_idx,
 void BulletSimulation::getJointMotorTorques(Index robot_idx,
                                             Ref<VectorX> motor_torques) const {
   motor_torques = robot_wrappers_[robot_idx].joint_motor_torques_;
+}
+
+void BulletSimulation::setJointTargets(Index robot_idx,
+                                       const Ref<const VectorX> &target) {
+  BulletRobotWrapper &wrapper = robot_wrappers_[robot_idx];
+  const Robot *robot = wrapper.robot_.get();
+
+  int dof_idx = 0;
+  // The base link (index 0) has no actuated degrees of freedom
+  for (std::size_t i = 1; i < robot->links_.size(); ++i) {
+    // The first non-base link in Bullet has index 0
+    const btMultibodyLink &link = wrapper.multi_body_->getLink(i - 1);
+    for (int j = 0; j < link.m_dofCount; ++j) {
+      Scalar joint_target;
+      switch (robot->links_[i].joint_control_mode_) {
+      case JointControlMode::POSITION:
+        joint_target = target(dof_idx);
+        wrapper.joint_target_pos_(dof_idx) = joint_target;
+        wrapper.joint_target_vel_(dof_idx) = 0.0;
+        break;
+      case JointControlMode::VELOCITY:
+        // TODO: allow changing this scaling factor
+        joint_target = 5.0 * target(dof_idx);
+        wrapper.joint_target_pos_(dof_idx) =
+            link.m_jointPos[j] + joint_target * time_step_;
+        wrapper.joint_target_vel_(dof_idx) = joint_target;
+        break;
+      default:
+        throw std::runtime_error("Unexpected joint control mode");
+      }
+      ++dof_idx;
+    }
+  }
 }
 
 void BulletSimulation::setJointTargetPositions(

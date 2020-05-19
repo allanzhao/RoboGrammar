@@ -143,6 +143,15 @@ void updateEdgeAttributes(
       in >> lower_limit >> upper_limit;
       edge_attrs.joint_lower_limit_ = lower_limit * RAD_PER_DEG;
       edge_attrs.joint_upper_limit_ = upper_limit * RAD_PER_DEG;
+    } else if (key == "control_mode") {
+      if (value == "position") {
+        edge_attrs.joint_control_mode_ = JointControlMode::POSITION;
+      } else if (value == "velocity") {
+        edge_attrs.joint_control_mode_ = JointControlMode::VELOCITY;
+      } else {
+        throw std::runtime_error("Unexpected value \"" + value +
+                                 "\" for control_mode");
+      }
     } else if (key == "scale") {
       std::istringstream in(value);
       in >> edge_attrs.scale_;

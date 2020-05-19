@@ -50,6 +50,8 @@ void initGraph(py::module &m) {
                      &rd::EdgeAttributes::joint_lower_limit_)
       .def_readwrite("joint_upper_limit",
                      &rd::EdgeAttributes::joint_upper_limit_)
+      .def_readwrite("joint_control_mode",
+                     &rd::EdgeAttributes::joint_control_mode_)
       .def_readwrite("scale", &rd::EdgeAttributes::scale_)
       .def_readwrite("mirror", &rd::EdgeAttributes::mirror_)
       .def_readwrite("color", &rd::EdgeAttributes::color_)

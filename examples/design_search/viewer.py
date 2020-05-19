@@ -28,8 +28,7 @@ def view_trajectory(sim, robot_idx, input_sequence, task):
     current_time = time.time()
     while sim_time < current_time:
       if input_sequence is not None:
-        sim.set_joint_target_positions(robot_idx,
-                                       input_sequence[:,j].reshape(-1, 1))
+        sim.set_joint_targets(robot_idx, input_sequence[:,j].reshape(-1, 1))
       task.add_noise(sim, j * task.interval + k)
       sim.step()
       sim.get_robot_world_aabb(robot_idx, lower, upper)

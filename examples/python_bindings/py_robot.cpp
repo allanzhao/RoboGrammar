@@ -19,12 +19,16 @@ void initRobot(py::module &m) {
       .value("HINGE", rd::JointType::HINGE)
       .value("FIXED", rd::JointType::FIXED);
 
+  py::enum_<rd::JointControlMode>(m, "JointControlMode")
+      .value("POSITION", rd::JointControlMode::POSITION)
+      .value("VELOCITY", rd::JointControlMode::VELOCITY);
+
   py::class_<rd::Link>(m, "Link")
       .def(py::init<rd::Index, rd::JointType, rd::Scalar,
                     const rd::Quaternion &, const rd::Vector3 &, rd::LinkShape,
                     rd::Scalar, rd::Scalar, rd::Scalar, rd::Scalar, rd::Scalar,
-                    rd::Scalar, rd::Scalar, const rd::Color &,
-                    const rd::Color &, const std::string &,
+                    rd::Scalar, rd::Scalar, rd::JointControlMode,
+                    const rd::Color &, const rd::Color &, const std::string &,
                     const std::string &>())
       .def_readwrite("parent", &rd::Link::parent_)
       .def_readwrite("joint_type", &rd::Link::joint_type_)
@@ -39,6 +43,7 @@ void initRobot(py::module &m) {
       .def_readwrite("joint_kp", &rd::Link::joint_kp_)
       .def_readwrite("joint_kd", &rd::Link::joint_kd_)
       .def_readwrite("joint_torque", &rd::Link::joint_torque_)
+      .def_readwrite("joint_control_mode", &rd::Link::joint_control_mode_)
       .def_readwrite("color", &rd::Link::color_)
       .def_readwrite("joint_color", &rd::Link::joint_color_)
       .def_readwrite("label", &rd::Link::label_)

@@ -118,7 +118,7 @@ class RobotLocomotionFullEnv(gym.Env):
 
         reward = 0.0
         for _ in range(self.frame_skip):
-            self.sim.set_joint_target_positions(self.robot_index, deepcopy(action.reshape(-1, 1)))
+            self.sim.set_joint_targets(self.robot_index, deepcopy(action.reshape(-1, 1)))
             self.sim.step()
             # reward += self.objective_fn(self.sim)
             reward += self.compute_reward()
