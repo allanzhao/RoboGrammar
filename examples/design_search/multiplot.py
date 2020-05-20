@@ -15,19 +15,20 @@ import tasks
 def is_negative_objective(obj_name):
     return obj_name == 'ServoCount'
 
-def plot_iterations(df):
+def plot_iterations(df, ind_rewards, **kwargs):
     df['reward_max'] = df.groupby(['task', 'algorithm'])['reward'].cummax()
 
     fig, ax = plt.subplots()
-    sns.scatterplot(x='iteration', y='reward', hue='algorithm', data=df,
-                    ax=ax, alpha=0.2)
+    if ind_rewards:
+        sns.scatterplot(x='iteration', y='reward', hue='algorithm', data=df,
+                        ax=ax, alpha=0.2)
     sns.lineplot(x='iteration', y='reward_max', hue='algorithm', data=df, ax=ax,
                  legend=False)
     ax.set(xlabel='iteration', ylabel='reward')
     fig.tight_layout()
     plt.show()
 
-def plot_pareto(df):
+def plot_pareto(df, **kwargs):
     tasks = df['task'].unique()
     if len(tasks) < 2:
         raise ValueError("At least two tasks are required to plot Pareto sets")
@@ -77,6 +78,8 @@ def main():
                         help="Maximum number of iterations to show")
     parser.add_argument('--servo_count', action='store_true',
                         help="Include servo count as an objective")
+    parser.add_argument('--ind_rewards', action='store_true',
+                        help="Include individual rewards in iterations plot")
     subparsers = parser.add_subparsers(help='Plot type')
     parser_iterations = subparsers.add_parser('iterations')
     parser_iterations.set_defaults(func=plot_iterations)
@@ -99,26 +102,31 @@ def main():
 
         # Load the .csv data
         csv_file_names = glob.glob(os.path.join(log_dir, '*.csv'))
-        if len(csv_file_names) != 1:
-            print("Directory '{}' does not contain exactly one .csv file, skipping".format(log_dir), file=sys.stderr)
-
-        try:
-            log_df = pd.read_csv(csv_file_names[0])
-        except FileNotFoundError:
-            print("File '{}' does not exist, skipping".format(csv_file_names[0]), file=sys.stderr)
+        if len(csv_file_names) == 0:
+            print("Directory '{}' does not contain any .csv files, skipping".format(log_dir), file=sys.stderr)
             continue
 
-        if 'iteration' not in log_df.columns:
-            log_df['iteration'] = log_df.index
+        for csv_file_name in csv_file_names:
+            try:
+                log_df = pd.read_csv(csv_file_name)
+            except FileNotFoundError:
+                print("File '{}' does not exist, skipping".format(csv_file_name), file=sys.stderr)
+                continue
 
-        log_df.rename(columns={'result': 'reward'}, inplace=True)
+            if 'iteration' not in log_df.columns:
+                log_df['iteration'] = log_df.index
 
-        log_df['task'] = metadata.get('task')
-        log_df['grammar'] = metadata.get('grammar',
-                                         'data/designs/grammar_apr30.dot')
-        log_df['algorithm'] = metadata.get('algorithm')
+            log_df.rename(columns={'result': 'reward'}, inplace=True)
 
-        df = df.append(log_df, ignore_index=True, sort=True)
+            if 'task' not in log_df.columns:
+                log_df['task'] = metadata.get('task')
+            if 'grammar' not in log_df.columns:
+                log_df['grammar'] = metadata.get(
+                    'grammar', 'data/designs/grammar_apr30.dot')
+            if 'algorithm' not in log_df.columns:
+                log_df['algorithm'] = metadata.get('algorithm')
+
+            df = df.append(log_df, ignore_index=True, sort=True)
 
     # Filter data based on arguments
     if args.iterations:
@@ -164,7 +172,7 @@ def main():
 
     df['hash'] = df['rule_seq'].map(rule_seq_hashes)
 
-    args.func(df)
+    args.func(df, ind_rewards=args.ind_rewards)
 
 if __name__ == '__main__':
   main()
