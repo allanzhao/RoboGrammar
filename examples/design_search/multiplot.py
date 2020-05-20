@@ -15,15 +15,16 @@ import tasks
 def is_negative_objective(obj_name):
     return obj_name == 'ServoCount'
 
-def plot_iterations(df, ind_rewards, **kwargs):
-    df['reward_max'] = df.groupby(['task', 'algorithm'])['reward'].cummax()
+def plot_iterations(df, ind_rewards, estimator=None, **kwargs):
+    df['reward_max'] = df.groupby(['task', 'algorithm', 'trial'])['reward'].cummax()
 
     fig, ax = plt.subplots()
     if ind_rewards:
         sns.scatterplot(x='iteration', y='reward', hue='algorithm', data=df,
-                        ax=ax, alpha=0.2)
-    sns.lineplot(x='iteration', y='reward_max', hue='algorithm', data=df, ax=ax,
-                 legend=False)
+                        ax=ax, alpha=0.2, legend=False)
+    units = None if estimator else 'trial'
+    sns.lineplot(x='iteration', y='reward_max', hue='algorithm', units=units,
+                 data=df, ax=ax, estimator=estimator)
     ax.set(xlabel='iteration', ylabel='reward')
     fig.tight_layout()
     plt.show()
@@ -80,6 +81,8 @@ def main():
                         help="Include servo count as an objective")
     parser.add_argument('--ind_rewards', action='store_true',
                         help="Include individual rewards in iterations plot")
+    parser.add_argument('--estimator', type=str,
+                        help="Estimator for aggregating multiple trials")
     subparsers = parser.add_subparsers(help='Plot type')
     parser_iterations = subparsers.add_parser('iterations')
     parser_iterations.set_defaults(func=plot_iterations)
@@ -106,7 +109,7 @@ def main():
             print("Directory '{}' does not contain any .csv files, skipping".format(log_dir), file=sys.stderr)
             continue
 
-        for csv_file_name in csv_file_names:
+        for trial_num, csv_file_name in enumerate(csv_file_names):
             try:
                 log_df = pd.read_csv(csv_file_name)
             except FileNotFoundError:
@@ -120,11 +123,15 @@ def main():
 
             if 'task' not in log_df.columns:
                 log_df['task'] = metadata.get('task')
+
             if 'grammar' not in log_df.columns:
                 log_df['grammar'] = metadata.get(
                     'grammar', 'data/designs/grammar_apr30.dot')
+
             if 'algorithm' not in log_df.columns:
                 log_df['algorithm'] = metadata.get('algorithm')
+
+            log_df['trial'] = trial_num
 
             df = df.append(log_df, ignore_index=True, sort=True)
 
@@ -172,7 +179,7 @@ def main():
 
     df['hash'] = df['rule_seq'].map(rule_seq_hashes)
 
-    args.func(df, ind_rewards=args.ind_rewards)
+    args.func(df, ind_rewards=args.ind_rewards, estimator=args.estimator)
 
 if __name__ == '__main__':
   main()
