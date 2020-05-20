@@ -16,7 +16,8 @@ const std::array<int, FPSCameraController::ACTION_COUNT>
                                                  GLFW_KEY_D,
                                                  GLFW_KEY_Q,
                                                  GLFW_KEY_E,
-                                                 GLFW_MOUSE_BUTTON_LEFT};
+                                                 GLFW_MOUSE_BUTTON_LEFT,
+                                                 GLFW_KEY_SPACE};
 
 void FPSCameraController::handleKey(int key, int scancode, int action,
                                     int mods) {
@@ -82,6 +83,10 @@ void FPSCameraController::update(CameraParameters &camera_params, double dt) {
   last_cursor_x_ = cursor_x_;
   last_cursor_y_ = cursor_y_;
   scroll_y_offset_ = 0;
+}
+
+bool FPSCameraController::shouldRecord() const {
+  return action_flags_[ACTION_RECORD];
 }
 
 GLFWViewer::GLFWViewer(bool hidden) {

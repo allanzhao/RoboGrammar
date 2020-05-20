@@ -144,21 +144,6 @@ def transform_mesh(positions, normals, indices, tf):
     normals = normal_tf[:3,:3].dot(normals.T) + normal_tf[:3,3:]
     return positions.T, normals.T, indices
 
-def concat_meshes(meshes):
-    pos_segments = []
-    nor_segments = []
-    idx_segments = []
-    start_idx = 0
-
-    for pos_segment, nor_segment, idx_segment in meshes:
-        pos_segments.append(pos_segment)
-        nor_segments.append(nor_segment)
-        idx_segments.append(idx_segment + start_idx)
-        start_idx += len(pos_segment)
-
-    return np.vstack(pos_segments), np.vstack(nor_segments), \
-           np.concatenate(idx_segments)
-
 class ObjDumper:
     def __init__(self, obj_file, mtl_file, n_segments=32, n_rings=8):
         self.obj_file = obj_file
@@ -232,11 +217,15 @@ class ObjDumper:
             self.mtl_file.write("Ks {:3f} {:3f} {:3f}\n".format(*color))
             self.mtl_file.write("Ns {}\n".format(32))
 
-def dump_robot(robot, dumper):
-    # Simulation is only used to get link/joint transforms
-    sim = rd.BulletSimulation()
-    sim.add_robot(robot, [0.0, 0.0, 0.0], rd.Quaterniond(1.0, 0.0, 0.0, 0.0))
-    robot_idx = sim.find_robot_index(robot)
+def dump_sim(sim, dumper):
+    for robot_idx in range(sim.get_robot_count()):
+        dump_robot(robot_idx, sim, dumper)
+
+    for prop_idx in range(sim.get_prop_count()):
+        dump_prop(prop_idx, sim, dumper)
+
+def dump_robot(robot_idx, sim, dumper):
+    robot = sim.get_robot(robot_idx)
 
     for link_idx, link in enumerate(robot.links):
         link_transform = np.zeros((4, 4), order='f')
@@ -283,6 +272,26 @@ def dump_robot(robot, dumper):
         else:
             raise ValueError("Unexpected joint type")
 
+def dump_prop(prop_idx, sim, dumper):
+    prop = sim.get_prop(prop_idx)
+    prop_transform = np.zeros((4, 4), order='f')
+    sim.get_prop_transform(prop_idx, prop_transform)
+
+    # Draw the prop's collision shape
+    if prop.density == 0.0:
+        # Checkerboard (XZ) texture for static shapes
+        dumper.set_proc_texture_type(2)
+    else:
+        # No texture for dynamic shapes
+        dumper.set_proc_texture_type(0)
+    dumper.set_object_color(prop.color)
+    if prop.shape == rd.PropShape.BOX:
+        dumper.draw_box(prop_transform, prop.half_extents)
+    elif prop.shape == rd.PropShape.HEIGHTFIELD:
+        raise NotImplementedError("Heightfields are not supported yet")
+    else:
+        raise ValueError("Unexpected prop shape")
+
 def main():
     parser = argparse.ArgumentParser(
         description="Export a robot design as a mesh.")
@@ -298,13 +307,17 @@ def main():
     graph = make_graph(rules, rule_sequence)
     robot = build_normalized_robot(graph)
 
+    # Simulation is only used to get link/joint transforms
+    sim = rd.BulletSimulation()
+    sim.add_robot(robot, [0.0, 0.0, 0.0], rd.Quaterniond(1.0, 0.0, 0.0, 0.0))
+
     obj_file_name = args.output_file
     mtl_file_name = os.path.splitext(args.output_file)[0] + '.mtl'
     with open(obj_file_name, 'w') as obj_file, \
          open(mtl_file_name, 'w') as mtl_file:
         dumper = ObjDumper(obj_file, mtl_file)
         obj_file.write("mtllib {}\n".format(mtl_file_name))
-        dump_robot(robot, dumper)
+        dump_sim(sim, dumper)
         dumper.finish()
 
 if __name__ == '__main__':

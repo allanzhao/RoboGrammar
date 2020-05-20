@@ -21,6 +21,7 @@ public:
   void handleCursorPosition(double xpos, double ypos);
   void handleScroll(double xoffset, double yoffset);
   void update(CameraParameters &camera_params, double dt);
+  bool shouldRecord() const;
 
   float move_speed_;
   float mouse_sensitivity_;
@@ -35,6 +36,7 @@ private:
     ACTION_MOVE_UP,
     ACTION_MOVE_DOWN,
     ACTION_PAN_TILT,
+    ACTION_RECORD,
     ACTION_COUNT
   };
   static const std::array<int, ACTION_COUNT> DEFAULT_KEY_BINDINGS;
