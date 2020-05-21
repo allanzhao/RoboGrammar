@@ -218,11 +218,11 @@ void GLRenderer::drawOpaque(const Simulation &sim, const Program &program,
     sim.getPropTransform(prop_idx, prop_transform);
 
     // Draw the prop's collision shape
-    if (prop.density_ == 0.0) {
-      // Checkerboard (XZ) texture for static shapes
+    if (prop.density_ == 0.0 && prop_idx == 0) {
+      // Checkerboard (XZ) texture for the first static shape only
       program_state.setProcTextureType(2);
     } else {
-      // No texture for dynamic shapes
+      // No texture otherwise
       program_state.setProcTextureType(0);
     }
     program_state.setObjectColor(prop.color_);
