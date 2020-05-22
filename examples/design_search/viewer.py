@@ -1,6 +1,5 @@
 import argparse
 from design_search import RobotDesignEnv, make_graph, build_normalized_robot, presimulate, simulate
-import export_mesh
 import mcts
 import numpy as np
 import os
@@ -8,6 +7,32 @@ import pyrobotdesign as rd
 import random
 import tasks
 import time
+
+class CameraTracker(object):
+  def __init__(self, viewer, sim, robot_idx):
+    self.viewer = viewer
+    self.sim = sim
+    self.robot_idx = robot_idx
+
+    self.reset()
+
+  def update(self, time_step):
+    lower = np.zeros(3)
+    upper = np.zeros(3)
+    self.sim.get_robot_world_aabb(self.robot_idx, lower, upper)
+
+    # Update camera position to track the robot smoothly
+    target_pos = 0.5 * (lower + upper)
+    camera_pos = self.viewer.camera_params.position.copy()
+    camera_pos += 5.0 * time_step * (target_pos - camera_pos)
+    self.viewer.camera_params.position = camera_pos
+
+  def reset(self):
+    lower = np.zeros(3)
+    upper = np.zeros(3)
+    self.sim.get_robot_world_aabb(self.robot_idx, lower, upper)
+
+    self.viewer.camera_params.position = 0.5 * (lower + upper)
 
 def run_trajectory(sim, robot_idx, input_sequence, task, step_callback):
   step_callback(0)
@@ -25,16 +50,25 @@ def view_trajectory(sim, robot_idx, input_sequence, task):
 
   sim.save_state()
 
+  viewer = rd.GLFWViewer()
+
   # Get robot bounds
   lower = np.zeros(3)
   upper = np.zeros(3)
   sim.get_robot_world_aabb(robot_idx, lower, upper)
 
-  viewer = rd.GLFWViewer()
-  viewer.camera_params.position = 0.5 * (lower + upper)
-  viewer.camera_params.yaw = 0.0
+  # Set initial camera parameters
+  task_name = type(task).__name__
+  if 'Ridged' in task_name or 'Gap' in task_name:
+    viewer.camera_params.yaw = 0.0
+  elif 'Wall' in task_name:
+    viewer.camera_params.yaw = -np.pi / 2
+  else:
+    viewer.camera_params.yaw = -np.pi / 4
   viewer.camera_params.pitch = -np.pi / 6
-  viewer.camera_params.distance = 2.0 * np.linalg.norm(upper - lower)
+  viewer.camera_params.distance = 1.5 * np.linalg.norm(upper - lower)
+
+  tracker = CameraTracker(viewer, sim, robot_idx)
 
   j = 0
   k = 0
@@ -47,12 +81,7 @@ def view_trajectory(sim, robot_idx, input_sequence, task):
         sim.set_joint_targets(robot_idx, input_sequence[:,j].reshape(-1, 1))
       task.add_noise(sim, step_idx)
       sim.step()
-      sim.get_robot_world_aabb(robot_idx, lower, upper)
-      # Update camera position to track the robot smoothly
-      target_pos = 0.5 * (lower + upper)
-      camera_pos = viewer.camera_params.position.copy()
-      camera_pos += 5.0 * task.time_step * (target_pos - camera_pos)
-      viewer.camera_params.position = camera_pos
+      tracker.update(task.time_step)
       viewer.update(task.time_step)
       if viewer.camera_controller.should_record():
         record_step_indices.add(step_idx)
@@ -65,13 +94,12 @@ def view_trajectory(sim, robot_idx, input_sequence, task):
         j = 0
         k = 0
         sim.restore_state()
-        sim.get_robot_world_aabb(robot_idx, lower, upper)
-        viewer.camera_params.position = 0.5 * (lower + upper)
+        tracker.reset()
     viewer.render(sim)
 
   sim.restore_state()
 
-  return record_step_indices
+  return viewer.camera_params, record_step_indices
 
 def finalize_robot(robot):
   for link in robot.links:
@@ -103,6 +131,8 @@ def main():
                       help="File to save input sequence to (.csv)")
   parser.add_argument("--save_obj_dir", type=str,
                       help="Directory to save .obj files to")
+  parser.add_argument("--save_video_file", type=str,
+                      help="File to save video to (.mp4)")
   parser.add_argument("-l", "--episode_len", type=int, default=128,
                       help="Length of episode")
   args = parser.parse_args()
@@ -148,11 +178,14 @@ def main():
   main_sim.add_robot(robot, robot_init_pos, rd.Quaterniond(0.0, 0.0, 1.0, 0.0))
   robot_idx = main_sim.find_robot_index(robot)
 
-  record_step_indices = view_trajectory(main_sim, robot_idx, input_sequence,
-                                        task)
+  camera_params, record_step_indices = view_trajectory(
+      main_sim, robot_idx, input_sequence, task)
 
   if args.save_obj_dir and input_sequence is not None:
-    print("Saving .obj files for {} steps".format(len(record_step_indices)))
+    import export_mesh
+
+    if record_step_indices:
+      print("Saving .obj files for {} steps".format(len(record_step_indices)))
 
     os.makedirs(args.save_obj_dir, exist_ok=True)
 
@@ -188,6 +221,38 @@ def main():
         dumper.finish()
 
     run_trajectory(main_sim, robot_idx, input_sequence, task, save_obj_callback)
+
+  if args.save_video_file and input_sequence is not None:
+    import cv2
+
+    if record_step_indices:
+      print("Saving video for {} steps".format(len(record_step_indices)))
+
+    viewer = rd.GLFWViewer()
+
+    # Copy camera parameters from the interactive viewer
+    viewer.camera_params = camera_params
+
+    tracker = CameraTracker(viewer, main_sim, robot_idx)
+
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+    writer = cv2.VideoWriter(args.save_video_file, fourcc, 60.0,
+                             viewer.get_framebuffer_size())
+    writer.set(cv2.VIDEOWRITER_PROP_QUALITY, 100)
+
+    def write_frame_callback(step_idx):
+        tracker.update(task.time_step)
+
+        # 240 steps/second / 4 = 60 fps
+        if step_idx % 4 == 0:
+            # Flip vertically, convert RGBA to BGR
+            frame = viewer.render_array(main_sim)[::-1,:,2::-1]
+            writer.write(frame)
+
+    run_trajectory(main_sim, robot_idx, input_sequence, task,
+                   write_frame_callback)
+
+    writer.release()
 
 if __name__ == '__main__':
   main()
