@@ -16,6 +16,7 @@ def is_negative_objective(obj_name):
     return obj_name == 'ServoCount'
 
 def plot_iterations(df, ind_rewards, estimator=None, **kwargs):
+    df['algorithm'].replace({'hs': "GHS", 'mcts': "MCTS"}, inplace=True)
     df['reward_max'] = df.groupby(['task', 'algorithm', 'trial'])['reward'].cummax()
 
     fig, ax = plt.subplots()
@@ -24,8 +25,10 @@ def plot_iterations(df, ind_rewards, estimator=None, **kwargs):
                         ax=ax, alpha=0.2, legend=False)
     units = None if estimator else 'trial'
     sns.lineplot(x='iteration', y='reward_max', hue='algorithm', units=units,
-                 data=df, ax=ax, estimator=estimator)
-    ax.set(xlabel='iteration', ylabel='reward')
+                 data=df, ax=ax, estimator=estimator, ci=100)
+    tasks = df['task'].unique()
+    title = tasks[0] if len(tasks) == 1 else None
+    ax.set(title=title, xlabel='iteration', ylabel='reward')
     fig.tight_layout()
     plt.show()
 
