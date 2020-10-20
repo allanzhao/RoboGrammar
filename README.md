@@ -1,4 +1,8 @@
-# robot_design
+# RoboGrammar
+
+![](media/optimized.jpg)
+
+*A selection of best-performing designs generated with RoboGrammar for four different terrains.*
 
 ## Prerequisites
 
