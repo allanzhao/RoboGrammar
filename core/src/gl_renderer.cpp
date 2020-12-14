@@ -29,7 +29,8 @@ GLRenderer::GLRenderer(const std::string &data_dir) {
   // Create depth shader program
   std::string depth_vs_source =
       loadString(data_dir + "shaders/depth.vert.glsl");
-  std::string depth_fs_source; // Empty string (no fragment shader needed)
+  std::string depth_fs_source =
+      loadString(data_dir + "shaders/depth.frag.glsl");
   depth_program_ = std::make_shared<Program>(depth_vs_source, depth_fs_source);
 
   // Create MSDF text shader program
@@ -131,14 +132,12 @@ void GLRenderer::render(const Simulation &sim,
 
   // Render label text with depth testing/writing turned off
   glDisable(GL_DEPTH_TEST);
-  glDepthMask(GL_FALSE);
   msdf_program_->use();
   ProgramState msdf_program_state;
   msdf_program_state.setProjectionMatrix(proj_matrix);
   msdf_program_state.setViewMatrix(view_matrix);
   font_->page_textures_.at(0)->bind();
   drawLabels(sim, *msdf_program_, msdf_program_state);
-  glDepthMask(GL_TRUE);
   glEnable(GL_DEPTH_TEST);
 }
 

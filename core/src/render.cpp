@@ -219,7 +219,6 @@ Framebuffer::Framebuffer() : framebuffer_(0) {
   // Necessary to make framebuffer complete without a color attachment
   glDrawBuffer(GL_NONE);
   glReadBuffer(GL_NONE);
-  glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 Framebuffer::~Framebuffer() { glDeleteFramebuffers(1, &framebuffer_); }
