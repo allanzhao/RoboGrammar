@@ -18,6 +18,19 @@ pybind11_add_module(${LIBRARY_NAME}
     py_value.cpp
 )
 
+set_target_properties(${LIBRARY_NAME} PROPERTIES
+    PREFIX ""
+    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/${LIBRARY_NAME}"
+)
+
+# Copy __init__.py and setup.py to the output directory
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/__init__.py
+    ${CMAKE_CURRENT_BINARY_DIR}/__init__.py
+)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/setup.py
+    ${CMAKE_CURRENT_BINARY_DIR}/setup.py
+)
+
 target_link_libraries(${LIBRARY_NAME} PRIVATE
     robotdesign
 )

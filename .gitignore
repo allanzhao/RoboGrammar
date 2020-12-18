@@ -8,3 +8,4 @@ __pycache__/
 vgcore.*
 trained_models/
 .vscode/
+*.egg-info
