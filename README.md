@@ -71,5 +71,8 @@ Run MPC for selected designs, and visualize (change `-j8` to use more CPU cores)
 
 ## FAQs
 
-I get the error "The RandR headers were not found"
+I get the error `The RandR headers were not found`
 * Install the X server development files: `sudo apt-get install xorg-dev`
+
+I get the error `RuntimeError: Could not open file "data/shaders/default.vert.glsl"` when trying to run examples
+* Set the `ROBOT_DESIGN_DATA_DIR` environment variable: `export ROBOT_DESIGN_DATA_DIR=$PWD/data/`
