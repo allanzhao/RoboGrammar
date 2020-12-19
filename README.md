@@ -6,65 +6,65 @@
 
 ## Prerequisites
 
+Building instructions are given for Ubuntu 18.04.
+
 [CMake](https://cmake.org/download/) >= 3.8
-* Ubuntu: The version available through `apt-get` is probably outdated, install from the link above
+* Check with `cmake --version`
 
 GLEW
-* Ubuntu: `sudo apt-get install libglew-dev`
+* `sudo apt-get install libglew-dev`
 
-Python 3.6 + headers
+Python 3.6 or later + headers
+* Check the Python version with `python —-version`. If new enough, install Python headers: `sudo apt-get install python-dev`
+* Otherwise, install the latest version of both: `sudo apt-get install python3.9 python3.9-dev`
 
-If you are on an older version of Ubuntu, you may need to add the "deadsnakes" PPA first:
+Note: Newer versions of Python may be available through the "deadsnakes" PPA:
+
 ```
 sudo add-apt-repository ppa:deadsnakes/ppa
 sudo apt-get update
 ```
-* Ubuntu: `sudo apt-get install python3.6 python3.6-dev`
 
 ## Building (Linux, Mac OS)
 
 `git clone git@github.com:allanzhao/RoboGrammar.git`
 
-`cd robot_design`
+`cd RoboGrammar`
 
 `git submodule update --init`
 
 `mkdir build; cd build`
 
-`cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DPYTHON_EXECUTABLE=/path/to/python3.6 ..` (replace `/path/to/python3.6` as appropriate)
+`cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo ..`
 
-`make -j4` (replace 4 with the number of CPU cores available)
+`make -j8` (replace 8 with the number of CPU cores available)
 
 ## Installing Python Packages
 
-Using a virtualenv is recommended.
+Make sure you are in the `RoboGrammar` directory.
 
-Add the `robot_design/build/examples/python_bindings` and the `robot_design/examples/design_search` directories to your `PYTHONPATH` environment variable, and make sure you are in the `robot_design` directory.
+`pip3 install virtualenv`
 
-`virtualenv -p python3.6 venv`
+`python3 -m venv venv`
 
 `source venv/bin/activate`
 
-`pip3 install numpy numpy-quaternion`
+`python3 examples/design_search/setup.py develop`
+
+`python3 build/examples/python_bindings/setup.py develop`
 
 ## Running Examples
 
-### C++ Examples
+Make sure you are in the `RoboGrammar` directory, and that the virtualenv is active:
 
-Make sure you are in the `build` directory created earlier.
+`source venv/bin/activate`
 
-View an example robot design:
-`examples/viewer/Viewer ../data/designs/insect.dot 0 1 1 1 2 2 2 3 3 3 5 5 5 4 4 4 -r`
+Run MPC for selected designs, and visualize (change `-j8` to use more CPU cores):
 
-Optimize and view a trajectory for the example robot:
-`examples/viewer/Viewer ../data/designs/insect.dot 0 1 1 1 2 2 2 3 3 3 5 5 5 4 4 4 -o -r`
+`python3 examples/design_search/viewer.py RidgedTerrainTask data/designs/grammar_apr30.dot -j8 0, 7, 1, 13, 1, 2, 16, 12, 13, 6, 4, 19, 4, 17, 5, 3, 2, 16, 4, 5, 18, 9, 8, 9, 9, 8 -o`
 
-View a rule from the grammar:
-`examples/rule_viewer/RuleViewer ../data/designs/insect.dot 0 rhs -r` (views the right-hand side of rule 0)
+`python3 examples/design_search/viewer.py FlatTerrainTask data/designs/grammar_apr30.dot -j8 0, 12, 7, 1, 12, 3, 10, 1, 3, 1, 12, 12, 1, 3, 10, 2, 16, 8, 1, 3, 12, 4, 1, 3, 2, 12, 18, 9, 18, 8, 5, 5, 1, 12, 6, 3 -o`
 
-### Python Examples
+`python3 examples/design_search/viewer.py GapTerrainTask data/designs/grammar_apr30.dot -j8 0, 1, 1, 7, 1, 6, 10, 3, 2, 4, 10, 10, 3, 16, 4, 16, 18, 2, 5, 16, 8, 4, 8, 8, 18, 4, 5, 15, 9, 8, 8 -o`
 
-Make sure you are in the `robot_design` directory and the virtualenv is active (`source venv/bin/activate`).
-
-Optimize and view a trajectory for the example robot:
-`python3 examples/design_search/viewer.py FlatTerrainTask data/designs/grammar_jan21.dot -j16 0, 6, 20, 12, 2, 7, 18, 20, 10, 4, 20, 10, 11, 5, 10, 4, 10, 5, 19, 5 -o`
+`python3 examples/design_search/viewer.py FrozenLakeTask data/designs/grammar_apr30.dot -j8 0, 1, 1, 1, 6, 7, 10, 11, 13, 2, 4, 3, 4, 16, 8, 14, 4, 8, 3, 15, 15, 5, 3, 9, 8 -o`
