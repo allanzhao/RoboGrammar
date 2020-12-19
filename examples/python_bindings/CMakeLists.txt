@@ -20,7 +20,6 @@ pybind11_add_module(${LIBRARY_NAME}
 
 set_target_properties(${LIBRARY_NAME} PROPERTIES
     PREFIX ""
-    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/${LIBRARY_NAME}"
 )
 
 # Copy __init__.py and setup.py to the output directory

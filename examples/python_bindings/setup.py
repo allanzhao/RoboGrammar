@@ -7,5 +7,6 @@ os.chdir(os.path.dirname(os.path.realpath(__file__)))
 setup(
     name='${LIBRARY_NAME}',
     version='0.1.0',
-    packages=['${LIBRARY_NAME}']
+    packages=['${LIBRARY_NAME}'],
+    package_dir={'${LIBRARY_NAME}': '..'}
 )
