@@ -56,7 +56,8 @@ Make sure you are in the `RoboGrammar` directory.
 `python3 build/examples/python_bindings/setup.py develop`
 
 ```
-pip3 install numpy-quaternion torch=1.7.1+cpu
+pip3 install numpy-quaternion
+pip3 install torch==1.7.1+cpu -f https://download.pytorch.org/whl/torch_stable.html
 pip3 install torch-scatter -f https://pytorch-geometric.com/whl/torch-1.7.0+cpu.html
 pip3 install torch-sparse -f https://pytorch-geometric.com/whl/torch-1.7.0+cpu.html
 pip3 install torch-geometric==1.4.3
