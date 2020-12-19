@@ -6,7 +6,7 @@
 
 ## Prerequisites
 
-Building instructions are given for Ubuntu 18.04.
+Commands were tested on Ubuntu 18.04.
 
 [CMake](https://cmake.org/download/) >= 3.8
 * Check with `cmake --version`
@@ -15,7 +15,7 @@ GLEW
 * `sudo apt-get install libglew-dev`
 
 Python 3.6 or later + headers
-* Check the Python version with `python —-version`. If new enough, install Python headers: `sudo apt-get install python-dev`
+* Check the Python version with `python3 —-version`. If new enough, install Python headers: `sudo apt-get install python3-dev`
 * Otherwise, install the latest version of both: `sudo apt-get install python3.9 python3.9-dev`
 
 Note: Newer versions of Python may be available through the "deadsnakes" PPA:
@@ -27,7 +27,7 @@ sudo apt-get update
 
 ## Building (Linux, Mac OS)
 
-`git clone git@github.com:allanzhao/RoboGrammar.git`
+`git clone https://github.com/allanzhao/RoboGrammar.git`
 
 `cd RoboGrammar`
 
@@ -68,3 +68,8 @@ Run MPC for selected designs, and visualize (change `-j8` to use more CPU cores)
 `python3 examples/design_search/viewer.py GapTerrainTask data/designs/grammar_apr30.dot -j8 0, 1, 1, 7, 1, 6, 10, 3, 2, 4, 10, 10, 3, 16, 4, 16, 18, 2, 5, 16, 8, 4, 8, 8, 18, 4, 5, 15, 9, 8, 8 -o`
 
 `python3 examples/design_search/viewer.py FrozenLakeTask data/designs/grammar_apr30.dot -j8 0, 1, 1, 1, 6, 7, 10, 11, 13, 2, 4, 3, 4, 16, 8, 14, 4, 8, 3, 15, 15, 5, 3, 9, 8 -o`
+
+## FAQs
+
+I get the error "The RandR headers were not found"
+* Install the X server development files: `sudo apt-get install xorg-dev`
