@@ -19,6 +19,7 @@ digraph append_body {
   }
 
   subgraph R {
+    tail [label="tail"];
     body [label="body"];
     parent -> body [id="parent_edges"];
     body -> tail [label="body_joint"];
@@ -68,6 +69,7 @@ digraph append_limb_link {
   }
 
   subgraph R {
+    limb [label="limb"];
     limb_link [label="limb_link"];
     parent -> limb_link [label="limb_joint"];
     limb_link -> limb;
