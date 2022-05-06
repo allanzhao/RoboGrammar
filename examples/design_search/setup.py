@@ -10,6 +10,6 @@ setup(
     packages=['design_search'],
     package_dir={'design_search': '..'},
     install_requires=[
-        'numpy == 1.19'
+        'numpy >= 1.21'
     ]
 )
