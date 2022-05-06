@@ -4,7 +4,7 @@ FROM ubuntu:18.04
 RUN apt-get update && apt-get install -y cmake libglew-dev xorg-dev python3 python3-pip python3-dev
 
 # Install third party Python packages
-RUN pip3 install numpy
+RUN pip3 install numpy>=1.21
 RUN pip3 install numpy-quaternion
 RUN pip3 install torch
 
