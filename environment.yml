@@ -54,7 +54,6 @@ dependencies:
     - isodate==0.6.1
     - joblib==1.1.0
     - llvmlite==0.38.0
-    - mjrl==1.0.0
     - mujoco-py==2.1.2.14
     - networkx==2.8
     - numba==0.55.1
