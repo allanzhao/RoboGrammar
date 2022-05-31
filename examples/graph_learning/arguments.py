@@ -26,6 +26,7 @@ def get_parser():
     parser.add_argument('--max-nodes', type = int, default = 40, help = 'the default max nodes of the graph (used to initialize the GNN)')
     parser.add_argument('--no-noise', default = False, action = 'store_true', help = 'if remove noise from simulation')
     parser.add_argument('--num-eval', default = 1, type = int, help = 'number of evaluation for each design')
+    parser.add_argument('--time-step', default=1/240, type=float, help = 'time step size.')
 
     # parameters for multi-objs case
     parser.add_argument('--task1', type = str, default = 'FlatTerrainTask', help = 'Task1 (Python class name')
@@ -43,5 +44,6 @@ def get_parser():
     parser.add_argument('--eval-interval', type = int, default = 1000)
 
     parser.add_argument('--test', default = False, action = 'store_true')
+    parser.add_argument('--use_gpu', action='store_true', help="Whether to use a GPU.")
     
     return parser

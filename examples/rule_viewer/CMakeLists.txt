@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.0)
 
+project(RuleViewer)
+
 set(CMAKE_CXX_STANDARD 17)
 
 set(EXECUTABLE_NAME RuleViewer)

@@ -63,6 +63,19 @@ pip3 install torch-sparse -f https://pytorch-geometric.com/whl/torch-1.7.0+cpu.h
 pip3 install torch-geometric==1.4.3
 ```
 
+## Additionally (for Biobot)
+
+Install trajopt package by:
+
+```
+cd examples/trajopt
+pip install -e .
+```
+
+Install mjrl package with instructions from this URL: https://github.com/aravindr93/mjrl/tree/master/setup
+
+For exporting, see this: https://github.com/bulletphysics/bullet3/blob/a1d96646c8ca28b99b2581dcfc4d74cc3b4de018/examples/Importers/ImportBullet/SerializeSetup.cpp#L84
+
 ## Running Examples
 
 Make sure you are in the `RoboGrammar` directory, and that the virtualenv is active:

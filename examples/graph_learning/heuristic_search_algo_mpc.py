@@ -10,6 +10,7 @@ Learn a heuristic function V(s) for each universal design to predict the best re
 3. train V to fit target value
 '''
 
+from readline import add_history
 import sys
 import os
 base_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../')
@@ -44,7 +45,7 @@ from Preprocessor import Preprocessor
 from states_pool import StatesPool
 
 # predict without grad
-def predict(V, state):
+def predict(V, state, use_gpu=False):
     global preprocessor
     adj_matrix_np, features_np, _ = preprocessor.preprocess(state)
     masks_np = np.full(len(features_np), True)
@@ -52,10 +53,17 @@ def predict(V, state):
         features = torch.tensor(features_np).unsqueeze(0)
         adj_matrix = torch.tensor(adj_matrix_np).unsqueeze(0)
         masks = torch.tensor(masks_np).unsqueeze(0)
+        
+        if use_gpu:
+            features = features.to('cuda')
+            adj_matrix = adj_matrix.to('cuda')
+            masks = masks.to('cuda')
+        
         output, _, _ = V(features, adj_matrix, masks)
-        return output.item()
+        
+        return output.cpu().item()
 
-def predict_batch(V, states):
+def predict_batch(V, states, use_gpu=False):
     global preprocessor
     adj_matrix_np, features_np, masks_np = [], [], []
     max_nodes = 0
@@ -74,10 +82,16 @@ def predict_batch(V, states):
         adj_matrix = torch.tensor(adj_matrix_np)
         features = torch.tensor(features_np)
         masks = torch.tensor(masks_np)
+        
+        if use_gpu:
+            adj_matrix = adj_matrix.to('cuda')
+            features = features.to('cuda')
+            masks = masks.to('cuda')
+        
         output, _, _ = V(features, adj_matrix, masks)
-    return output[:, 0].detach().numpy()
+    return output[:, 0].detach().cpu().numpy()
 
-def select_action(env, V, state, eps):
+def select_action(env, V, state, eps, use_gpu=False):
     available_actions = env.get_available_actions(state)
     if len(available_actions) == 0:
         return None, None
@@ -87,7 +101,7 @@ def select_action(env, V, state, eps):
         next_states = []
         for action in available_actions:
             next_states.append(env.transite(state, action))
-        values = predict_batch(V, next_states)
+        values = predict_batch(V, next_states, use_gpu=use_gpu)
         best_action = available_actions[np.argmax(values)]
         step_type = 'optimal'
     else:
@@ -135,9 +149,9 @@ def search_algo(args):
     # initialize/load
     task_class = getattr(tasks, args.task)
     if args.no_noise:
-        task = task_class(force_std = 0.0, torque_std = 0.0)
+        task = task_class(time_step=args.time_step, force_std = 0.0, torque_std = 0.0)
     else:
-        task = task_class()
+        task = task_class(time_step=args.time_step, )
     graphs = rd.load_graphs(args.grammar_file)
     rules = [rd.create_rule_from_graph(g) for g in graphs]
 
@@ -161,6 +175,9 @@ def search_algo(args):
 
     # initialize Value function
     device = 'cpu'
+    if args.use_gpu:
+        device = 'cuda'
+        
     state = env.reset()
     sample_adj_matrix, sample_features, sample_masks = preprocessor.preprocess(state)
     num_features = sample_features.shape[1]
@@ -267,7 +284,7 @@ def search_algo(args):
                     state_seq = [state]
                     no_action_flag = False
                     for _ in range(args.depth):
-                        action, step_type = select_action(env, V, state, eps)
+                        action, step_type = select_action(env, V, state, eps, use_gpu=args.use_gpu)
                         if action is None:
                             no_action_flag = True
                             break
@@ -300,7 +317,7 @@ def search_algo(args):
 
                     t_update += time.time() - t0
 
-                predicted_value = predict(V, state)
+                predicted_value = predict(V, state, use_gpu=args.use_gpu)
                 if predicted_value > selected_reward:
                     selected_design, selected_reward = state, predicted_value
                     selected_rule_seq, selected_state_seq = rule_seq, state_seq
@@ -373,8 +390,8 @@ def search_algo(args):
                 train_reward_torch = torch.tensor(train_reward)
                 
                 optimizer.zero_grad()
-                output, loss_link, loss_entropy = V(train_features_torch, train_adj_matrix_torch, train_masks_torch)
-                loss = F.mse_loss(output[:, 0], train_reward_torch)
+                output, loss_link, loss_entropy = V(train_features_torch.to(device), train_adj_matrix_torch.to(device), train_masks_torch.to(device))
+                loss = F.mse_loss(output[:, 0], train_reward_torch.to(device))
                 loss.backward()
                 total_loss += loss.item()
                 optimizer.step()
