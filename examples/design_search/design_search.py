@@ -2,17 +2,21 @@ import argparse
 import ast
 import csv
 import datetime
-import env
-import mcts
-import numpy as np
 import os
-import pyrobotdesign as rd
 import random
 import signal
 import sys
+from time import sleep
+
+import numpy as np
+import pyrobotdesign as rd
+from trajopt.algos.mppi import MPPI
+
+import env
+import mcts
 import tasks
 from env import EnvWrapper
-from trajopt.algos.mppi import MPPI
+from neurons import NeuronStreamWrapper
 
 
 def get_applicable_matches(rule, graph):
@@ -74,9 +78,7 @@ def presimulate(robot):
     temp_sim.get_robot_world_aabb(robot_idx, lower, upper)
     return [-upper[0], -lower[1], 0.0], temp_sim.robot_has_collision(robot_idx)
 
-def simulate(robot, task, opt_seed, thread_count, episode_count=1):
-    assert episode_count == 1, "This implementation only supports single episode at the time."
-    assert thread_count == 1, "No more than one thread allowed (pickling error)."
+def simulate(robot, task, opt_seed, args, neuron_stream=False):
     
     robot_init_pos, has_self_collision = presimulate(robot)
 
@@ -105,20 +107,29 @@ def simulate(robot, task, opt_seed, thread_count, episode_count=1):
     objective_fn = task.get_objective_fn()
     n_samples = 512
     
-    optimizer = MPPI(side_sim, task.horizon, n_samples // thread_count, 
-                        num_cpu=1,
+    if neuron_stream:
+        neuron_stream_wrapper = NeuronStreamWrapper(dof_count, tau=0.02, stream_kwargs=dict(channels=32, buffer_ms=task.horizon * task.interval * task.time_step * 1000))
+        neuron_stream_wrapper.start()
+        sleep(neuron_stream_wrapper.neuron_stream.buffer_ms / 1000)
+    else:
+        neuron_stream_wrapper = None
+
+    optimizer = MPPI(side_sim, task.horizon, n_samples // args.jobs, 
+                        num_cpu=args.jobs,
                         kappa=1.0,
                         gamma=task.discount_factor,
-                        # filter_coefs=[0.25, 0.10422766377112629, 0.3658903830367387, 0.10422766377112629], # this is temporary
-                        filter_coefs=[0.25, 0.10422766377112629, 0.3239870556899027, 0.3658903830367387, 0.3239870556899027, 0.10422766377112629],
-                        seed=opt_seed)
+                        default_act="mean",
+                        filter_coefs=[0.10422766377112629, 0.3239870556899027, 0.3658903830367387, 0.3239870556899027, 0.10422766377112629],
+                        seed=opt_seed,
+                        neuron_stream_wrapper=neuron_stream_wrapper,
+                        cmd_args=args)
     
     paths = optimizer.do_rollouts(opt_seed)
     optimizer.update(paths)
     # optimizer.update()
     
     n_samples = 64
-    optimizer.paths_per_cpu = n_samples // thread_count
+    optimizer.paths_per_cpu = n_samples // args.jobs
     # optimizer.set_sample_count(64)
 
     main_sim.save_state()
@@ -130,7 +141,7 @@ def simulate(robot, task, opt_seed, thread_count, episode_count=1):
         paths = optimizer.do_rollouts(opt_seed + j + 1)
         optimizer.update(paths)
         
-        input_sequence[:, j] = optimizer.act_sequence[0, :]
+        input_sequence[:, j] = optimizer.act_sequence[0]
         
         optimizer.advance_time()
 
@@ -141,6 +152,11 @@ def simulate(robot, task, opt_seed, thread_count, episode_count=1):
             rewards[j * task.interval + k] = objective_fn(main_sim)
 
     main_sim.restore_state()
+    
+    if neuron_stream:
+        optimizer.neuron_stream_wrapper.stop()
+        
+    os.system("rm tmp.bullet")
         
     return input_sequence, np.mean(rewards)
 

@@ -43,7 +43,9 @@ void initSim(py::module &m) {
       .def("get_gravity", &rd::Simulation::getGravity)
       .def("set_gravity", &rd::Simulation::setGravity)
       .def("save_state", &rd::Simulation::saveState)
+      .def("save_state_to_file", &rd::Simulation::saveStateToFile)
       .def("restore_state", &rd::Simulation::restoreState)
+      .def("restore_state_from_file", &rd::Simulation::restoreStateFromFile)
       .def("step", &rd::Simulation::step);
 
   py::class_<rd::BulletSimulation, rd::Simulation, 

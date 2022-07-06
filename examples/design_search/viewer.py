@@ -1,6 +1,7 @@
 import argparse
 from design_search import RobotDesignEnv, make_graph, build_normalized_robot, presimulate, simulate
 import mcts
+from neurons import NeuronStreamWrapper
 import numpy as np
 import os
 import pyrobotdesign as rd
@@ -45,7 +46,7 @@ def run_trajectory(sim, robot_idx, input_sequence, task, step_callback):
       sim.step()
       step_callback(step_idx + 1)
 
-def view_trajectory(sim, robot_idx, input_sequence, task):
+def view_trajectory(sim, robot_idx, input_sequence, task, neuron_stream=True):
   record_step_indices = set()
 
   sim.save_state()
@@ -67,11 +68,25 @@ def view_trajectory(sim, robot_idx, input_sequence, task):
     viewer.camera_params.yaw = -np.pi / 4
   viewer.camera_params.pitch = -np.pi / 6
   viewer.camera_params.distance = 1.5 * np.linalg.norm(upper - lower)
-
+    
   tracker = CameraTracker(viewer, sim, robot_idx)
 
   j = 0
   k = 0
+  
+  if neuron_stream:
+    neuron_stream_wrapper = NeuronStreamWrapper(dof_count=sim.get_robot_dof_count(robot_idx), tau=0.02,
+                                                stream_kwargs=dict(channels=32, buffer_ms=task.time_step * 1000))
+    neuron_stream_wrapper.start()
+    
+    neural_tau = neuron_stream_wrapper.tau
+    
+    data = neuron_stream_wrapper.neuron_stream.get_raw_values_array()
+    data = data.mean(axis=1, keepdims=True)
+    
+    neural_input = data.transpose() @ neuron_stream_wrapper.weights
+    input_sequence[:, j] = (1 - neural_tau) * input_sequence[:, j] + neural_tau * neural_input[0]
+  
   sim_time = time.time()
   while not viewer.should_close():
     current_time = time.time()
@@ -90,6 +105,14 @@ def view_trajectory(sim, robot_idx, input_sequence, task):
       if k >= task.interval:
         j += 1
         k = 0
+        
+        if neuron_stream and j < input_sequence.shape[1]:
+          data = neuron_stream_wrapper.neuron_stream.get_raw_values_array()
+          data = data.mean(axis=1, keepdims=True)
+          
+          neural_input = data.transpose() @ neuron_stream_wrapper.weights
+          input_sequence[:, j] = (1 - neural_tau) * input_sequence[:, j] + neural_tau * neural_input[0]
+          
       if input_sequence is not None and j >= input_sequence.shape[1]:
         j = 0
         k = 0
@@ -98,6 +121,9 @@ def view_trajectory(sim, robot_idx, input_sequence, task):
     viewer.render(sim)
 
   sim.restore_state()
+  
+  if neuron_stream:
+    neuron_stream_wrapper.stop()
 
   return viewer.camera_params, record_step_indices
 
@@ -152,10 +178,11 @@ def main():
   graph = make_graph(rules, rule_sequence)
   robot = build_normalized_robot(graph)
   finalize_robot(robot)
+  
   if args.optim:
-    input_sequence, result = simulate(robot, task, opt_seed, args.jobs,
-                                      args.episodes)
+    input_sequence, result = simulate(robot, task, opt_seed, args, neuron_stream=True)
     print("Result:", result)
+    # input_sequence = np.zeros((12, task.episode_len))
   else:
     input_sequence = None
 

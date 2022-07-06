@@ -66,7 +66,9 @@ public:
   virtual Vector3 getGravity() const = 0;
   virtual void setGravity(const Ref<const Vector3> &gravity) = 0;
   virtual void saveState() = 0;
+  virtual void saveStateToFile(const char* filepath) = 0;
   virtual void restoreState() = 0;
+  virtual void restoreStateFromFile(const char* filepath) = 0;
   virtual void step() = 0;
 };
 
@@ -159,7 +161,9 @@ public:
   virtual Vector3 getGravity() const override;
   virtual void setGravity(const Ref<const Vector3> &gravity) override;
   virtual void saveState() override;
+  virtual void saveStateToFile(const char* filepath) override;
   virtual void restoreState() override;
+  virtual void restoreStateFromFile(const char* filepath) override;
   virtual void step() override;
 
 private:

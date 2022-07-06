@@ -520,12 +520,29 @@ void BulletSimulation::saveState() {
     }
 }
 
+void BulletSimulation::saveStateToFile(const char* filepath) {
+    auto serializer = std::make_shared<btDefaultSerializer>();
+    int ser_flags = serializer->getSerializationFlags();
+    serializer->setSerializationFlags(ser_flags | BT_SERIALIZE_CONTACT_MANIFOLDS);
+    world_->serialize(serializer.get());
+
+    FILE* file = fopen(filepath, "wb");
+	fwrite(serializer->getBufferPointer(), serializer->getCurrentBufferSize(), 1, file);
+	fclose(file);
+}
+
 void BulletSimulation::restoreState() {
     if (saved_state_.bullet_file_ != nullptr) {
         auto importer = std::make_shared<btMultiBodyWorldImporter>(world_.get());
         importer->setImporterFlags(eRESTORE_EXISTING_OBJECTS);
         importer->convertAllObjects(saved_state_.bullet_file_.get());
     }
+}
+
+void BulletSimulation::restoreStateFromFile(const char* filepath) {
+    auto importer = std::make_shared<btMultiBodyWorldImporter>(world_.get());
+    importer->setImporterFlags(eRESTORE_EXISTING_OBJECTS);
+    importer->loadFile(filepath);
 }
 
 void BulletSimulation::step() {

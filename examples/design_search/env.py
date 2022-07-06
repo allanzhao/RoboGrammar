@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 
 from mjrl.utils.gym_env import GymEnv
 import numpy as np
+from time import sleep
 
 class Env(ABC):
   @property
@@ -36,21 +37,32 @@ class Env(ABC):
 
 class EnvWrapper(GymEnv):
   
-  def __init__(self, make_sim_and_task_fn):
+  def __init__(self, make_sim_and_task_fn, load=False):
     self.env, self.task = make_sim_and_task_fn()
+    
+    if load:
+      self.env.restore_state_from_file("tmp.bullet")
+    else:
+      self.env.save_state_to_file("tmp.bullet")
+    
     self._observation_dim = (None, )
     self._action_dim = self.env.get_robot_dof_count(0)
     self.seed = None
+    self.real_step = False    
   
   def step(self, action):
     r = 0
+    
     for k in range(self.task.interval):
         self.env.set_joint_targets(0, action.reshape(-1, 1))
         self.task.add_noise(self.env, (self.task.interval * self.seed + k) % (2 ** 32))
         self.env.step()
         
         r += self.task.get_objective_fn()(self.env)
-        
+    
+    if self.real_step:
+      self.env.save_state_to_file("tmp.bullet")
+    
     return None, r, None, None
   
   def reset(self, seed=None):
@@ -66,9 +78,10 @@ class EnvWrapper(GymEnv):
   def get_obs(self):
     return None
   
-  def set_env_state(self, state):
+  def set_env_state(self):
     self.env.restore_state()
   
   def real_env_step(self, boolean):
+    self.real_step = boolean
     if not boolean:
       self.env.save_state()
