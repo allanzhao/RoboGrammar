@@ -171,7 +171,7 @@ def search_algo(args):
     preprocessor = Preprocessor(all_labels = all_labels)
 
     # initialize the env
-    env = RobotGrammarEnv(task, rules, seed = args.seed, mpc_num_processes = args.mpc_num_processes)
+    env = RobotGrammarEnv(task, rules, seed = args.seed, mpc_num_processes = args.mpc_num_processes, cmd_args = args)
 
     # initialize Value function
     device = 'cpu'
@@ -332,7 +332,7 @@ def search_algo(args):
             reward, best_seed = -np.inf, None
             
             for _ in range(args.num_eval):
-                _, rew = env.get_reward(selected_design)
+                _, rew = env.get_reward(selected_design, selected_rule_seq)
                 if rew > reward:
                     reward, best_seed = rew, env.last_opt_seed
 

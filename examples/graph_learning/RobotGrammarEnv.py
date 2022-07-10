@@ -7,7 +7,9 @@ Implement the environment for robot grammar search problem.
 import os
 import random
 from copy import deepcopy
+from tokenize import Name
 import numpy as np
+from argparse import Namespace
 
 # import our own packages
 import pyrobotdesign as rd
@@ -29,7 +31,7 @@ Parameters:
 '''
 
 class RobotGrammarEnv:
-    def __init__(self, task, rules, seed = 0, mpc_num_processes = 8, enable_reward_oracle = False, preprocessor = None):
+    def __init__(self, task, rules, seed = 0, mpc_num_processes = 8, enable_reward_oracle = False, preprocessor = None, cmd_args = None):
         self.task = task
         self.rules = rules
         self.seed = seed
@@ -44,6 +46,15 @@ class RobotGrammarEnv:
         self.result_cache = dict()
         self.state = None
         self.rule_seq = []
+        
+        self.task_args = Namespace()
+        self.task_args.jobs = self.mpc_num_processes 
+        self.task_args.task = str(self.task).split(" ")[0].split(".")[1]
+        self.task_args.grammar_file = cmd_args.grammar_file
+        self.task_args.task_creating_kwargs = {"time_step": cmd_args.time_step}
+        if cmd_args.no_noise:
+            self.task_args.task_creating_kwargs["force_std"] = 0.0
+            self.task_args.task_creating_kwargs["torque_std"] = 0.0
     
     def reset(self):
         self.state = self.initial_state
@@ -91,15 +102,17 @@ class RobotGrammarEnv:
 
         return not has_self_collision
 
-    def get_reward(self, robot_graph):
+    def get_reward(self, robot_graph, rule_sequence):
         if self.enable_reward_oracle:
             return None, self.reward_oracle_evaluate(robot_graph)
         else:
             robot = build_normalized_robot(robot_graph)
             opt_seed = self.rng.getrandbits(32)
-            self.last_opt_seed = opt_seed
+            self.last_opt_seed = opt_seed     
 
-            input_sequence, reward = simulate(robot, self.task, opt_seed, self.mpc_num_processes, episode_count = 1)
+            self.task_args.rule_sequence = rule_sequence
+            
+            input_sequence, reward = simulate(robot, self.task, opt_seed, self.task_args, neuron_stream=False)
 
             if reward is None or (reward is not None and reward > self.task.result_bound):
                 reward = -2.0
@@ -117,7 +130,7 @@ class RobotGrammarEnv:
             reward = 0.
             done = False
         else:
-            input_sequence, reward = self.get_reward(next_state)
+            input_sequence, reward = self.get_reward(next_state, self.rule_seq)
             done = True
         
         self.state = next_state

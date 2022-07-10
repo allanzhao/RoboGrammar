@@ -9,3 +9,4 @@ vgcore.*
 trained_models/
 .vscode/
 *.egg-info
+*.bullet

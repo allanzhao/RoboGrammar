@@ -179,8 +179,10 @@ def main():
   robot = build_normalized_robot(graph)
   finalize_robot(robot)
   
+  args.task_creating_kwargs = {"episode_len": args.episode_len}
+  
   if args.optim:
-    input_sequence, result = simulate(robot, task, opt_seed, args, neuron_stream=True)
+    input_sequence, result = simulate(robot, task, opt_seed, args, neuron_stream=False)
     print("Result:", result)
     # input_sequence = np.zeros((12, task.episode_len))
   else:

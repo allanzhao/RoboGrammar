@@ -78,7 +78,7 @@ def presimulate(robot):
     temp_sim.get_robot_world_aabb(robot_idx, lower, upper)
     return [-upper[0], -lower[1], 0.0], temp_sim.robot_has_collision(robot_idx)
 
-def simulate(robot, task, opt_seed, args, neuron_stream=False):
+def simulate(robot, task, opt_seed, task_args, neuron_stream=False):
     
     robot_init_pos, has_self_collision = presimulate(robot)
 
@@ -114,22 +114,22 @@ def simulate(robot, task, opt_seed, args, neuron_stream=False):
     else:
         neuron_stream_wrapper = None
 
-    optimizer = MPPI(side_sim, task.horizon, n_samples // args.jobs, 
-                        num_cpu=args.jobs,
+    optimizer = MPPI(side_sim, task.horizon, n_samples // task_args.jobs, 
+                        num_cpu=task_args.jobs,
                         kappa=1.0,
                         gamma=task.discount_factor,
                         default_act="mean",
                         filter_coefs=[0.10422766377112629, 0.3239870556899027, 0.3658903830367387, 0.3239870556899027, 0.10422766377112629],
                         seed=opt_seed,
                         neuron_stream_wrapper=neuron_stream_wrapper,
-                        cmd_args=args)
+                        task_args=task_args)
     
     paths = optimizer.do_rollouts(opt_seed)
     optimizer.update(paths)
     # optimizer.update()
     
     n_samples = 64
-    optimizer.paths_per_cpu = n_samples // args.jobs
+    optimizer.paths_per_cpu = n_samples // task_args.jobs
     # optimizer.set_sample_count(64)
 
     main_sim.save_state()
