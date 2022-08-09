@@ -10,3 +10,4 @@ trained_models/
 .vscode/
 *.egg-info
 *.bullet
+obj_files

@@ -145,22 +145,15 @@ def main():
   parser.add_argument("task", type=str, help="Task (Python class name)")
   parser.add_argument("grammar_file", type=str, help="Grammar file (.dot)")
   parser.add_argument("rule_sequence", nargs="+", help="Rule sequence to apply")
-  parser.add_argument("-o", "--optim", default=False, action="store_true",
-                      help="Optimize a trajectory")
-  parser.add_argument("-s", "--opt_seed", type=int, default=None,
-                      help="Trajectory optimization seed")
-  parser.add_argument("-e", "--episodes", type=int, default=1,
-                      help="Number of optimization episodes")
-  parser.add_argument("-j", "--jobs", type=int, required=True,
-                      help="Number of jobs/threads")
-  parser.add_argument("--input_sequence_file", type=str,
-                      help="File to save input sequence to (.csv)")
-  parser.add_argument("--save_obj_dir", type=str,
-                      help="Directory to save .obj files to")
-  parser.add_argument("--save_video_file", type=str,
-                      help="File to save video to (.mp4)")
-  parser.add_argument("-l", "--episode_len", type=int, default=128,
-                      help="Length of episode")
+  parser.add_argument("-o", "--optim", default=False, action="store_true", help="Optimize a trajectory")
+  parser.add_argument("-s", "--opt_seed", type=int, default=None, help="Trajectory optimization seed")
+  parser.add_argument("-e", "--episodes", type=int, default=1, help="Number of optimization episodes")
+  parser.add_argument("-j", "--jobs", type=int, required=True, help="Number of jobs/threads")
+  parser.add_argument("--input_sequence_file", type=str, help="File to save input sequence to (.csv)")
+  parser.add_argument("--save_obj_dir", type=str, help="Directory to save .obj files to")
+  parser.add_argument("--save_video_file", type=str, help="File to save video to (.mp4)")
+  parser.add_argument("-l", "--episode_len", type=int, default=128, help="Length of episode")
+  parser.add_argument("--no_view", action="store_true", help="Whether to open a window with simulation rendering.")
   args = parser.parse_args()
 
   task_class = getattr(tasks, args.task)
@@ -207,10 +200,12 @@ def main():
   main_sim.add_robot(robot, robot_init_pos, rd.Quaterniond(0.0, 0.0, 1.0, 0.0))
   robot_idx = main_sim.find_robot_index(robot)
 
-  camera_params, record_step_indices = view_trajectory(
-      main_sim, robot_idx, input_sequence, task)
+  if not args.no_view:
+    camera_params, record_step_indices = view_trajectory(main_sim, robot_idx, input_sequence, task)
+  else:
+    record_step_indices = set()
 
-  if args.save_obj_dir and input_sequence is not None:
+  if args.save_obj_dir is not None and input_sequence is not None:
     import export_mesh
 
     if record_step_indices:
