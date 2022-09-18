@@ -51,17 +51,11 @@ Make sure you are in the `RoboGrammar` directory.
 
 `source venv/bin/activate`
 
-`python3 examples/design_search/setup.py develop`
+`pip install -U pip`
 
-`python3 build/examples/python_bindings/setup.py develop`
+`pip install torch==1.12.0+cpu -f https://download.pytorch.org/whl/torch_stable.html`
 
-```
-pip3 install numpy-quaternion
-pip3 install torch==1.7.1+cpu -f https://download.pytorch.org/whl/torch_stable.html
-pip3 install torch-scatter -f https://pytorch-geometric.com/whl/torch-1.7.0+cpu.html
-pip3 install torch-sparse -f https://pytorch-geometric.com/whl/torch-1.7.0+cpu.html
-pip3 install torch-geometric==1.4.3
-```
+`pip install -r requirements.txt`
 
 ## Running Examples
 
