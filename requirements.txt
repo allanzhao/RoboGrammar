@@ -1,0 +1,12 @@
+numpy==1.23.3
+pybind11==2.10.0
+pythran==0.11.0
+scipy==1.9.1
+Cython==0.29.32
+MarkupSafe==2.1.1
+numpy-quaternion==2022.4.2
+torch-scatter -f https://pytorch-geometric.com/whl/torch-1.12.0+cpu.html
+torch-sparse -f https://pytorch-geometric.com/whl/torch-1.12.0+cpu.html
+torch-geometric==2.1.0
+-e examples/design_search
+-e build/examples/python_bindings
