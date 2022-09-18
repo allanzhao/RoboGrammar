@@ -53,15 +53,22 @@ class GNN(torch.nn.Module):
     def forward(self, x, adj, mask=None):
         batch_size, num_nodes, in_channels = x.size()
 
+        if self.add_loop:
+            # Replicate feature removed from PyTorch Geometric
+            N = adj.size()[1]
+            adj = adj.clone()
+            idx = torch.arange(N, dtype=torch.long, device=adj.device)
+            adj[:, idx, idx] = 1
+
         x0 = x
         if self.batch_normalization:
-            x1 = self.bn(1, F.relu(self.conv1(x0, adj, mask, self.add_loop)))
-            x2 = self.bn(2, F.relu(self.conv2(x1, adj, mask, self.add_loop)))
-            x3 = self.bn(3, F.relu(self.conv3(x2, adj, mask, self.add_loop)))
+            x1 = self.bn(1, F.relu(self.conv1(x0, adj, mask)))
+            x2 = self.bn(2, F.relu(self.conv2(x1, adj, mask)))
+            x3 = self.bn(3, F.relu(self.conv3(x2, adj, mask)))
         else:
-            x1 = F.relu(self.conv1(x0, adj, mask, self.add_loop))
-            x2 = F.relu(self.conv2(x1, adj, mask, self.add_loop))
-            x3 = F.relu(self.conv3(x2, adj, mask, self.add_loop))
+            x1 = F.relu(self.conv1(x0, adj, mask))
+            x2 = F.relu(self.conv2(x1, adj, mask))
+            x3 = F.relu(self.conv3(x2, adj, mask))
 
         x = torch.cat([x1, x2, x3], dim=-1)
         
