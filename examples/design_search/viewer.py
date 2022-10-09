@@ -119,6 +119,7 @@ def view_trajectory(sim, robot_idx, input_sequence, task, neuron_stream=True):
         sim.restore_state()
         tracker.reset()
     viewer.render(sim)
+    break
 
   sim.restore_state()
   
@@ -177,7 +178,6 @@ def main():
   if args.optim:
     input_sequence, result = simulate(robot, task, opt_seed, args, neuron_stream=False)
     print("Result:", result)
-    # input_sequence = np.zeros((12, task.episode_len))
   else:
     input_sequence = None
 

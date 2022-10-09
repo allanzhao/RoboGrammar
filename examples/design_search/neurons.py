@@ -30,7 +30,11 @@ class NeuronStream(Process):
         self.activation_values = Array('d', [0] * channels)
         self.raw_values_buffer = Array('d', [0] * self.buffer_size * channels)
         self.run_loop = Value("i", 1)
-        self.buffer_offset = Value("i", 0)
+        self.buffer_offset = Array("i", [0] * channels)
+        
+        self.spike_history_len = 20
+        self.raw_spikes_buffer = Array("d", [0] * self.spike_history_len * channels)
+        self.spike_offsets = Array("i", [0] * channels)
         
     def run(self):
         self.context = zmq.Context()
@@ -49,38 +53,33 @@ class NeuronStream(Process):
         
         header = json.loads(message[1].decode('utf-8'))
         if "data" in data_types and header["type"] == "data":
-            body = np.frombuffer(message[2], dtype=np.float32).reshape((header["content"]["n_channels"], header["content"]["n_samples"]))
-            body = body[:, :header["content"]["n_real_samples"]]
+            body = np.frombuffer(message[2], dtype=np.float32)
             return header, body
         elif "spike" in data_types and header["type"] == "spike":
             body = np.frombuffer(message[2], dtype=np.float32)
             return header, body
         elif "other" in data_types and header["type"] not in {"spike", "data"}:
-            body = None
             return header, body
-        
         return None, None
 
     def receive_data(self):
         i = 0
         while self.run_loop.value == 1:
-            header, body = self.receive({"data"})
+            header, body = self.receive({"data", "spike"})
             if header is not None and header["type"] == "data":
-                n_samples = header["content"]["n_real_samples"]
-                assert n_samples == body.shape[1]
-                # n_samples = 10
-                # print(header, header["content"]["timestamp"] / n_samples)
-                # body = np.arange(self.num_neurons * n_samples).reshape((self.num_neurons, n_samples)) + i * self.buffer_size
-                # print(body, body.shape)
-                # print()
-                # i += 1
-
-                for channel in range(self.num_neurons):
-                    for sample in range(n_samples):
-                        idx = channel * self.buffer_size + ((self.buffer_offset.value + sample) % self.buffer_size)
-                        self.raw_values_buffer[idx] = body[channel, sample]
-                self.buffer_offset.value = self.buffer_offset.value + n_samples
-                self.buffer_offset.value = self.buffer_offset.value % self.buffer_size
+                channel = header["content"]["channel_num"]
+                for sample in range(len(body)):
+                    idx = channel * self.buffer_size + ((self.buffer_offset[channel] + sample) % self.buffer_size)
+                    self.raw_values_buffer[idx] = body[sample]
+                self.buffer_offset[channel] = self.buffer_offset[channel] + len(body)
+                self.buffer_offset[channel] = self.buffer_offset[channel] % self.buffer_size
+            if header is not None and header["type"] == "spike":
+                channel = int(header["spike"]["electrode"].split(" ")[-1]) - 1
+                # ^This depends on the electrode names in OpenEphys. Assumes interval [0, 15].
+                idx = channel * self.spike_history_len + ((self.spike_offsets[channel] + 1) % self.spike_history_len)
+                self.raw_spikes_buffer[idx] = time()
+                self.spike_offsets[channel] = self.spike_offsets[channel] + 1
+                self.spike_offsets[channel] = self.spike_offsets[channel] % self.spike_history_len
     
     def compute_activations(self):
         update_time = 1 / self.update_frequency
@@ -125,9 +124,29 @@ class NeuronStream(Process):
         # print(self.buffer_size)
         for channel in range(self.num_neurons):
             for sample in range(self.buffer_size):
-                idx = channel * self.buffer_size + ((self.buffer_offset.value + sample) % self.buffer_size)
+                idx = channel * self.buffer_size + ((self.buffer_offset[channel] + sample) % self.buffer_size)
                 return_array[channel, sample] = self.raw_values_buffer[idx]
         return return_array
+    
+    def get_spike_frequencies(self, channels=None):
+        if channels is None:
+            channels = np.arange(self.num_neurons)
+        frequencies = np.zeros(self.num_neurons)
+        
+        for channel in channels:
+            channel_events = []
+            for event_idx in range(self.spike_history_len):
+                idx = channel * self.spike_history_len + ((self.spike_offsets[channel] + event_idx) % self.spike_history_len)
+                channel_events.append(self.raw_spikes_buffer[idx])
+            channel_events = np.array(channel_events)
+            channel_events = channel_events[channel_events != 0]
+            if len(channel_events) == 0:
+                frequencies[channel] = 0
+            else:
+                time_delta = channel_events.max() - channel_events.min()
+                frequencies[channel] = len(channel_events) / time_delta
+        
+        return frequencies
 
 
 class NeuronStreamWrapper:
@@ -158,9 +177,12 @@ if __name__ == "__main__":
         neurons = NeuronStream(channels=32, buffer_ms=1000)
         neurons.start()
         
+        # sleep(10)
+        
         while True:
-            n = neurons.get_raw_values_array()
-            print(n, n.shape)
+            # n = neurons.get_raw_values_array()
+            # print(n, n.shape)
+            print(neurons.get_spike_frequencies(), end="\r")
             sleep(1)
             # print()
             # print(n[0, :])
