@@ -65,7 +65,7 @@ class NeuronStream(Process):
     def receive_data(self):
         i = 0
         while self.run_loop.value == 1:
-            header, body = self.receive({"data", "spike"})
+            header, body = self.receive({"spike"})
             if header is not None and header["type"] == "data":
                 channel = header["content"]["channel_num"]
                 for sample in range(len(body)):
@@ -140,7 +140,7 @@ class NeuronStream(Process):
                 channel_events.append(self.raw_spikes_buffer[idx])
             channel_events = np.array(channel_events)
             channel_events = channel_events[channel_events != 0]
-            if len(channel_events) == 0:
+            if len(channel_events) <= 1:
                 frequencies[channel] = 0
             else:
                 time_delta = channel_events.max() - channel_events.min()
@@ -177,17 +177,37 @@ if __name__ == "__main__":
         neurons = NeuronStream(channels=32, buffer_ms=1000)
         neurons.start()
         
-        # sleep(10)
-        
-        while True:
+        sleep(1)
+        frequencies = []
+        timestamps = []
+        time_start = time()
+        while time() - time_start < 10:
             # n = neurons.get_raw_values_array()
             # print(n, n.shape)
-            print(neurons.get_spike_frequencies(), end="\r")
-            sleep(1)
+            frequencies.append(neurons.get_spike_frequencies()[:16])
+            timestamps.append(time())
+            sleep(0.05)
             # print()
             # print(n[0, :])
             # raise KeyboardInterrupt
-            
+        
+        from matplotlib import pyplot as plt
+        frequencies = np.stack(frequencies, axis=-1)
+        # frequencies = frequencies.clip(0, 100)
+        timestamps = np.array(timestamps) - min(timestamps)
+        # timestamps = np.stack([timestamps] * 16, axis=0)
+        print(frequencies.shape, timestamps.shape)
+        fig, axes = plt.subplots(4, 4, sharex=True, sharey=True, figsize=(16, 16))
+        axes = np.reshape(axes, -1)
+        for i in range(len(frequencies)):
+            axes[i].plot(timestamps, frequencies[i], label=str(i))
+            axes[i].set_title("channel=" + str(i))
+        # plt.legend()
+        axes[0].set_xlabel("time (s)")
+        axes[0].set_ylabel("frequency")
+        
+        plt.tight_layout()
+        plt.savefig("freqs.png")
         
     except KeyboardInterrupt:
         print()
