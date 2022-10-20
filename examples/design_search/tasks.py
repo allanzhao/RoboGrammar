@@ -2,6 +2,8 @@ from abc import ABC, abstractmethod
 import numpy as np
 import pyrobotdesign as rd
 
+from objective_function import DotProductObjective
+
 class ForwardSpeedTask(ABC):
   def __init__(self, time_step=1.0/240, discount_factor=0.99, interval=16,
                horizon=16, episode_len=128, noise_seed=0, force_std=0.0,
@@ -15,7 +17,7 @@ class ForwardSpeedTask(ABC):
     self.force_std = force_std
     self.torque_std = torque_std
 
-    self.objective_fn = rd.DotProductObjective()
+    self.objective_fn = DotProductObjective()
     self.objective_fn.base_dir_weight = np.array([-2.0, 0.0, 0.0])
     self.objective_fn.base_up_weight = np.array([0.0, 2.0, 0.0])
     self.objective_fn.base_vel_weight = np.array([2.0, 0.0, 0.0])

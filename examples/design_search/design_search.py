@@ -78,8 +78,8 @@ def presimulate(robot):
     temp_sim.get_robot_world_aabb(robot_idx, lower, upper)
     return [-upper[0], -lower[1], 0.0], temp_sim.robot_has_collision(robot_idx)
 
-def simulate(robot, task, opt_seed, task_args, neuron_stream=False):
-    
+def simulate(robot, task, opt_seed, task_args, neuron_stream_wrapper=None):
+    print("neuron_stream_wrapper ==", neuron_stream_wrapper)
     robot_init_pos, has_self_collision = presimulate(robot)
 
     if has_self_collision:
@@ -105,15 +105,9 @@ def simulate(robot, task, opt_seed, task_args, neuron_stream=False):
 
     dof_count = main_sim.get_robot_dof_count(robot_idx)
     objective_fn = task.get_objective_fn()
+    
     n_samples = 512
     
-    if neuron_stream:
-        neuron_stream_wrapper = NeuronStreamWrapper(dof_count, tau=0.02, stream_kwargs=dict(channels=32, buffer_ms=task.horizon * task.interval * task.time_step * 1000))
-        neuron_stream_wrapper.start()
-        sleep(neuron_stream_wrapper.neuron_stream.buffer_ms / 1000)
-    else:
-        neuron_stream_wrapper = None
-
     optimizer = MPPI(side_sim, task.horizon, n_samples // task_args.jobs, 
                         num_cpu=task_args.jobs,
                         kappa=1.0,
@@ -149,11 +143,11 @@ def simulate(robot, task, opt_seed, task_args, neuron_stream=False):
             main_sim.set_joint_targets(robot_idx, input_sequence[:, j].reshape(-1, 1))
             task.add_noise(main_sim, j * task.interval + k)
             main_sim.step()
-            rewards[j * task.interval + k] = objective_fn(main_sim)
-
+            rewards[j * task.interval + k] = objective_fn(main_sim, optimizer.neuron_stream_full[j])
+            
     main_sim.restore_state()
     
-    if neuron_stream:
+    if optimizer.neuron_stream_wrapper is not None:
         optimizer.neuron_stream_wrapper.stop()
         
     os.system("rm tmp.bullet")
@@ -251,7 +245,7 @@ class RobotDesignEnv(env.Env):
     """Robot design environment where states are (graph, rule sequence) pairs and
     actions are rule applications."""
 
-    def __init__(self, task, rules, seed, thread_count, max_rule_seq_len):
+    def __init__(self, task, rules, seed, thread_count, max_rule_seq_len, neural_input=False):
         self.task = task
         self.rules = rules
         self.rng = random.Random(seed)
@@ -260,6 +254,12 @@ class RobotDesignEnv(env.Env):
         self.initial_graph = make_initial_graph()
         self.result_cache = dict()
         self.result_cache_hit_count = 0
+        
+        if neural_input:
+            self.neuron_stream_wrapper = NeuronStreamWrapper(stream_kwargs=dict(channels=32, raw_values_buffer_ms=task.horizon * task.interval * task.time_step * 1000))
+            self.neuron_stream_wrapper.start()
+        else:
+            self.neuron_stream_wrapper = None
 
     @property
     def initial_state(self):
@@ -278,8 +278,7 @@ class RobotDesignEnv(env.Env):
     def get_next_state(self, state, rule):
         graph, rule_seq = state
         applicable_matches = list(get_applicable_matches(rule, graph))
-        return (rd.apply_rule(rule, graph, applicable_matches[0]),
-                        rule_seq + [rule])
+        return (rd.apply_rule(rule, graph, applicable_matches[0]), rule_seq + [rule])
 
     def get_result(self, state):
         graph, rule_seq = state
@@ -289,13 +288,12 @@ class RobotDesignEnv(env.Env):
         robot = build_normalized_robot(graph)
         opt_seed = self.rng.getrandbits(32)
         self.latest_opt_seed = opt_seed
-        result_cache_key = (tuple(self.rules.index(rule) for rule in rule_seq),
-                                                opt_seed)
+        result_cache_key = (tuple(self.rules.index(rule) for rule in rule_seq), opt_seed)
         if result_cache_key in self.result_cache:
             result = self.result_cache[result_cache_key]
             self.result_cache_hit_count += 1
         else:
-            _, result = simulate(robot, self.task, opt_seed, self.thread_count)
+            _, result = simulate(robot, self.task, opt_seed, self.thread_count, neuron_stream_wrapper=self.neuron_stream_wrapper)
 
         # FIXME: workaround for simulation instability
         # Simulation is invalid if the result is greater than result_bound
@@ -412,8 +410,7 @@ def main():
 
             if i >= len(env.result_cache):
                 rule_seq = [rules.index(rule) for rule in actions]
-                writer.writerow({'iteration': i, 'rule_seq': rule_seq,
-                                                 'opt_seed': env.latest_opt_seed, 'result': result})
+                writer.writerow({'iteration': i, 'rule_seq': rule_seq, 'opt_seed': env.latest_opt_seed, 'result': result})
                 log_file.flush()
             else:
                 # Replaying existing log entries

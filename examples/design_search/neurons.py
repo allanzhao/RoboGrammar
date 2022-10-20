@@ -10,31 +10,37 @@ from scipy.stats import gamma
 
 class NeuronStream(Process):
     
-    def __init__(self, channels=16, update_freq=10, activation_fn=gamma, activation_params={"a": 1.1, "scale": 5.0}, buffer_ms=9000):
+    # def __init__(self, channels=16, update_freq=15, activation_fn=gamma, activation_params={"a": 1.1, "scale": 5.0}, buffer_ms=9000, episode_length=128):
+    def __init__(self, channels=16, update_freq=15, episode_length=128+16, dt=16/240, raw_values_buffer_ms=9000):
         super(Process, self).__init__()
         
         self.update_frequency = update_freq
-        self.num_neurons = channels
-        self.buffer_ms = buffer_ms
+        self.channels = channels
+        self.raw_values_buffer_ms = raw_values_buffer_ms
+        self.episode_length = episode_length
+        self.dt = dt
         self.sample_rate = 30000
-        self.buffer_size = int((buffer_ms / 1000) * self.sample_rate)
+        self.buffer_size = int((raw_values_buffer_ms / 1000) * self.sample_rate)
         
-        self.activation_fn = activation_fn
-        self.activation_params = activation_params
+        # self.activation_fn = activation_fn
+        # self.activation_params = activation_params
         
-        self.timestamp_min = activation_fn.ppf(0.001, **activation_params)
-        self.timestamp_max = activation_fn.ppf(0.999, **activation_params)
+        # self.timestamp_min = activation_fn.ppf(0.001, **activation_params)
+        # self.timestamp_max = activation_fn.ppf(0.999, **activation_params)
         
         self.activation_timestamps = [[] for _ in range(channels)]
         # self.activation_values = np.zeros(channels)
         self.activation_values = Array('d', [0] * channels)
         self.raw_values_buffer = Array('d', [0] * self.buffer_size * channels)
         self.run_loop = Value("i", 1)
+        self.enough_time = Value("i", 0)
         self.buffer_offset = Array("i", [0] * channels)
         
         self.spike_history_len = 20
         self.raw_spikes_buffer = Array("d", [0] * self.spike_history_len * channels)
         self.spike_offsets = Array("i", [0] * channels)
+        self.spike_frequency_buffer = Array("d", [0] * episode_length * channels)
+        self.spike_frequency_offset = Value("i", 0)
         
     def run(self):
         self.context = zmq.Context()
@@ -64,6 +70,8 @@ class NeuronStream(Process):
 
     def receive_data(self):
         i = 0
+        time_prev = time()
+        time_start = time()
         while self.run_loop.value == 1:
             header, body = self.receive({"spike"})
             if header is not None and header["type"] == "data":
@@ -80,7 +88,22 @@ class NeuronStream(Process):
                 self.raw_spikes_buffer[idx] = time()
                 self.spike_offsets[channel] = self.spike_offsets[channel] + 1
                 self.spike_offsets[channel] = self.spike_offsets[channel] % self.spike_history_len
+                
+            if (time() - time_prev) > (1 / self.update_frequency):
+                time_prev = time()
+                i += 1
+                freqs = self.get_spike_frequencies()
+                # print(i, time(), np.all(freqs < 10))
+                for channel in range(self.channels):
+                    idx = channel * self.episode_length + ((self.spike_frequency_offset.value + 1) % self.episode_length)
+                    self.spike_frequency_buffer[idx] = freqs[channel]
+                self.spike_frequency_offset.value += 1
+                self.spike_frequency_offset.value %= self.episode_length
     
+            if self.enough_time.value == 0 and (time() - time_start) > (self.dt * self.episode_length):
+                self.enough_time.value = 1
+            
+    """
     def compute_activations(self):
         update_time = 1 / self.update_frequency
         time_start = time()
@@ -113,6 +136,8 @@ class NeuronStream(Process):
                 # print(time_end - time_start, end="\r")
                 
                 time_start = time()
+    
+    """      
                 
     def stop(self):
         print("Stopping neuron stream")
@@ -120,9 +145,9 @@ class NeuronStream(Process):
         sleep(1)
 
     def get_raw_values_array(self):
-        return_array = np.zeros((self.num_neurons, self.buffer_size))
+        return_array = np.zeros((self.channels, self.buffer_size))
         # print(self.buffer_size)
-        for channel in range(self.num_neurons):
+        for channel in range(self.channels):
             for sample in range(self.buffer_size):
                 idx = channel * self.buffer_size + ((self.buffer_offset[channel] + sample) % self.buffer_size)
                 return_array[channel, sample] = self.raw_values_buffer[idx]
@@ -130,8 +155,8 @@ class NeuronStream(Process):
     
     def get_spike_frequencies(self, channels=None):
         if channels is None:
-            channels = np.arange(self.num_neurons)
-        frequencies = np.zeros(self.num_neurons)
+            channels = np.arange(self.channels)
+        frequencies = np.zeros(self.channels)
         
         for channel in channels:
             channel_events = []
@@ -148,33 +173,51 @@ class NeuronStream(Process):
         
         return frequencies
 
+    def get_spike_frequencies_array(self):
+        while self.enough_time.value == 0:
+            sleep(0.1)
+            print("Waiting to gather data.", end="\r")
+        if self.enough_time.value == 1:
+            print(" " * 30, end="\r")
+            
+        return_array = np.zeros((self.channels, self.episode_length))
+        for channel in range(self.channels):
+            for sample in range(self.episode_length):
+                idx = channel * self.episode_length + ((self.spike_frequency_offset.value + sample) % self.episode_length)
+                return_array[channel, sample] = self.spike_frequency_buffer[idx]
+        return return_array
+
 
 class NeuronStreamWrapper:
     
-    def __init__(self, dof_count=None, weights=None, tau=0.5, stream_kwargs={}):
+    def __init__(self, weights=None, stream_kwargs={}):
         self.neuron_stream = NeuronStream(**stream_kwargs)
+        self.last_neuron_readout = None
         
         if weights is not None:
             self.weights = weights
         else:
-            assert dof_count is not None
-            rng = np.random.RandomState(0)
-            self.weights = rng.rand(self.neuron_stream.num_neurons, dof_count)
-            self.weights = self.weights / self.weights.sum(axis=1).reshape((-1, 1))
-        
-        self.tau = tau
+            self.weights = np.diag(np.ones(self.neuron_stream.channels))
+            # rng = np.random.RandomState(0)
+            # self.weights = rng.rand(self.neuron_stream.channels, dof_count)
+            # self.weights = self.weights / self.weights.sum(axis=1).reshape((-1, 1))
         
     def start(self):
         self.neuron_stream.start()
-        sleep(self.neuron_stream.buffer_ms / 1000)
+        sleep(self.neuron_stream.episode_length * self.neuron_stream.dt / 1000)
         
     def stop(self):
         self.neuron_stream.stop()
+        
+    def get_channel_frequencies(self, most_current=True):
+        if not most_current or self.last_neuron_readout is None:
+            self.last_neuron_readout = self.neuron_stream.get_spike_frequencies_array()
+        return self.last_neuron_readout
 
 
 if __name__ == "__main__":
     try:
-        neurons = NeuronStream(channels=32, buffer_ms=1000)
+        neurons = NeuronStream(channels=32)
         neurons.start()
         
         sleep(1)
@@ -184,17 +227,19 @@ if __name__ == "__main__":
         while time() - time_start < 10:
             # n = neurons.get_raw_values_array()
             # print(n, n.shape)
-            frequencies.append(neurons.get_spike_frequencies()[:16])
-            timestamps.append(time())
+            # frequencies.append(neurons.get_spike_frequencies()[:16])
+            # timestamps.append(time())
             sleep(0.05)
             # print()
             # print(n[0, :])
             # raise KeyboardInterrupt
         
         from matplotlib import pyplot as plt
-        frequencies = np.stack(frequencies, axis=-1)
+        # frequencies = np.stack(frequencies, axis=-1)
+        frequencies = neurons.get_spike_frequencies_array()[:16]
         # frequencies = frequencies.clip(0, 100)
-        timestamps = np.array(timestamps) - min(timestamps)
+        # timestamps = np.array(timestamps) - min(timestamps)
+        timestamps = np.linspace(0, 16/240*neurons.episode_length, neurons.episode_length)
         # timestamps = np.stack([timestamps] * 16, axis=0)
         print(frequencies.shape, timestamps.shape)
         fig, axes = plt.subplots(4, 4, sharex=True, sharey=True, figsize=(16, 16))

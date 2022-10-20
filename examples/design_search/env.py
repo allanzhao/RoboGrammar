@@ -50,7 +50,7 @@ class EnvWrapper(GymEnv):
     self.seed = None
     self.real_step = False    
   
-  def step(self, action):
+  def step(self, action, neural_input=None):
     r = 0
     
     for k in range(self.task.interval):
@@ -58,7 +58,7 @@ class EnvWrapper(GymEnv):
         self.task.add_noise(self.env, (self.task.interval * self.seed + k) % (2 ** 32))
         self.env.step()
         
-        r += self.task.get_objective_fn()(self.env)
+        r += self.task.get_objective_fn()(self.env, neural_input)
     
     if self.real_step:
       self.env.save_state_to_file("tmp.bullet")

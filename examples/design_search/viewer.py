@@ -75,13 +75,12 @@ def view_trajectory(sim, robot_idx, input_sequence, task, neuron_stream=True):
   k = 0
   
   if neuron_stream:
-    neuron_stream_wrapper = NeuronStreamWrapper(dof_count=sim.get_robot_dof_count(robot_idx), tau=0.02,
-                                                stream_kwargs=dict(channels=32, buffer_ms=task.time_step * 1000))
+    neuron_stream_wrapper = NeuronStreamWrapper(stream_kwargs=dict(channels=32, raw_values_buffer_ms=task.time_step * 1000))
     neuron_stream_wrapper.start()
     
-    neural_tau = neuron_stream_wrapper.tau
+    # neural_tau = neuron_stream_wrapper.tau
     
-    data = neuron_stream_wrapper.neuron_stream.get_raw_values_array()
+    data = neuron_stream_wrapper.get_channel_frequencies(most_current=True)
     data = data.mean(axis=1, keepdims=True)
     
     neural_input = data.transpose() @ neuron_stream_wrapper.weights
@@ -119,7 +118,7 @@ def view_trajectory(sim, robot_idx, input_sequence, task, neuron_stream=True):
         sim.restore_state()
         tracker.reset()
     viewer.render(sim)
-    break
+    # break
 
   sim.restore_state()
   
@@ -176,7 +175,10 @@ def main():
   args.task_creating_kwargs = {"episode_len": args.episode_len}
   
   if args.optim:
-    input_sequence, result = simulate(robot, task, opt_seed, args, neuron_stream=False)
+    neuron_stream_wrapper = NeuronStreamWrapper(stream_kwargs=dict(channels=32, raw_values_buffer_ms=task.horizon * task.interval * task.time_step * 1000))
+    neuron_stream_wrapper.start()
+    
+    input_sequence, result = simulate(robot, task, opt_seed, args, neuron_stream_wrapper=neuron_stream_wrapper)
     print("Result:", result)
   else:
     input_sequence = None
@@ -201,7 +203,7 @@ def main():
   robot_idx = main_sim.find_robot_index(robot)
 
   if not args.no_view:
-    camera_params, record_step_indices = view_trajectory(main_sim, robot_idx, input_sequence, task)
+    camera_params, record_step_indices = view_trajectory(main_sim, robot_idx, input_sequence, task, neuron_stream=False)
   else:
     record_step_indices = set()
 
