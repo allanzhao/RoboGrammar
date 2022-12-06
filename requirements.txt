@@ -1,9 +1,9 @@
-numpy==1.23.3
+numpy
 pybind11==2.10.0
 pythran==0.11.0
-scipy==1.9.1
+scipy
 Cython==0.29.32
-MarkupSafe==2.1.1
+MarkupSafe
 numpy-quaternion==2022.4.2
 torch-scatter -f https://pytorch-geometric.com/whl/torch-1.12.0+cpu.html
 torch-sparse -f https://pytorch-geometric.com/whl/torch-1.12.0+cpu.html
