@@ -310,7 +310,7 @@ def main():
         # Start a new run
         os.makedirs(args.log_dir, exist_ok=True)
         log_path = os.path.join(args.log_dir,
-                                f'mcts_{datetime.datetime.now():%Y%m%d_%H%M%S}.csv')
+                                f'mcts_{args.algorithm}_j{args.jobs}_d{args.depth}_i{args.iterations}_s{args.seed}_{args.task}_{datetime.datetime.now():%Y%m%d_%H%M%S}.csv')
 
     print(f"Logging to '{log_path}'")
 
