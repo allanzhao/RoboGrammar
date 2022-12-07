@@ -34,7 +34,7 @@ def make_robot_from_rule_sequence_raw(rule_sequence, rules):
 
   return graph
 
-def get_robot_image(robot, task):
+def get_robot_image(robot, task, render=True):
   sim = rd.BulletSimulation(task.time_step)
   task.add_terrain(sim)
   viewer = rd.GLFWViewer()
@@ -60,7 +60,8 @@ def get_robot_image(robot, task):
     viewer.camera_params.pitch = -np.pi / 6
     viewer.camera_params.distance = 5.0
 
-  viewer.update(task.time_step)
+  if render:
+    viewer.update(task.time_step)
   
   return viewer.render_array(sim)
 
