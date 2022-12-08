@@ -17,6 +17,7 @@ from utils import solve_argv_conflict
 from common import *
 from design_search import make_initial_graph, build_normalized_robot, get_applicable_matches, has_nonterminals
 from Preprocessor import Preprocessor
+from tensorboardX import SummaryWriter
 
 
 class RobotRL:
@@ -58,6 +59,11 @@ class RobotRL:
 
         # initialize the optimizer
         self.optimizer = optim.Adam(self.Q.parameters(), lr=args_main.lr)
+
+
+        self.summ_writer = SummaryWriter('', flush_secs=1, max_queue=1)
+    def log_scalar(self, scalar, name, step_):
+        self.summ_writer.add_scalar('{}'.format(name), scalar, step_)
 
     # def select_action(self, state, eps):
     #     available_actions = self.env.get_available_actions(state)
@@ -110,6 +116,8 @@ class RobotRL:
 Transition = namedtuple('Transition', ('state', 'action', 'next_state', 'reward', 'done'))
 
 
+import pickle
+
 class ReplayMemory(object):
     def __init__(self, capacity=1000000):
         self.capacity = capacity
@@ -119,6 +127,10 @@ class ReplayMemory(object):
     def push(self, *args):
         self.memory.append(Transition(*args))
         self.position = (self.position + 1) % self.capacity
+        # if len(self.memory) // 100 % 2 == 1: # every 200 from 100,300, ...
+        #     file_to_store = open(f"replay_memory/size_{len(self.memory)}.pickle", "wb")
+        #     pickle.dump(self.memory, file_to_store, pickle.HIGHEST_PROTOCOL)
+        #     file_to_store.close()
 
     def sample(self, batch_size):
         return random.sample(self.memory, min(len(self.memory), batch_size))

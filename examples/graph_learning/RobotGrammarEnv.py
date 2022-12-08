@@ -17,6 +17,7 @@ from common import *
 from Net import Net
 import torch
 
+import pandas as pd
 '''
 class RobotGrammarEnv
 
@@ -44,6 +45,11 @@ class RobotGrammarEnv:
             self.load_reward_oracle()
         self.initial_state = make_initial_graph()
         self.result_cache = dict()
+
+        print('robot grammar env ', os.getcwd(), ' ', end= ' ')
+        self.df = pd.read_csv('data/result_cache.csv')
+        self.cache_init_len = self.df.shape[0]
+
         self.state = None
         self.rule_seq = []
 
@@ -123,15 +129,26 @@ class RobotGrammarEnv:
         else:
             robot = build_normalized_robot(robot_graph)
             opt_seed = self.rng.getrandbits(32)
-            self.last_opt_seed = opt_seed
 
+            # Cache hit could be fixed
+            reward = self.df[self.df.rule_seq == str(self.rule_seq)]['result'].max()
+            if not np.isnan(reward):
+                print('[H]', end='\t')
+                return None, reward
+
+            # self.df[self.df.rule_seq == str(self.rule_seq)]['result'].values
+            # self.df[self.df.rule_seq == str(self.rule_seq)]
+            # if result_cache_key in self.result_cache:
+            #     result = self.result_cache[result_cache_key]
+            #     self.result_cache_hit_count += 1
+            # else:
             input_sequence, reward = simulate(robot, self.task, opt_seed, self.mpc_num_processes, episode_count=1)
 
             if reward is None or (reward is not None and reward > self.task.result_bound):
                 reward = -2.0
-
-            # if reward is None:
-            #     reward = -2.0
+            else:
+                # cache store only when is not -2
+                self.df.loc[len(self.df.index)] = [0, self.rule_seq, opt_seed, reward]
 
             return input_sequence, reward
 

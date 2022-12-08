@@ -71,13 +71,13 @@ def presimulate(robot):
     temp_sim.add_robot(robot, np.zeros(3), rd.Quaterniond(0.0, 0.0, 1.0, 0.0))
     temp_sim.step()
     robot_idx = temp_sim.find_robot_index(robot)
-    lower = np.zeros(3)
-    upper = np.zeros(3)
+    lower, upper = np.zeros(3), np.zeros(3)
+
     temp_sim.get_robot_world_aabb(robot_idx, lower, upper)
     return [-upper[0], -lower[1], 0.0], temp_sim.robot_has_collision(robot_idx)
 
 
-def simulate(robot, task, opt_seed, thread_count, episode_count=1):
+def simulate(robot, task, opt_seed, thread_count, episode_count=4):
     """Run trajectory optimization for the robot on the given task, and return the
   resulting input sequence and result."""
     robot_init_pos, has_self_collision = presimulate(robot)
@@ -107,7 +107,7 @@ def simulate(robot, task, opt_seed, thread_count, episode_count=1):
     replay_returns = np.zeros(0)
 
     for episode_idx in range(episode_count):
-        print(f"Episode {episode_idx}/{episode_count}")
+        print(f"[{episode_idx}/{episode_count}]", end=' ')
 
         optimizer = rd.MPPIOptimizer(1.0, task.discount_factor, dof_count,
                                      task.interval, task.horizon, 512,
@@ -182,6 +182,7 @@ class RobotDesignEnv(env.Env):
         self.max_rule_seq_len = max_rule_seq_len
         self.initial_graph = make_initial_graph()
         self.result_cache = dict()
+        print(os.getcwd(), '   ')
         self.result_cache_hit_count = 0
 
     @property

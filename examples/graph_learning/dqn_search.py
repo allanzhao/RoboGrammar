@@ -20,6 +20,7 @@ from results import get_robot_image, make_robot_from_rule_sequence
 import matplotlib.pyplot as plt
 
 
+
 def update_target_network(q_net, q_net_target):
     for target_param, param in zip(
             q_net_target.parameters(), q_net.parameters()
@@ -114,13 +115,19 @@ def search(arg, robot):
             data.append((state_seq[i][0], state_seq[i][1], total_reward))
         scores.append(total_reward)
 
+        loss = 0.0
         if len(memory) > 64:
-            loss = 0.0
             for _ in range(10):  # 10 gradient descent
                 loss += optimize(robot, memory, args.batch_size)
-  
+
         print(f'epoch {epoch} : reward = {total_reward:.2f}, eps = {eps:.2f}, Q loss = {loss:.2f}')
         print(f'memory {len(memory)} - {total_reward:.2f} @', rule_seq)
+
+        robot.log_scalar(total_reward, name='total_reward', step_=epoch)
+        robot.log_scalar(eps, name='eps', step_=epoch)
+        robot.log_scalar(loss, name='q_loss', step_=epoch)
+        robot.log_scalar(len(memory), name='memory', step_=epoch)
+
 
         if epoch%10 == 0:
             update_target_network(robot.Q, robot.Q_target)
