@@ -59,6 +59,22 @@ class RobotRL:
         # initialize the optimizer
         self.optimizer = optim.Adam(self.Q.parameters(), lr=args_main.lr)
 
+    # def select_action(self, state, eps):
+    #     available_actions = self.env.get_available_actions(state)
+    #     if len(available_actions) == 0:
+    #         return None
+    #     sample = random.random()
+    #     if sample > eps:
+    #         evals = self.predict_q_values_nograd(state)
+    #         best_action = available_actions[0]
+    #         for action in available_actions:
+    #             if evals[0][action] > evals[0][best_action]:
+    #                 best_action = action
+    #     else:
+    #         best_action = available_actions[random.randrange(len(available_actions))]
+    #
+    #     return best_action
+
     def select_action(self, state, eps):
         ''' e-greedy select action '''
         sample = random.random()
@@ -67,9 +83,14 @@ class RobotRL:
             if action_not_available:
                 return None
             else:
-                evals = self.predict_q_values_nograd(state)
-                evals_masked = evals + available_actions_mask # -inf is not available
-                return np.argmax(evals_masked.numpy())  # best action
+
+                adj_matrix, features, masks = self.preprocessor.preprocess(state)
+                evals, _, _ = self.Q(torch.tensor(features).unsqueeze(0),
+                                     torch.tensor(adj_matrix).unsqueeze(0),
+                                     torch.tensor(masks).unsqueeze(0))
+
+                evals_masked = evals.squeeze().detach().numpy() + available_actions_mask  # -inf is not available
+                return np.argmax(evals_masked)  # best action
 
         else:
             available_actions = self.env.get_available_actions(state)
@@ -77,7 +98,6 @@ class RobotRL:
                 return None
             else:
                 return np.random.choice(available_actions, size=1)[0]  # take one random action
-
 
     def preprocess_state(self, state):
         adj_matrix_np, features_np, masks_np = self.preprocessor.preprocess(state)
@@ -105,3 +125,6 @@ class ReplayMemory(object):
 
     def __len__(self):
         return len(self.memory)
+
+    # def store(self):
+

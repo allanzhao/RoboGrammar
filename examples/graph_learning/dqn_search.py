@@ -26,7 +26,7 @@ def update_target_network(q_net, q_net_target):
     ):
         target_param.data.copy_(param.data)
 
-def optimize(robot, memory, batch_size, depth, ddqn=True):
+def optimize(robot, memory, batch_size, ddqn=True):
     '''  dqn critic update  '''
 
     # 15.50 funziona
@@ -105,20 +105,22 @@ def search(arg, robot):
 
                 if done:
                     # __save_design__(robot, rule_seq)
-                    if best_reward < total_reward:
-                        best_reward, best_rule_seq = total_reward, rule_seq
+                    # if best_reward < total_reward:
+                    #     best_reward, best_rule_seq = total_reward, rule_seq
                     break
 
         for i in range(len(state_seq)):
-            memory.push(state_seq[i][0], state_seq[i][1], state_seq[i][2], state_seq[i][3], state_seq[i][4])
+            memory.push(*state_seq[i])
             data.append((state_seq[i][0], state_seq[i][1], total_reward))
         scores.append(total_reward)
 
-        loss = 0.0
-        for i in range(len(state_seq)):
-            loss += optimize(robot, memory, args.batch_size, args.depth)
-        print('epoch ', epoch, ': reward = ', total_reward, ', eps = ', eps, ', Q loss = ', loss)
-        print(best_reward, '@', best_rule_seq)
+        if len(memory) > 64:
+            loss = 0.0
+            for _ in range(10):  # 10 gradient descent
+                loss += optimize(robot, memory, args.batch_size)
+  
+        print(f'epoch {epoch} : reward = {total_reward:.2f}, eps = {eps:.2f}, Q loss = {loss:.2f}')
+        print(f'memory {len(memory)} - {total_reward:.2f} @', rule_seq)
 
         if epoch%10 == 0:
             update_target_network(robot.Q, robot.Q_target)
@@ -147,13 +149,13 @@ if __name__ == '__main__':
     args_list = ['--task', 'FlatTerrainTask',
                  # '--grammar-file', '../../data/designs/grammar_jan21.dot',
                  '--grammar-file', 'data/designs/grammar_apr30.dot',
-                 '--num-iterations', '100',
+                 '--num-iterations', '1000',
                  '--mpc-num-processes', '8',
                  '--lr', '1e-4',
                  '--eps-start', '0.9',
                  '--eps-end', '0.5',  # 0.05
                  '--batch-size', '64',
-                 '--depth', '50',
+                 '--depth', '25',
                  '--save-dir', './trained_models/FlatTerrainTask/test/',
                  '--render-interval', '80']
 

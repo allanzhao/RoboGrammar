@@ -93,14 +93,14 @@ class RobotGrammarEnv:
 
         for i, state in enumerate(state_n):
             actions_2_n[i] = np.array([1 if list(get_applicable_matches(rule, state)) else -np.inf for rule in self.rules])
-            action_not_available_n[i] = np.sum(~np.isinf(actions_2_n[i]))
+            action_not_available_n[i] = np.sum(~np.isinf(actions_2_n[i])) == 0
 
         return actions_2_n, action_not_available_n
 
     def get_available_actions_mask(self, state):
         ''' 1 if the action is ok -inf otherwise '''
         actions_2 = np.array([1 if list(get_applicable_matches(rule, state)) else -np.inf for rule in self.rules])
-        action_not_available = np.sum(~np.isinf(actions_2))
+        action_not_available = np.sum(~np.isinf(actions_2)) == 0
 
         return actions_2, action_not_available
 
