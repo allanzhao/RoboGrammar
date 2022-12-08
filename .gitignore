@@ -1,4 +1,11 @@
+data/result_cache/
+
+runs/
 build/
+
+.idea/
+.ipynb_checkpoints/
+
 *.swp
 __pycache__/
 *.csv
