@@ -9,6 +9,7 @@ Two preprocessing:
 '''
 import numpy as np
 import quaternion
+import torch
 from design_search import make_initial_graph, build_normalized_robot, get_applicable_matches, has_nonterminals
 
 def np_quaternion(q):
@@ -45,7 +46,12 @@ class Preprocessor:
     def __init__(self, all_labels = None, max_nodes = None):
         self.max_nodes = max_nodes
         self.all_labels = all_labels
-    
+
+    def preprocess_batch(self, state_n, max_nodes = None):
+        preprocessed_state = [self.preprocess(state, max_nodes) for state in state_n]
+        adj_matrix_tp_batch, features_tp_batch, masks_tp_batch = list(map(torch.Tensor, zip(*preprocessed_state)))
+        return adj_matrix_tp_batch, features_tp_batch, masks_tp_batch
+
     '''
     preprocess the state data
 

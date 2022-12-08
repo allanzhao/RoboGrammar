@@ -19,6 +19,8 @@ parameters:
     hidden_channels: number of feature channels for each hidden node
     batch_normalization: if add a batch normalization after each conv layer
 '''
+
+
 class GNN(torch.nn.Module):
     def __init__(self, in_channels, hidden_channels, out_channels,
                  normalize=False, batch_normalization=False, add_loop=False, lin=True):
@@ -30,7 +32,7 @@ class GNN(torch.nn.Module):
         self.conv1 = DenseSAGEConv(in_channels, hidden_channels, normalize)
         self.conv2 = DenseSAGEConv(hidden_channels, hidden_channels, normalize)
         self.conv3 = DenseSAGEConv(hidden_channels, out_channels, normalize)
-        
+
         if self.batch_normalization:
             self.bn1 = torch.nn.BatchNorm1d(hidden_channels)
             self.bn2 = torch.nn.BatchNorm1d(hidden_channels)
@@ -71,11 +73,12 @@ class GNN(torch.nn.Module):
             x3 = F.relu(self.conv3(x2, adj, mask))
 
         x = torch.cat([x1, x2, x3], dim=-1)
-        
+
         if self.lin is not None:
             x = F.relu(self.lin(x))
 
         return x
+
 
 '''
 class Net
@@ -87,27 +90,28 @@ parameters:
     num_channels: number of feature channels for each input graph node
     num_outputs: size of the action space
 '''
+
+
 class Net(torch.nn.Module):
     def __init__(self, max_nodes, num_channels, num_outputs):
         super(Net, self).__init__()
-        
+
         batch_normalization = False
 
         num_nodes = ceil(0.25 * max_nodes)
-        self.gnn1_pool = GNN(num_channels, 64, num_nodes, batch_normalization = batch_normalization, add_loop=True)
-        self.gnn1_embed = GNN(num_channels, 64, 64, batch_normalization = batch_normalization, add_loop=True, lin=False)
-        
-        num_nodes = ceil(0.25 * num_nodes)
-        self.gnn2_pool = GNN(3 * 64, 64, num_nodes, batch_normalization = batch_normalization)
-        self.gnn2_embed = GNN(3 * 64, 64, 64, batch_normalization = batch_normalization, lin=False)
+        self.gnn1_pool = GNN(num_channels, 64, num_nodes, batch_normalization=batch_normalization, add_loop=True)
+        self.gnn1_embed = GNN(num_channels, 64, 64, batch_normalization=batch_normalization, add_loop=True, lin=False)
 
-        self.gnn3_embed = GNN(3 * 64, 64, 64, batch_normalization = batch_normalization, lin=False)
+        num_nodes = ceil(0.25 * num_nodes)
+        self.gnn2_pool = GNN(3 * 64, 64, num_nodes, batch_normalization=batch_normalization)
+        self.gnn2_embed = GNN(3 * 64, 64, 64, batch_normalization=batch_normalization, lin=False)
+
+        self.gnn3_embed = GNN(3 * 64, 64, 64, batch_normalization=batch_normalization, lin=False)
 
         self.lin1 = torch.nn.Linear(3 * 64, 64)
         self.lin2 = torch.nn.Linear(64, num_outputs)
-        
+
     def forward(self, x, adj, mask=None):
-        
         s = self.gnn1_pool(x, adj, mask)
         x = self.gnn1_embed(x, adj, mask)
 
@@ -124,5 +128,5 @@ class Net(torch.nn.Module):
         x = F.relu(self.lin1(x))
 
         x = self.lin2(x)
-        
+
         return x, l1 + l2, e1 + e2
