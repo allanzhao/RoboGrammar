@@ -231,6 +231,7 @@ Scalar DotProductObjective::operator()(const Simulation &sim) const {
     // Base up vector term
     Vector3 base_up = base_transform.block<3, 1>(0, 1);
     reward += base_up.dot(base_up_weight_);
+    reward *= 0.3; // change in reward carlo	
     // Base velocity term
     reward += base_vel.tail<3>().dot(base_vel_weight_);
     // Power consumption term
