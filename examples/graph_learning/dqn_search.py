@@ -141,8 +141,6 @@ def search(robot, environment):
 
                 if done:
                     # __save_design__(robot, rule_seq)
-                    # if best_reward < total_reward:
-                    #     best_reward, best_rule_seq = total_reward, rule_seq
                     break
 
         # if not done:  # penalize if it does not finish early
@@ -173,6 +171,7 @@ def search(robot, environment):
         robot.log_scalar(loss, name='q_loss', step_=epoch)
         robot.log_scalar(len(memory), name='memory', step_=epoch)
         robot.log_scalar(trial_before_design, name='trial_before_design', step_=epoch)
+        robot.log_scalar(total_reward, name='reward_eps', step_=eps)
 
     # test
     cnt = 0
@@ -201,7 +200,7 @@ if __name__ == '__main__':
                  '--num-iterations', '10000',
                  '--mpc-num-processes', '8',
                  '--lr', '1e-3',
-                 '--eps-start', '0.2',
+                 '--eps-start', '0.9',
                  '--eps-end', '0.05',  # 0.05
                  '--batch-size', '64',
                  '--depth', '20',

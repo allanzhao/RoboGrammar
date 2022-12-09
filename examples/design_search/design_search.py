@@ -77,7 +77,7 @@ def presimulate(robot):
     return [-upper[0], -lower[1], 0.0], temp_sim.robot_has_collision(robot_idx)
 
 
-def simulate(robot, task, opt_seed, thread_count, episode_count=4):
+def simulate(robot, task, opt_seed, thread_count, episode_count=1):
     """Run trajectory optimization for the robot on the given task, and return the
   resulting input sequence and result."""
     robot_init_pos, has_self_collision = presimulate(robot)

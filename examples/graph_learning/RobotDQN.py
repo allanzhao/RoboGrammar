@@ -25,18 +25,6 @@ class RobotRL:
     def __init__(self, rules, env_dummy, args_main):
 
         self.max_nodes = args_main.depth * 2
-
-        # initialize the env
-        # task_class = getattr(tasks, args_main.task)
-        # self.task = task_class()
-        # graphs = rd.load_graphs(args_main.grammar_file)
-        # self.rules = [rd.create_rule_from_graph(g) for g in graphs]
-        #
-        # self.env = RobotGrammarEnv(self.task,
-        #                            self.rules,
-        #                            seed=args_main.seed,
-        #                            store_cache=args_main.store_cache,
-        #                            mpc_num_processes=args_main.mpc_num_processes)
         self.rules = rules
 
         # state preprocessor

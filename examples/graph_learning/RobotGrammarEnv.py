@@ -175,7 +175,7 @@ class RobotGrammarEnv:
             done = True
             # every time the design is complete check if I can flush the cache
             if (self.df.shape[0] - self.cache_init_len > self.cache_update) and self.store_cache:
-                self.df.to_csv(f'data/result_cache_{self.df.shape[0]}.csv', index=None)
+                self.df.to_csv(f'data/result_cache_{self.df.shape[0]:05d}.csv', index=None)
                 self.cache_init_len = self.df.shape[0]
 
         self.state = next_state
