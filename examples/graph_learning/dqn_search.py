@@ -19,6 +19,9 @@ from RobotDQN import RobotRL, ReplayMemory
 from results import get_robot_image, make_robot_from_rule_sequence
 import matplotlib.pyplot as plt
 
+import pyrobotdesign as rd
+import tasks
+from RobotGrammarEnv import RobotGrammarEnv
 
 
 def update_target_network(q_net, q_net_target):
@@ -27,12 +30,10 @@ def update_target_network(q_net, q_net_target):
     ):
         target_param.data.copy_(param.data)
 
-def optimize(robot, memory, batch_size, ddqn=True):
+
+def optimize(robot, memory, batch_size, environment, ddqn=True):
     '''  dqn critic update  '''
 
-    # 15.50 funziona
-
-    # Mettici il codice di sergey
     minibatch = memory.sample(batch_size)
     state_n, action_n, next_state_n, reward_n, done_n = list(map(list, zip(*minibatch)))
 
@@ -40,7 +41,7 @@ def optimize(robot, memory, batch_size, ddqn=True):
     adj_matrix_tp_batch, features_tp_batch, masks_tp_batch = robot.preprocessor.preprocess_batch(state_n)
 
     qa_t_values, _, _ = robot.Q(features_tp_batch, adj_matrix_tp_batch, masks_tp_batch)
-    q_t_values = torch.gather(qa_t_values, dim=1, index=torch.tensor(action_n).unsqueeze(1))  # working with batch size = 0
+    q_t_values = torch.gather(qa_t_values, dim=1, index=torch.tensor(action_n).unsqueeze(1))
 
     # Target Network tp1
     adj_matrix_tp1_batch, features_tp1_batch, masks_tp1_batch = robot.preprocessor.preprocess_batch(next_state_n)
@@ -49,8 +50,9 @@ def optimize(robot, memory, batch_size, ddqn=True):
     if ddqn:  # double q learning
         qnet_tp1_to_be_masked, _, _ = robot.Q(features_tp1_batch, adj_matrix_tp1_batch, masks_tp1_batch)
 
-        actions_mask, action_not_available_n = robot.env.get_available_actions_mask_batch(next_state_n)
-        next_actions = (qnet_tp1_to_be_masked+torch.tensor(actions_mask)).argmax(dim=1)  # if all -inf just procede randomly
+        actions_mask, action_not_available_n = environment.get_available_actions_mask_batch(next_state_n)
+        next_actions = (qnet_tp1_to_be_masked + torch.tensor(actions_mask)).argmax(
+            dim=1)  # if all -inf just procede randomly
         q_tp1 = torch.gather(qa_tp1_values, dim=1, index=next_actions.unsqueeze(1)).squeeze(1)
 
     else:
@@ -75,8 +77,36 @@ def __save_design__(robot, rule_seq):
     plt.savefig('imgs/' + _str_, bbox_inches='tight')
 
 
-def search(arg, robot):
+# def __build_a_design__(robot, eps):
+#     ''' build a design, need to pass a copy of the robot object'''
+#     done = False
+#     trial_before_design = 0
+#     while not done:
+#         state = robot.env.reset()
+#         total_reward, rule_seq, state_seq = 0., [], []
+#
+#         for i in range(robot.hyperparams['depth']):
+#             action = robot.select_action(state, eps)  # e-greedy dovremmo aspettare di riempire il replay buffer
+#             if action is None:
+#                 print(f'#{i} @ {rule_seq}')
+#                 break
+#
+#             rule_seq.append(action)
+#             next_state, reward, done = robot.env.step(action)
+#             state_seq.append((state, action, next_state, reward, done))
+#             total_reward += reward
+#             state = next_state
+#
+#             if done:
+#                 # __save_design__(robot, rule_seq)
+#                 # if best_reward < total_reward:
+#                 #     best_reward, best_rule_seq = total_reward, rule_seq
+#                 break
+#
+#         trial_before_design += 1
 
+
+def search(robot, environment):
     # initialize DQN
     memory = ReplayMemory(capacity=1000000)
     scores = deque(maxlen=100)
@@ -84,22 +114,27 @@ def search(arg, robot):
 
     best_reward, best_rule_seq = 0.0, []
 
-    for epoch in range(args.num_iterations):
+    for epoch in range(robot.hyperparams['num_iterations']):
+        eps = robot.hyperparams['eps_start'] + epoch / robot.hyperparams['num_iterations'] * robot.hyperparams[
+            'eps_delta']
+
         done = False
-        eps = args.eps_start + epoch / args.num_iterations * (args.eps_end - args.eps_start)
-        # eps = 1.0
+        trial_before_design = 0
+
         while not done:
-            state = robot.env.reset()
+        ################################################
+
+            state = environment.reset()
             total_reward, rule_seq, state_seq = 0., [], []
 
-            for i in range(args.depth):
-                action = robot.select_action(state, eps) # e-greedy dovremmo aspettare di riempire il replay buffer
+            for i in range(robot.hyperparams['depth']):
+                action = robot.select_action(environment, state, eps)  # e-greedy dovremmo aspettare di riempire il replay buffer
                 if action is None:
                     print(f'#{i} @ {rule_seq}')
                     break
 
                 rule_seq.append(action)
-                next_state, reward, done = robot.env.step(action)
+                next_state, reward, done = environment.step(action)
                 state_seq.append((state, action, next_state, reward, done))
                 total_reward += reward
                 state = next_state
@@ -110,6 +145,13 @@ def search(arg, robot):
                     #     best_reward, best_rule_seq = total_reward, rule_seq
                     break
 
+        # if not done:  # penalize if it does not finish early
+        #     total_reward = -1
+        #     state_seq[-1] = (state_seq[-1][0], state_seq[-1][1], state_seq[-1][2], -1, state_seq[-1][4])  # last reward
+
+            trial_before_design += 1
+
+        ################################################
         for i in range(len(state_seq)):
             memory.push(*state_seq[i])
             data.append((state_seq[i][0], state_seq[i][1], total_reward))
@@ -118,7 +160,10 @@ def search(arg, robot):
         loss = 0.0
         if len(memory) > 64:
             for _ in range(10):  # 10 gradient descent
-                loss += optimize(robot, memory, args.batch_size)
+                loss += optimize(robot, memory, robot.hyperparams['batch_size'], environment)
+
+        if epoch % robot.hyperparams['freq_update'] == 0:
+            update_target_network(robot.Q, robot.Q_target)
 
         print(f'epoch {epoch} : reward = {total_reward:.2f}, eps = {eps:.2f}, Q loss = {loss:.2f}')
         print(f'memory {len(memory)} - {total_reward:.2f} @', rule_seq)
@@ -127,10 +172,7 @@ def search(arg, robot):
         robot.log_scalar(eps, name='eps', step_=epoch)
         robot.log_scalar(loss, name='q_loss', step_=epoch)
         robot.log_scalar(len(memory), name='memory', step_=epoch)
-
-
-        if epoch%10 == 0:
-            update_target_network(robot.Q, robot.Q_target)
+        robot.log_scalar(trial_before_design, name='trial_before_design', step_=epoch)
 
     # test
     cnt = 0
@@ -156,14 +198,19 @@ if __name__ == '__main__':
     args_list = ['--task', 'FlatTerrainTask',
                  # '--grammar-file', '../../data/designs/grammar_jan21.dot',
                  '--grammar-file', 'data/designs/grammar_apr30.dot',
-                 '--num-iterations', '1000',
+                 '--num-iterations', '10000',
                  '--mpc-num-processes', '8',
-                 '--lr', '1e-4',
-                 '--eps-start', '0.9',
-                 '--eps-end', '0.5',  # 0.05
+                 '--lr', '1e-3',
+                 '--eps-start', '0.2',
+                 '--eps-end', '0.05',  # 0.05
                  '--batch-size', '64',
-                 '--depth', '25',
+                 '--depth', '20',
+                 '--seed', '0',
+                 '--freq-update', '20',
+                 '--batch-norm', 'False',
+                 '--layer-size', '64',
                  '--save-dir', './trained_models/FlatTerrainTask/test/',
+                 '--store-cache', 'True',
                  '--render-interval', '80']
 
     solve_argv_conflict(args_list)
@@ -183,6 +230,18 @@ if __name__ == '__main__':
     fp.write(str(args_list + sys.argv[1:]))
     fp.close()
 
-    robot_obj = RobotRL(args)
+    task_class = getattr(tasks, args.task)
+    task = task_class()
 
-    search(args, robot_obj)
+    graphs = rd.load_graphs(args.grammar_file)
+    rules = [rd.create_rule_from_graph(g) for g in graphs]
+
+    env = RobotGrammarEnv(task,
+                          rules,
+                          seed=args.seed,
+                          store_cache=args.store_cache,
+                          mpc_num_processes=args.mpc_num_processes)
+
+    robot_obj = RobotRL(rules=rules, env_dummy=env, args_main=args)
+
+    search(robot_obj, environment=env)

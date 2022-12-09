@@ -93,23 +93,21 @@ parameters:
 
 
 class Net(torch.nn.Module):
-    def __init__(self, max_nodes, num_channels, num_outputs):
+    def __init__(self, max_nodes, num_channels, num_outputs, layer_size=64, batch_normalization=False):
         super(Net, self).__init__()
 
-        batch_normalization = False
-
         num_nodes = ceil(0.25 * max_nodes)
-        self.gnn1_pool = GNN(num_channels, 64, num_nodes, batch_normalization=batch_normalization, add_loop=True)
-        self.gnn1_embed = GNN(num_channels, 64, 64, batch_normalization=batch_normalization, add_loop=True, lin=False)
+        self.gnn1_pool = GNN(num_channels, layer_size, num_nodes, batch_normalization=batch_normalization, add_loop=True)
+        self.gnn1_embed = GNN(num_channels, layer_size, layer_size, batch_normalization=batch_normalization, add_loop=True, lin=False)
 
         num_nodes = ceil(0.25 * num_nodes)
-        self.gnn2_pool = GNN(3 * 64, 64, num_nodes, batch_normalization=batch_normalization)
-        self.gnn2_embed = GNN(3 * 64, 64, 64, batch_normalization=batch_normalization, lin=False)
+        self.gnn2_pool = GNN(3 * layer_size, layer_size, num_nodes, batch_normalization=batch_normalization)
+        self.gnn2_embed = GNN(3 * layer_size, layer_size, layer_size, batch_normalization=batch_normalization, lin=False)
 
-        self.gnn3_embed = GNN(3 * 64, 64, 64, batch_normalization=batch_normalization, lin=False)
+        self.gnn3_embed = GNN(3 * layer_size, layer_size, layer_size, batch_normalization=batch_normalization, lin=False)
 
-        self.lin1 = torch.nn.Linear(3 * 64, 64)
-        self.lin2 = torch.nn.Linear(64, num_outputs)
+        self.lin1 = torch.nn.Linear(3 * layer_size, layer_size)
+        self.lin2 = torch.nn.Linear(layer_size, num_outputs)
 
     def forward(self, x, adj, mask=None):
         s = self.gnn1_pool(x, adj, mask)

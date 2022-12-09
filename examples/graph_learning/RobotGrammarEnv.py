@@ -32,7 +32,9 @@ Parameters:
 
 
 class RobotGrammarEnv:
-    def __init__(self, task, rules, seed=0, mpc_num_processes=8, enable_reward_oracle=False, preprocessor=None):
+    def __init__(self, task, rules, seed=0, mpc_num_processes=8, enable_reward_oracle=False, preprocessor=None,
+                 store_cache=True):
+
         self.task = task
         self.rules = rules
         self.seed = seed
@@ -44,11 +46,19 @@ class RobotGrammarEnv:
             self.preprocessor = preprocessor
             self.load_reward_oracle()
         self.initial_state = make_initial_graph()
+
         self.result_cache = dict()
 
-        print('robot grammar env ', os.getcwd(), ' ', end= ' ')
-        self.df = pd.read_csv('data/result_cache.csv')
+        files = os.listdir('data/')
+
+        results = [file for file in files if 'result_cache_' in file]
+        results.sort()
+        self.df = pd.read_csv(f'data/{results[-1]}')
         self.cache_init_len = self.df.shape[0]
+        self.cache_update = 20
+        self.store_cache = store_cache
+
+        print(f'Cache loaded: {results[-1]}  store_cache: {store_cache} size: {self.cache_init_len}')
 
         self.state = None
         self.rule_seq = []
@@ -156,12 +166,17 @@ class RobotGrammarEnv:
     def step(self, action):
         next_state = self.transite(self.state, action)
         self.rule_seq.append(action)
+
         if has_nonterminals(next_state):
-            reward = 0.
-            done = False
+            reward, done = 0., False
+
         else:
             input_sequence, reward = self.get_reward(next_state)
             done = True
+            # every time the design is complete check if I can flush the cache
+            if (self.df.shape[0] - self.cache_init_len > self.cache_update) and self.store_cache:
+                self.df.to_csv(f'data/result_cache_{self.df.shape[0]}.csv', index=None)
+                self.cache_init_len = self.df.shape[0]
 
         self.state = next_state
 
