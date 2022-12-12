@@ -190,9 +190,10 @@ class NeuronStream(Process):
 
 class NeuronStreamWrapper:
     
-    def __init__(self, weights=None, stream_kwargs={}):
+    def __init__(self, weights=None, neuron_stream_std_multiplier=8, stream_kwargs={}):
         self.neuron_stream = NeuronStream(**stream_kwargs)
         self.last_neuron_readout = None
+        self.neuron_stream_std_multiplier = neuron_stream_std_multiplier
         
         if weights is not None:
             self.weights = weights

@@ -21,6 +21,8 @@ class ForwardSpeedTask(ABC):
     self.objective_fn.base_dir_weight = np.array([-2.0, 0.0, 0.0])
     self.objective_fn.base_up_weight = np.array([0.0, 2.0, 0.0])
     self.objective_fn.base_vel_weight = np.array([2.0, 0.0, 0.0])
+    self.objective_fn.power_weight = 0
+    self.objective_fn.dof_mismatch_cost = 0.1
 
     # Maximum reasonable result (designs achieving higher results are rejected)
     self.result_bound = 10.0

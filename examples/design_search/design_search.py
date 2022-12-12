@@ -139,11 +139,16 @@ def simulate(robot, task, opt_seed, task_args, neuron_stream_wrapper=None):
         
         optimizer.advance_time()
 
+        print("step:", j)
         for k in range(task.interval):
             main_sim.set_joint_targets(robot_idx, input_sequence[:, j].reshape(-1, 1))
             task.add_noise(main_sim, j * task.interval + k)
             main_sim.step()
-            rewards[j * task.interval + k] = objective_fn(main_sim, optimizer.neuron_stream_full[j])
+            
+            neuron_input = None
+            if optimizer.neuron_stream_wrapper is not None:
+                neuron_input = optimizer.neuron_stream_full[j]
+            rewards[j * task.interval + k] = objective_fn(main_sim, neuron_input, print_bool=k == 0)
             
     main_sim.restore_state()
     
@@ -370,7 +375,7 @@ def main():
     task = task_class()
     graphs = rd.load_graphs(args.grammar_file)
     rules = [rd.create_rule_from_graph(g) for g in graphs]
-    env = RobotDesignEnv(task, rules, args.seed, args.jobs, args.depth)
+    env = RobotDesignEnv(task, rules, args.seed, args.jobs, args.depth, neural_input=True)
     search_alg = algorithms[args.algorithm](env, max_tries=1000)
 
     if args.log_file:
