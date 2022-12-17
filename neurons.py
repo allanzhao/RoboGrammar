@@ -3,9 +3,7 @@ from multiprocessing import Array, Process, Value
 from time import sleep, time
 
 import numpy as np
-import serial
 import zmq
-from scipy.stats import gamma
 
 
 class NeuronStream(Process):

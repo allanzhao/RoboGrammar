@@ -1,30 +1,27 @@
 import multiprocessing as mp
 
 import numpy as np
-import pyrobotdesign as rd
-from trajopt import tensor_utils
-from trajopt.envs.utils import get_environment
 
 from env import SimEnvWrapper
+from utils import get_make_sim_and_task_fn_parallel, stack_tensor_dict_list
 
 
-def do_env_rollout(env, act_list, neural_input=None, env_kwargs=None):
+def do_env_rollout(env, act_list, neural_input=None):
     """
         1) Construt env based on desired behavior and set to start_state.
         2) Generate rollouts using act_list.
            act_list is a list with each element having size (H,m).
            Length of act_list is the number of desired rollouts.
     """
-    e = get_environment(env, env_kwargs)
-    e.reset()
-    e.real_env_step(False)
+    env.reset()
+    env.real_env_step(False)
     paths = []
     H = act_list[0].shape[0]
     N = len(act_list)
     _neural_input = None
         
     for i in range(N):
-        e.set_env_state()
+        env.set_env_state()
         obs = []
         act = []
         rewards = []
@@ -32,21 +29,21 @@ def do_env_rollout(env, act_list, neural_input=None, env_kwargs=None):
         states = []
 
         for k in range(H):
-            obs.append(e.get_obs())
+            obs.append(env.get_obs())
             act.append(act_list[i][k])
-            env_infos.append(e.get_env_infos())
-            states.append(e.get_env_state())
+            env_infos.append(env.get_env_infos())
+            states.append(env.get_env_state())
             
             if neural_input is not None:
                 _neural_input = neural_input[k]
-            _, r, _, _ = e.step(act[-1], _neural_input)
+            _, r, _, _ = env.step(act[-1], _neural_input)
             
             rewards.append(r)
 
         path = dict(observations=np.array(obs),
                     actions=np.array(act),
                     rewards=np.array(rewards),
-                    env_infos=tensor_utils.stack_tensor_dict_list(env_infos),
+                    env_infos=stack_tensor_dict_list(env_infos),
                     states=states)
         paths.append(path)
     return paths
@@ -101,34 +98,7 @@ def generate_paths(args):
     np.random.seed(base_seed)
     act_list = []
 
-    #### THIS IS SOMEWHAT HACKY.
-    def make_sim_and_task_fn():
-        from design_search import (build_normalized_robot, make_graph,
-                                   presimulate)
-        from viewer import finalize_robot
-
-        import tasks
-        
-        task_class = getattr(tasks, task_args.task)
-        task = task_class(**task_args.task_creating_kwargs)
-        
-        graphs = rd.load_graphs(task_args.grammar_file)
-        rules = [rd.create_rule_from_graph(g) for g in graphs]
-        try:
-            rule_sequence = [int(s.strip(",")) for s in task_args.rule_sequence]
-        except (ValueError, AttributeError):
-            rule_sequence = task_args.rule_sequence
-        graph = make_graph(rules, rule_sequence)
-        robot = build_normalized_robot(graph)
-        finalize_robot(robot)
-        
-        robot_init_pos, _ = presimulate(robot)
-        
-        sim = rd.BulletSimulation(task.time_step)
-        
-        task.add_terrain(sim)
-        sim.add_robot(robot, robot_init_pos, rd.Quaterniond(0.0, 0.0, 1.0, 0.0))
-        return sim, task
+    make_sim_and_task_fn = get_make_sim_and_task_fn_parallel(task_args)
     
     env = SimEnvWrapper(make_sim_and_task_fn, load=True)
     env.set_seed(base_seed)
