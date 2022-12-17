@@ -3,7 +3,7 @@ import multiprocessing as mp
 import numpy as np
 
 from env import SimEnvWrapper
-from utils import get_make_sim_and_task_fn_parallel, stack_tensor_dict_list
+from utils import get_make_sim_and_task_fn_without_args, stack_tensor_dict_list
 
 
 def do_env_rollout(env, act_list, neural_input=None):
@@ -98,7 +98,7 @@ def generate_paths(args):
     np.random.seed(base_seed)
     act_list = []
 
-    make_sim_and_task_fn = get_make_sim_and_task_fn_parallel(task_args)
+    make_sim_and_task_fn = get_make_sim_and_task_fn_without_args(task_args)
     
     env = SimEnvWrapper(make_sim_and_task_fn, load=True)
     env.set_seed(base_seed)
@@ -111,7 +111,7 @@ def generate_paths(args):
     return paths
 
 
-def gather_paths_parallel(history, base_act, filter_coefs, neural_input, base_seed, paths_per_cpu, num_cpu=None, env_kwargs=None, task_args=None):
+def gather_paths_parallel(history, base_act, filter_coefs, neural_input, base_seed, paths_per_cpu, num_cpu=None, env_kwargs=None):
     num_cpu = 1 if num_cpu is None else num_cpu
     num_cpu = mp.cpu_count() if num_cpu == 'max' else num_cpu
     assert type(num_cpu) == int
@@ -121,8 +121,7 @@ def gather_paths_parallel(history, base_act, filter_coefs, neural_input, base_se
     
     for i in range(num_cpu):
         cpu_seed = base_seed + i*paths_per_cpu
-        input_tuple = (paths_per_cpu, base_act, filter_coefs, cpu_seed, neural_input, env_kwargs, history, task_args)
-        input_lists.append(input_tuple)
+        input_lists.append((paths_per_cpu, base_act, filter_coefs, cpu_seed, neural_input, env_kwargs, history))
         
     results = pool.map(generate_paths, input_lists)
     
@@ -240,8 +239,7 @@ class MPPI:
                                       neural_input=neural_input,
                                       base_seed=seed,
                                       paths_per_cpu=self.paths_per_cpu,
-                                      num_cpu=self.num_cpu,
-                                      task_args=self.task_args)
+                                      num_cpu=self.num_cpu)
         return paths
 
     def train_step(self, niter=1):

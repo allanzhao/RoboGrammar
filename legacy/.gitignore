@@ -1,0 +1,14 @@
+build/
+*.swp
+__pycache__/
+*.csv
+*.mp4
+*.png
+*.pdf
+vgcore.*
+trained_models/
+.vscode/
+*.egg-info
+*.bullet
+obj_files
+output

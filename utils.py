@@ -1,6 +1,9 @@
 import numpy as np
 import pyrobotdesign as rd
 
+from tasks import FlatTerrainTask
+from constants import *
+
 
 def stack_tensor_dict_list(tensor_dict_list):
     """
@@ -20,20 +23,14 @@ def stack_tensor_dict_list(tensor_dict_list):
     return ret
 
 
-def get_make_sim_and_task_fn_parallel(task_args):
+def get_make_sim_and_task_fn_without_args():
     
     def fn():
-        import tasks
+        task = FlatTerrainTask()
         
-        task_class = getattr(tasks, task_args.task)
-        task = task_class(**task_args.task_creating_kwargs)
-        
-        graphs = rd.load_graphs(task_args.grammar_file)
+        graphs = rd.load_graphs(GRAMMAR_FILEPATH)
         rules = [rd.create_rule_from_graph(g) for g in graphs]
-        try:
-            rule_sequence = [int(s.strip(",")) for s in task_args.rule_sequence]
-        except (ValueError, AttributeError):
-            rule_sequence = task_args.rule_sequence
+        rule_sequence = [int(s.strip(",")) for s in RULE_SEQUENCE]
         graph = make_graph(rules, rule_sequence)
         robot = build_normalized_robot(graph)
         finalize_robot(robot)
