@@ -1,8 +1,6 @@
-import multiprocessing as mp
 import traceback
-from time import sleep
+from time import time, sleep
 
-import numpy as np
 import pyrobotdesign as rd
 
 from env import SimEnvWrapper
@@ -12,18 +10,10 @@ from tasks import FlatTerrainTask
 from utils import (build_normalized_robot, finalize_robot,
                    get_make_sim_and_task_fn, make_graph, presimulate)
 from constants import *
+from view import prepare_viewer, viewer_step
 
 
 if __name__ == "__main__":
-    
-    # initialize controller
-    controller = None
-    # initialize neuron stream
-    neuron_stream = NeuronStream(channels=CHANNELS, dt=DT)
-    # initialize input sequence
-    input_sequence = []
-    # initialize rendering function
-    render = None
     
     # initialize task
     task = FlatTerrainTask()
@@ -39,33 +29,56 @@ if __name__ == "__main__":
     robot_init_pos, _ = presimulate(robot)
     
     # initialize env
-    make_sim_and_task_fn = get_make_sim_and_task_fn(robot, robot_init_pos=robot_init_pos)
+    make_sim_and_task_fn = get_make_sim_and_task_fn(task, robot, robot_init_pos=robot_init_pos)
+    main_env, _ = make_sim_and_task_fn()
     env = SimEnvWrapper(make_sim_and_task_fn)
     
     dof_count = env.env.get_robot_dof_count(0)
     objective_fn = task.get_objective_fn()
-    n_samples = 512
+    n_samples = 512 // NUM_THREADS
     
-    optimizer = MPPI(env, HORIZON, n_samples // NUM_THREADS, 
+    # initialize controller
+    controller = None
+    # initialize neuron stream
+    neuron_stream = None # NeuronStream(channels=CHANNELS, dt=DT)
+    # initialize rendering
+    viewer, tracker = prepare_viewer(main_env)
+    
+    optimizer = MPPI(env, HORIZON, n_samples, 
                         num_cpu=NUM_THREADS,
                         kappa=1.0,
                         gamma=task.discount_factor,
                         default_act="mean",
-                        filter_coefs=[0.10422766377112629, 0.3239870556899027, 0.3658903830367387, 0.3239870556899027, 0.10422766377112629],
+                        filter_coefs=ACTION_FILTER_COEFS,
                         seed=SEED,
                         neuron_stream=neuron_stream)
     
+    # search for initial paths
+    paths = optimizer.do_rollouts(SEED)
+    optimizer.update(paths)
+    optimizer.paths_per_cpu = 64 // NUM_THREADS
+    
     try:
+        prev_time = time()
         while True:
             
+            paths = optimizer.do_rollouts(SEED + len(optimizer.sol_act) + 1)
+            optimizer.update(paths)
             
+            actions = optimizer.act_sequence[0]
             
-            if render is not None:
+            optimizer.advance_time()
+            
+            curr_time = time()
+            print("step =", len(optimizer.sol_act), "\ttime =", curr_time - prev_time, "\tactions =", actions)
+            prev_time = curr_time
+                        
+            if viewer is not None:
                 # render the simulation
-                pass
+                viewer_step(main_env, task, actions, viewer, tracker)
             
             if controller is not None:
-                # move the motors
+                # move the motors in the real world
                 pass
             
             sleep(0.01)
