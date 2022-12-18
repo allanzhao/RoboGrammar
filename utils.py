@@ -5,6 +5,24 @@ from tasks import FlatTerrainTask
 from constants import *
 
 
+
+def convert_joint_angles(action, joint_baseline_angles=None):
+    if joint_baseline_angles is None:
+        joint_baseline_angles = np.pi * np.array([0, 0, 0, 0, -60, -120, 0, 0, 120, -60, 0]) / 180
+    assert len(action) == len(joint_baseline_angles)
+    return action + joint_baseline_angles
+
+
+def set_joint_torques(sim, torques, norm=True):
+    if norm:
+        torques /= np.linalg.norm(torques, ord=1)
+        torques /= torques.max()
+        
+    # neural_input = 0.05 + 0.95 * (neural_input - neural_input.min()) / (neural_input.max() - neural_input.min())
+    for link, _torques in zip(sim.get_robot(0).links, torques):
+        link.joint_torque = _torques
+
+
 def stack_tensor_dict_list(tensor_dict_list):
     """
     Stack a list of dictionaries of {tensors or dictionary of tensors}.
