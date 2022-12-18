@@ -44,44 +44,53 @@ if __name__ == "__main__":
     # initialize rendering
     viewer, tracker = prepare_viewer(main_env)
     
-    optimizer = MPPI(env, HORIZON, n_samples, 
-                        num_cpu=NUM_THREADS,
-                        kappa=1.0,
-                        gamma=task.discount_factor,
-                        default_act="mean",
-                        filter_coefs=ACTION_FILTER_COEFS,
-                        seed=SEED,
-                        neuron_stream=neuron_stream)
-    
-    # search for initial paths
-    paths = optimizer.do_rollouts(SEED)
-    optimizer.update(paths)
-    optimizer.paths_per_cpu = 64 // NUM_THREADS
+    if OPTIMIZE:
+        optimizer = MPPI(env, HORIZON, n_samples, 
+                            num_cpu=NUM_THREADS,
+                            kappa=1.0,
+                            gamma=task.discount_factor,
+                            default_act="mean",
+                            filter_coefs=ACTION_FILTER_COEFS,
+                            seed=SEED,
+                            neuron_stream=neuron_stream)
+        
+        # search for initial paths
+        paths = optimizer.do_rollouts(SEED)
+        optimizer.update(paths)
+        optimizer.paths_per_cpu = 64 // NUM_THREADS
+    else:
+        optimizer = None
     
     try:
         prev_time = time()
         while True:
             
-            paths = optimizer.do_rollouts(SEED + len(optimizer.sol_act) + 1)
-            optimizer.update(paths)
+            if optimizer is not None:
+                paths = optimizer.do_rollouts(SEED + len(optimizer.sol_act) + 1)
+                optimizer.update(paths)
+                
+                actions = optimizer.act_sequence[0]
+                print(actions.shape)
+                
+                optimizer.advance_time()
+                step = len(optimizer.sol_act)
+            else:
+                actions = np.zeros(dof_count)
+                step = 0
             
-            actions = optimizer.act_sequence[0]
-            
-            optimizer.advance_time()
-            
-            curr_time = time()
-            print("step =", len(optimizer.sol_act), "\ttime =", curr_time - prev_time, "\tactions =", actions)
-            prev_time = curr_time
                         
             if viewer is not None:
-                # render the simulation
-                viewer_step(main_env, task, actions, viewer, tracker)
+                viewer_step(main_env, task, actions, viewer, tracker, torques=np.zeros_like(actions))
             
             if controller is not None:
-                # move the motors in the real world
                 pass
             
-            sleep(0.01)
+            curr_time = time()
+            print("step =", step, "\ttime =", curr_time - prev_time, "\tactions =", actions)
+            
+            sleep_time = curr_time - prev_time
+            sleep((1/ 15 - sleep_time + 0.01) if sleep_time < 1 / 15 else 0.01)
+            prev_time = curr_time
     
     except KeyboardInterrupt:
         pass

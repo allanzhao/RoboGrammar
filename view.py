@@ -29,14 +29,6 @@ class CameraTracker(object):
         self.sim.get_robot_world_aabb(self.robot_idx, lower, upper)
 
         self.viewer.camera_params.position = 0.5 * (lower + upper)
-        
-
-def set_joint_torques(sim, torques):
-    torques /= np.linalg.norm(torques, ord=1)
-    torques /= torques.max()
-    # neural_input = 0.05 + 0.95 * (neural_input - neural_input.min()) / (neural_input.max() - neural_input.min())
-    for link, _torques in zip(sim.get_robot(0).links, torques):
-        link.joint_torque = _torques
     
 
 def prepare_viewer(sim):
@@ -57,7 +49,10 @@ def prepare_viewer(sim):
     return viewer, tracker
 
 
-def viewer_step(sim, task, actions, viewer, tracker, step=0):
+def viewer_step(sim, task, actions, viewer, tracker, step=0, torques=None):
+    if torques is not None:
+        set_joint_torques(sim, torques, norm=False)
+    
     for i in range(task.interval):
         step_idx = step * task.interval + i
 
