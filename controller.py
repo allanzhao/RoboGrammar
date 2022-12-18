@@ -1,5 +1,7 @@
 import traceback
 from time import sleep
+import math
+
 
 from multiprocessing import Process, Value, Array
 
@@ -123,9 +125,16 @@ class Controller(Process):
 
         #just send goal position
         
+         
+        calculated_position = int(2045 + (degrees * (4095 // 360)))
         
-        self.dxl_comm_result, self.dxl_error = self.packetHandler.write4ByteTxRx(self.portHandler, self.motor_ID[motor], self.addr_goal_position, position)
+        degrees = (position * 180) / math.pi 
 
+
+
+        self.dxl_comm_result, self.dxl_error = self.packetHandler.write4ByteTxRx(self.portHandler, self.motor_ID[motor], self.addr_goal_position, calculated_position)
+
+        
         # take care of the movement logic. 
         # at very least save the positions to your multithread-safe buffer variables.
         
@@ -133,6 +142,8 @@ class Controller(Process):
     def firstMove(self):
 
         pass
+
+
 
 
 if __name__ == "__main__":
