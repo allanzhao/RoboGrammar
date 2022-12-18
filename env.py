@@ -25,11 +25,11 @@ class SimEnvWrapper:
             set_joint_torques(self.env, torques=neural_input)
         
         for k in range(self.task.interval):
-                self.env.set_joint_targets(0, action.reshape(-1, 1))
-                self.task.add_noise(self.env, (self.task.interval * self.seed + k) % (2 ** 32))
-                self.env.step()
-                
-                r += self.task.get_objective_fn()(self.env, neural_input)
+            self.env.set_joint_targets(0, action.reshape(-1, 1))
+            self.task.add_noise(self.env, (self.task.interval * self.seed + k) % (2 ** 32))
+            self.env.step()
+            
+            r += self.task.get_objective_fn()(self.env, neural_input)
         
         if self.real_step:
             self.env.save_state_to_file("tmp.bullet")

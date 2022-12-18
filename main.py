@@ -13,6 +13,7 @@ from utils import (build_normalized_robot, finalize_robot, convert_joint_angles,
                    get_make_sim_and_task_fn, make_graph, presimulate)
 from constants import *
 from view import prepare_viewer, viewer_step
+from controller import Controller
 
 
 if __name__ == "__main__":
@@ -35,16 +36,23 @@ if __name__ == "__main__":
     main_env, _ = make_sim_and_task_fn()
     env = SimEnvWrapper(make_sim_and_task_fn)
     
-    dof_count = env.env.get_robot_dof_count(0)
+    dof_count = main_env.get_robot_dof_count(0)
     objective_fn = task.get_objective_fn()
     n_samples = 512 // NUM_THREADS
     
     # initialize controller
-    controller = None
+    controller = Controller()
     # initialize neuron stream
     neuron_stream = None # NeuronStream(channels=CHANNELS, dt=DT)
     # initialize rendering
-    viewer, tracker = prepare_viewer(main_env)
+    viewer, tracker = None, None # prepare_viewer(main_env)
+    
+    # torques = np.zeros(dof_count, dtype=np.float64)
+    # main_env.get_joint_motor_torques(0, dof_count)
+    # print(torques)
+    # main_env.add_joint_torques(0, np.ones(dof_count) * -1)
+    # main_env.get_joint_motor_torques(0, dof_count)
+    # print(torques)
     
     if OPTIMIZE:
         optimizer = MPPI(env, HORIZON, n_samples, 
@@ -90,16 +98,16 @@ if __name__ == "__main__":
                 action_sequence.append(actions)
                         
             if viewer is not None:
-                viewer_step(main_env, task, actions, viewer, tracker, torques=np.random.rand(*actions.shape))
+                viewer_step(main_env, task, actions, viewer, tracker) # , torques=np.zeros_like(actions)) # np.random.rand(*actions.shape))
             
             if controller is not None:
-                actions_t = convert_joint_angles(actions) 
-                pass
+                actions_t = convert_joint_angles(actions)
+                controller.move(actions_t)
             
             curr_time = time()
             
             sleep_time = curr_time - prev_time
-            print("step =", step, "\ttime =", sleep_time, "\tactions =", np.round(actions, 2))
+            print("step =", step, "\ttime =", np.round(sleep_time, 4), "\tactions =", np.round(actions, 2))
             sleep((1 / 15 - sleep_time + 0.01) if sleep_time < 1 / 15 else 0.01)
             prev_time = curr_time
             step += 1
