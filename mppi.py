@@ -15,24 +15,20 @@ def do_env_rollout(env, act_list, neural_input=None):
     """
     env.reset()
     env.real_env_step(False)
+    
     paths = []
+    
     H = act_list[0].shape[0]
     N = len(act_list)
     _neural_input = None
         
     for i in range(N):
         env.set_env_state()
-        obs = []
         act = []
         rewards = []
-        env_infos = []
-        states = []
 
         for k in range(H):
-            obs.append(env.get_obs())
             act.append(act_list[i][k])
-            env_infos.append(env.get_env_infos())
-            states.append(env.get_env_state())
             
             if neural_input is not None:
                 _neural_input = neural_input[k]
@@ -40,11 +36,7 @@ def do_env_rollout(env, act_list, neural_input=None):
             
             rewards.append(r)
 
-        path = dict(observations=np.array(obs),
-                    actions=np.array(act),
-                    rewards=np.array(rewards),
-                    env_infos=stack_tensor_dict_list(env_infos),
-                    states=states)
+        path = dict(actions=np.array(act), rewards=np.array(rewards))
         paths.append(path)
     return paths
 
@@ -93,12 +85,12 @@ def generate_paths(args):
     then do rollouts with generated actions
     set seed inside this function for multiprocessing
     """
-    N, base_act, filter_coefs, base_seed, neural_input, env_kwargs, history, task_args = args
+    N, base_act, filter_coefs, base_seed, neural_input, history = args
     
     np.random.seed(base_seed)
     act_list = []
 
-    make_sim_and_task_fn = get_make_sim_and_task_fn_without_args(task_args)
+    make_sim_and_task_fn = get_make_sim_and_task_fn_without_args()
     
     env = SimEnvWrapper(make_sim_and_task_fn, load=True)
     env.set_seed(base_seed)
@@ -107,21 +99,21 @@ def generate_paths(args):
         act = generate_perturbed_actions(base_act, filter_coefs, neural_input=None, history=history, idx=idx)
         act_list.append(act)
         
-    paths = do_env_rollout(env, act_list, neural_input=neural_input, env_kwargs=env_kwargs)
+    paths = do_env_rollout(env, act_list, neural_input=neural_input)
     return paths
 
 
-def gather_paths_parallel(history, base_act, filter_coefs, neural_input, base_seed, paths_per_cpu, num_cpu=None, env_kwargs=None):
+def gather_paths_parallel(history, base_act, filter_coefs, neural_input, base_seed, paths_per_cpu, num_cpu=None):
     num_cpu = 1 if num_cpu is None else num_cpu
     num_cpu = mp.cpu_count() if num_cpu == 'max' else num_cpu
-    assert type(num_cpu) == int
+    assert isinstance(num_cpu, int)
     
     pool = mp.Pool(processes=num_cpu)
     input_lists = list()
     
     for i in range(num_cpu):
         cpu_seed = base_seed + i*paths_per_cpu
-        input_lists.append((paths_per_cpu, base_act, filter_coefs, cpu_seed, neural_input, env_kwargs, history))
+        input_lists.append((paths_per_cpu, base_act, filter_coefs, cpu_seed, neural_input, history))
         
     results = pool.map(generate_paths, input_lists)
     
@@ -193,7 +185,6 @@ class MPPI:
         neural_input = self.neuron_stream_full[len(self.sol_act)] if self.neuron_stream_full is not None else None
         _, r, _, _ = self.env.step(action, neural_input=neural_input)
         self.sol_act.append(action)
-        self.sol_reward.append(r)
         
         # get updated action sequence
         if self.warmstart:
@@ -227,7 +218,7 @@ class MPPI:
         for i in range(min(self.H, len(self.sol_act))):
             history[-i-1] = self.sol_act[-i-1]
             
-        if self.neuron_stream_wrapper is not None:
+        if self.neuron_stream is not None:
             step = len(self.sol_act)
             neural_input = self.neuron_stream_full[step:step+self.H, :]
         else:

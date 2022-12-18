@@ -11,8 +11,8 @@ class SimEnvWrapper:
         else:
             self.env.save_state_to_file("tmp.bullet")
         
-        self._observation_dim = (None, )
-        self._action_dim = self.env.get_robot_dof_count(0)
+        self.observation_dim = (None, )
+        self.action_dim = self.env.get_robot_dof_count(0)
         self.seed = None
         self.real_step = False    
     
