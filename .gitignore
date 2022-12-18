@@ -1,3 +1,6 @@
 .history
 .vscode
 __pycache__
+tmp.bullet
+output
+*.csv

@@ -1,5 +1,7 @@
 import numpy as np
 
+from utils import set_joint_torques
+
 
 class SimEnvWrapper:
     
@@ -20,11 +22,7 @@ class SimEnvWrapper:
         r = 0
         
         if neural_input is not None:
-            neural_input /= np.linalg.norm(neural_input, ord=1)
-            neural_input /= neural_input.max()
-            # neural_input = 0.05 + 0.95 * (neural_input - neural_input.min()) / (neural_input.max() - neural_input.min())
-            for link, _neural_input in zip(self.env.get_robot(0).links, neural_input):
-                link.joint_torque = _neural_input
+            set_joint_torques(self.env, torques=neural_input)
         
         for k in range(self.task.interval):
                 self.env.set_joint_targets(0, action.reshape(-1, 1))

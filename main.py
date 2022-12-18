@@ -1,5 +1,7 @@
 import traceback
 from time import time, sleep
+from datetime import datetime
+import os
 
 import pyrobotdesign as rd
 
@@ -7,7 +9,7 @@ from env import SimEnvWrapper
 from mppi import MPPI
 from neurons import NeuronStream
 from tasks import FlatTerrainTask
-from utils import (build_normalized_robot, finalize_robot,
+from utils import (build_normalized_robot, finalize_robot, convert_joint_angles,
                    get_make_sim_and_task_fn, make_graph, presimulate)
 from constants import *
 from view import prepare_viewer, viewer_step
@@ -61,8 +63,12 @@ if __name__ == "__main__":
     else:
         optimizer = None
     
+    if SAVE_ACTION_SEQUENCE:
+        action_sequence = []
+    
     try:
         prev_time = time()
+        step = 0
         while True:
             
             if optimizer is not None:
@@ -70,27 +76,33 @@ if __name__ == "__main__":
                 optimizer.update(paths)
                 
                 actions = optimizer.act_sequence[0]
-                print(actions.shape)
                 
                 optimizer.advance_time()
-                step = len(optimizer.sol_act)
             else:
-                actions = np.zeros(dof_count)
-                step = 0
-            
+                try:
+                    with open("actions.csv", "r") as f:
+                        actions = np.array(list(map(float, f.read().split(","))))
+                    assert len(actions) == dof_count
+                except:
+                    actions = np.zeros(dof_count)
+                
+            if SAVE_ACTION_SEQUENCE:
+                action_sequence.append(actions)
                         
             if viewer is not None:
-                viewer_step(main_env, task, actions, viewer, tracker, torques=np.zeros_like(actions))
+                viewer_step(main_env, task, actions, viewer, tracker, torques=np.random.rand(*actions.shape))
             
             if controller is not None:
+                actions_t = convert_joint_angles(actions) 
                 pass
             
             curr_time = time()
-            print("step =", step, "\ttime =", curr_time - prev_time, "\tactions =", actions)
             
             sleep_time = curr_time - prev_time
-            sleep((1/ 15 - sleep_time + 0.01) if sleep_time < 1 / 15 else 0.01)
+            print("step =", step, "\ttime =", sleep_time, "\tactions =", np.round(actions, 2))
+            sleep((1 / 15 - sleep_time + 0.01) if sleep_time < 1 / 15 else 0.01)
             prev_time = curr_time
+            step += 1
     
     except KeyboardInterrupt:
         pass
@@ -100,6 +112,10 @@ if __name__ == "__main__":
         
     finally:
         # stop the threaded processes.
+        if SAVE_ACTION_SEQUENCE:
+            output_path = os.path.join("output", str(datetime.now()).split(".")[0].replace(" ", "_").replace(":", "-") + ".npy")
+            np.save(output_path, action_sequence)
+        
         if controller is not None:
             controller.stop()
         if neuron_stream is not None:
