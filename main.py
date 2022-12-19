@@ -3,7 +3,7 @@ from time import time, sleep
 from datetime import datetime
 import os
 
-import pyrobotdesign as rd
+# import pyrobotdesign as rd
 
 from env import SimEnvWrapper
 from mppi import MPPI
@@ -19,25 +19,26 @@ from controller import Controller
 if __name__ == "__main__":
     
     # initialize task
-    task = FlatTerrainTask()
-    graphs = rd.load_graphs(GRAMMAR_FILEPATH)
-    rules = [rd.create_rule_from_graph(g) for g in graphs]
+    # task = FlatTerrainTask()
+    # graphs = rd.load_graphs(GRAMMAR_FILEPATH)
+    # rules = [rd.create_rule_from_graph(g) for g in graphs]
     rule_sequence = [int(s.strip(",")) for s in RULE_SEQUENCE]
     
     # initialize graph
-    graph = make_graph(rules, rule_sequence)
+    # graph = make_graph(rules, rule_sequence)
     # initialize robot
-    robot = build_normalized_robot(graph)
-    finalize_robot(robot)
-    robot_init_pos, _ = presimulate(robot)
+    # robot = build_normalized_robot(graph)
+    # finalize_robot(robot)
+    # robot_init_pos, _ = presimulate(robot)
     
     # initialize env
-    make_sim_and_task_fn = get_make_sim_and_task_fn(task, robot, robot_init_pos=robot_init_pos)
-    main_env, _ = make_sim_and_task_fn()
-    env = SimEnvWrapper(make_sim_and_task_fn)
+    # make_sim_and_task_fn = get_make_sim_and_task_fn(task, robot, robot_init_pos=robot_init_pos)
+    # main_env, _ = make_sim_and_task_fn()
+    # env = SimEnvWrapper(make_sim_and_task_fn)
     
-    dof_count = main_env.get_robot_dof_count(0)
-    objective_fn = task.get_objective_fn()
+    # dof_count = main_env.get_robot_dof_count(0)
+    dof_count = 11
+    # objective_fn = task.get_objective_fn()
     n_samples = 512 // NUM_THREADS
     
     # initialize controller
@@ -108,6 +109,7 @@ if __name__ == "__main__":
             
             sleep_time = curr_time - prev_time
             print("step =", step, "\ttime =", np.round(sleep_time, 4), "\tactions =", np.round(actions, 2))
+            print(actions_t)
             sleep((1 / 15 - sleep_time + 0.01) if sleep_time < 1 / 15 else 0.01)
             prev_time = curr_time
             step += 1

@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 import numpy as np
-import pyrobotdesign as rd
+# import pyrobotdesign as rd
 
 from objective_function import DotProductObjective
 

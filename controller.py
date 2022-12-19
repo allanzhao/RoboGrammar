@@ -21,7 +21,7 @@ class Controller(Process):
 
 
 
-        self.motor_ID               = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+        self.motor_ID               = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
         self.motor_num              = len(self.motor_ID)
                   
         
@@ -32,8 +32,8 @@ class Controller(Process):
         
         self.goal_position          = Array('i', [0] * self.motor_num)
         self.present_POS            = Array('i', [0] * self.motor_num)
-        self.torque_enable          = Array('i', [0] * self.motor_num)#boolean
-        self.led                    = Array('i', [0] * self.motor_num)#boolean
+        self.torque_enable          = Array('i', [0] * self.motor_num) #boolean
+        self.led                    = Array('i', [0] * self.motor_num) #boolean
 
 
 
@@ -112,11 +112,11 @@ class Controller(Process):
         #just turn off the torque. 
 
         #also need to see if dynamixelSDK closes port after termination(probably does on its own)
-        for i in range(0, self.motor_num, 1):
+        for i in range(0, (self.motor_num - 1), 1):
 
             self.dxl_comm_result, self.dxl_error = self.packetHandler.write1ByteTxRx(self.portHandler, self.motor_ID[i], self.addr_torque_enable, 0)
    
-    def move(self, motor, position):
+    def move(self, goal_pos):
         """
         arguments:
             positions: absolute positions the motors should reach
@@ -126,13 +126,16 @@ class Controller(Process):
         #just send goal position
         
          
-        calculated_position = int(2045 + (degrees * (4095 // 360)))
-        
-        degrees = (position * 180) / math.pi 
 
 
+        for i in range(0, len(goal_pos), 1):
 
-        self.dxl_comm_result, self.dxl_error = self.packetHandler.write4ByteTxRx(self.portHandler, self.motor_ID[motor], self.addr_goal_position, calculated_position)
+            degrees = (goal_pos[i] * 180) / math.pi 
+            calculated_position = int(2045 + (degrees * (4095 // 360)))
+
+            print("move motor %d to position %d" % (i, calculated_position))
+
+            self.dxl_comm_result, self.dxl_error = self.packetHandler.write4ByteTxRx(self.portHandler, self.motor_ID[i], self.addr_goal_position, calculated_position)
 
         
         # take care of the movement logic. 

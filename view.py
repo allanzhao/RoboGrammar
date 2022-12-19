@@ -1,6 +1,6 @@
 import numpy as np
 
-import pyrobotdesign as rd
+# import pyrobotdesign as rd
 import time
 from utils import set_joint_torques
 
