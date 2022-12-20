@@ -8,7 +8,7 @@ from constants import *
 
 def convert_joint_angles(action, joint_baseline_angles=None):
     if joint_baseline_angles is None:
-        joint_baseline_angles = np.pi * np.array([0, 0, 0, 0, -60, -120, 0, 0, 120, -60, 0]) / 180
+        joint_baseline_angles = np.pi * np.array([0, 0, 0, 0, -60, 120, 0, 0, 120, -60, 0]) / 180
     assert len(action) == len(joint_baseline_angles)
     return action + joint_baseline_angles
 
