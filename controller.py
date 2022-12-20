@@ -131,7 +131,7 @@ class Controller(Process):
         for i in range(0, len(goal_pos), 1):
 
             degrees = (goal_pos[i] * 180) / math.pi 
-            calculated_position = int(2045 + (degrees * (4095 // 360)))
+            calculated_position = int(2045 + (degrees * (4095 // 360))) #this need to round up better
 
             print("move motor %d to position %d" % (i, calculated_position))
 
