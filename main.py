@@ -3,7 +3,6 @@ from time import time, sleep
 from datetime import datetime
 import os
 
-# import pyrobotdesign as rd
 
 from env import SimEnvWrapper
 from mppi import MPPI
@@ -48,12 +47,19 @@ if __name__ == "__main__":
     # initialize rendering
     viewer, tracker = None, None # prepare_viewer(main_env)
     
-    # torques = np.zeros(dof_count, dtype=np.float64)
-    # main_env.get_joint_motor_torques(0, dof_count)
+    # print(dir(robot))
+    # print()
+    # print(dir(main_env))
+    # exit()
+    
+    # torques = np.ones(dof_count)
+    # main_env.get_joint_motor_torques(0, torques)
     # print(torques)
-    # main_env.add_joint_torques(0, np.ones(dof_count) * -1)
-    # main_env.get_joint_motor_torques(0, dof_count)
+    # main_env.add_joint_torques(0, np.ones(dof_count) * 10)
+    # main_env.get_joint_motor_torques(0, torques)
     # print(torques)
+    
+    # set_joint_torques(main_env, np.ones(dof_count) * 0, norm=False)
     
     if OPTIMIZE:
         optimizer = MPPI(env, HORIZON, n_samples, 
@@ -72,6 +78,10 @@ if __name__ == "__main__":
     else:
         optimizer = None
     
+    if INPUT_ACTION_SEQUENCE is not None:
+        action_sequence = np.load(INPUT_ACTION_SEQUENCE)
+        SAVE_ACTION_SEQUENCE = False
+    
     if SAVE_ACTION_SEQUENCE:
         action_sequence = []
     
@@ -87,6 +97,8 @@ if __name__ == "__main__":
                 actions = optimizer.act_sequence[0]
                 
                 optimizer.advance_time()
+            elif INPUT_ACTION_SEQUENCE is not None:
+                actions = action_sequence[step % len(action_sequence)]
             else:
                 try:
                     with open("actions.csv", "r") as f:
@@ -95,9 +107,12 @@ if __name__ == "__main__":
                 except:
                     actions = np.zeros(dof_count)
                 
+            # main_env.get_joint_motor_torques(0, torques)
+            # print(get_joint_torques(main_env))    
+            
             if SAVE_ACTION_SEQUENCE:
                 action_sequence.append(actions)
-                        
+                
             if viewer is not None:
                 viewer_step(main_env, task, actions, viewer, tracker) # , torques=np.zeros_like(actions)) # np.random.rand(*actions.shape))
             
