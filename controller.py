@@ -147,7 +147,7 @@ class Controller(Process):
         pass
 
 
-
+'''
 
 if __name__ == "__main__":
     # if your run this file by executing `python motor_controller.py` code 
@@ -172,7 +172,7 @@ if __name__ == "__main__":
         time.sleep(1/16)
     
 
-    '''
+    
         except KeyboardInterrupt:
         # when you press CTRL+C, the whole program gracefully stops.
         #controller.stop()
@@ -181,3 +181,4 @@ if __name__ == "__main__":
             traceback.print_exc()
         #controller.stop()
     '''
+   
