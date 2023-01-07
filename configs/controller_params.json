@@ -1,0 +1,5 @@
+{
+    "baudrate": 3000000,
+    "port": "/dev/ttyUSB0",
+    "orientations": [1, 1, -1, 1]
+}

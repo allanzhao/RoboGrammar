@@ -164,6 +164,15 @@ class Controller(Process):
 
 
 if __name__ == "__main__":
+    
+    import json
+    
+    params = json.load(open("configs/controller_params.json", "r"))
+    print(params)
+    print()
+    print(params["baudrate"])
+    
+    exit()
     # if your run this file by executing `python motor_controller.py` code 
     # in this if statement will be executed.
     
