@@ -1,6 +1,6 @@
 import traceback
-from time import sleep
-import math
+import time
+import numpy
 
 
 from multiprocessing import Process, Value, Array
@@ -26,9 +26,12 @@ class Controller(Process):
                   
         
         #Read and Write data from and to motors
-        self.homing_offset          = Array('i', [0] * self.motor_num)
-        self.min_position           = Array('i', [0] * self.motor_num)
-        self.max_position           = Array('i', [0] * self.motor_num)
+
+        # EEPROM
+        
+        # self.homing_offset          = Array('i', [0] * self.motor_num)
+        # self.min_position           = Array('i', [0] * self.motor_num)
+        # self.max_position           = Array('i', [0] * self.motor_num)
         
         self.goal_position          = Array('i', [0] * self.motor_num)
         self.present_POS            = Array('i', [0] * self.motor_num)
@@ -122,20 +125,31 @@ class Controller(Process):
             positions: absolute positions the motors should reach
             in_time: time that the movement should take. Optional.
         """
-
-        #just send goal position
+        #degrees = (goal_pos[i] * 180) / math.pi 
+        calculated_position_goal_pos = int(2045 + (numpy.rad2deg(goal_pos) * (4095 / 360))) #this need to round up better
         
-         
+        #Hz. should be 25hz. depents on how fast main.py sends controller.move(goal_pos[])
+        speed_factor = 25
+
+        # start = time.time()
+
+        for s in range(0, speed_factor, 1):
+            for i in range(0, len(goal_pos), 1):
 
 
-        for i in range(0, len(goal_pos), 1):
+                speed_position = self.present_POS[i] + int((calculated_position_goal_pos - self.present_POS[i]) / speed_factor)
+                #print("motor: ", i," ", "new position: ", speed_position, "timestamp: ", s)
 
-            degrees = (goal_pos[i] * 180) / math.pi 
-            calculated_position = int(2045 + (degrees * (4095 // 360))) #this need to round up better
+                self.dxl_comm_result, self.dxl_error = self.packetHandler.write4ByteTxRx(self.portHandler, self.motor_ID[i], self.addr_goal_position, speed_position)
 
-            print("move motor %d to position %d" % (i, calculated_position))
+                self.present_POS[i] = speed_position
 
-            self.dxl_comm_result, self.dxl_error = self.packetHandler.write4ByteTxRx(self.portHandler, self.motor_ID[i], self.addr_goal_position, calculated_position)
+        time.sleep(1 / speed_factor)
+
+        # print(s)
+        # end = time.time()
+        # total = end - start
+        # print(total)
 
         
         # take care of the movement logic. 
@@ -169,7 +183,7 @@ if __name__ == "__main__":
     for i in range(0, 4000, 50):
         print(i)
         controller.move(1, i)
-        time.sleep(1/16)
+    time.sleep(1)
     
 
     '''
