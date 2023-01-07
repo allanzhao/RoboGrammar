@@ -48,7 +48,7 @@ class Controller(Process):
             #Dynamixel XL430 250T settings
         self.boudrate               = 3000000
         self.protocol_type          = 2
-        self.DEVICENAME             = 'COM7'
+        self.DEVICENAME             = '/dev/ttyUSB0'
 
 
         self.portHandler = PortHandler(self.DEVICENAME) # ex) Windows: "COM*", Linux: "/dev/ttyUSB*", Mac: "/dev/tty.usbserial-*"
