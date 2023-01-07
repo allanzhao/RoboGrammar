@@ -49,7 +49,7 @@ class Controller(Process):
         self.addr_present_position  = 132
         self.addr_led               = 65
             #Dynamixel XL430 250T settings
-        self.boudrate               = 3000000
+        self.boudrate               = 3e6
         self.protocol_type          = 2
         self.DEVICENAME             = '/dev/ttyUSB0'
 
@@ -126,7 +126,6 @@ class Controller(Process):
             in_time: time that the movement should take. Optional.
         """
         #degrees = (goal_pos[i] * 180) / math.pi 
-        calculated_position_goal_pos = int(2045 + (numpy.rad2deg(goal_pos) * (4095 / 360))) #this need to round up better
         
         #Hz. should be 25hz. depents on how fast main.py sends controller.move(goal_pos[])
         speed_factor = 25
@@ -135,6 +134,7 @@ class Controller(Process):
 
         for s in range(0, speed_factor, 1):
             for i in range(0, len(goal_pos), 1):
+                calculated_position_goal_pos = int(2045 + (numpy.rad2deg(goal_pos[i]) * (4095 / 360))) #this need to round up better
 
 
                 speed_position = self.present_POS[i] + int((calculated_position_goal_pos - self.present_POS[i]) / speed_factor)
