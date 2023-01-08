@@ -144,7 +144,7 @@ class Controller(Process):
 
                 self.present_POS[i] = speed_position
 
-        time.sleep(1 / speed_factor)
+            time.sleep(1 / speed_factor)
 
         # print(s)
         # end = time.time()

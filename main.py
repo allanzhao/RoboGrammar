@@ -130,7 +130,7 @@ if __name__ == "__main__":
             step += 1
             
             # change this sleep HERE!
-            sleep(1)
+            # sleep(1)
     
     except KeyboardInterrupt:
         pass
