@@ -21,8 +21,9 @@ class Controller(Process):
 
 
 
-        self.motor_ID               = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+        self.motor_ID               = [2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 99]
         self.motor_num              = len(self.motor_ID)
+        self.motor_directions       = [1, -1, -1, -1, 1, 1, 1, 1, 1, 1, 0]
                   
         
         #Read and Write data from and to motors
@@ -88,14 +89,15 @@ class Controller(Process):
 
 
             # loop throug arrays of motor IDs read position . if succesfull, set goals position and turn on torque
-        for i in range(0, self.motor_num - 1, 1):
+        for i in range(0, self.motor_num, 1):
 
             #if self.dxl_comm_result != COMM_SUCCESS:
            
             dxl_present_position, self.dxl_comm_result, self.dxl_error = self.packetHandler.read4ByteTxRx(self.portHandler, self.motor_ID[i], self.addr_present_position)
 
             if self.dxl_error != 0:
-                print("%s" % self.packetHandler.getRxPacketError(dxl_error), "error")
+                print("MOTOR @id: %d" % self.motor_ID[i])
+                print("%s" % self.packetHandler.getRxPacketError(self.dxl_error), "error")
                 
 
                     # Set present position 
@@ -115,7 +117,7 @@ class Controller(Process):
         #just turn off the torque. 
 
         #also need to see if dynamixelSDK closes port after termination(probably does on its own)
-        for i in range(0, (self.motor_num - 1), 1):
+        for i in range(0, (self.motor_num), 1):
 
             self.dxl_comm_result, self.dxl_error = self.packetHandler.write1ByteTxRx(self.portHandler, self.motor_ID[i], self.addr_torque_enable, 0)
    
@@ -128,7 +130,7 @@ class Controller(Process):
         #degrees = (goal_pos[i] * 180) / math.pi 
         
         #Hz. should be 25hz. depents on how fast main.py sends controller.move(goal_pos[])
-        speed_factor = 25
+        speed_factor = 1
 
         # start = time.time()
 
@@ -136,15 +138,18 @@ class Controller(Process):
             for i in range(0, len(goal_pos), 1):
                 calculated_position_goal_pos = int(2045 + (numpy.rad2deg(goal_pos[i]) * (4095 / 360))) #this need to round up better
 
-
                 speed_position = self.present_POS[i] + int((calculated_position_goal_pos - self.present_POS[i]) / speed_factor)
+                # speed_position *= self.motor_directions[i]
                 #print("motor: ", i," ", "new position: ", speed_position, "timestamp: ", s)
 
                 self.dxl_comm_result, self.dxl_error = self.packetHandler.write4ByteTxRx(self.portHandler, self.motor_ID[i], self.addr_goal_position, speed_position)
+                if i == 5:
+                    print(speed_position, goal_pos[i], self.present_POS[i])
+                    print(self.packetHandler.getRxPacketError(self.dxl_error))
 
                 self.present_POS[i] = speed_position
 
-            time.sleep(1 / speed_factor)
+            # time.sleep(1 / speed_factor)
 
         # print(s)
         # end = time.time()
