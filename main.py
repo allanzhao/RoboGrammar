@@ -124,7 +124,7 @@ if __name__ == "__main__":
             
             sleep_time = curr_time - prev_time
             print("step =", step, "\ttime =", np.round(sleep_time, 4), "\tactions =", np.round(actions, 2))
-            print(actions_t)
+            # print(actions_t)
             sleep((1 / 15 - sleep_time + 0.01) if sleep_time < 1 / 15 else 0.01)
             prev_time = curr_time
             step += 1
