@@ -144,6 +144,8 @@ class Controller(Process):
             _, dxl_error = self.packetHandler.write4ByteTxRx(self.portHandler, self.motor_ID[i], self.addr_goal_position, goal_pos[i])
             self.log_error(i, dxl_error)
             
+        # DOES NOT WORK FOR NOW!
+        """
         for i in range(len(goal_pos)):
             _, _, dxl_error = self.packetHandler.ping(self.portHandler, self.motor_ID[i])
              
@@ -153,7 +155,7 @@ class Controller(Process):
                 if self.ping_count[i] == 4:
                     _, dxl_error = self.packetHandler.reboot(self.portHandler, self.motor_ID[i])
                     self.ping_count[i] = 0
-            
+        """    
                             
         return
     
